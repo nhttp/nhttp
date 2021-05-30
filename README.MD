@@ -16,29 +16,32 @@ Just native HTTP/2 micro framework for Deno. so hot :rocket:
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.1/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
 ```
 ### nest.land
 ```ts
 // will soon
-// import { NHttp } from "https://x.nest.land/nhttp@0.0.1/mod.ts";
+// import { NHttp } from "https://x.nest.land/nhttp@0.0.2/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.1/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
 
 const app = new NHttp();
 
 app.get("/hello", (request, respondWith) => {
     respondWith(new Response("Hello"));
 });
+
 app.get("/json", (request, respondWith) => {
     // shorthand
     request.pond({ name: "john" });
 });
 
-app.listen(3000);
+app.listen(3000, () => {
+    console.log("> Running on port 3000");
+});
 ```
 > Note: request.pond just support string and json only. for other type please use respondWith instead.
 
@@ -50,7 +53,7 @@ app.listen(3000);
 deno run --allow-net --allow-read --unstable yourfile.ts
 ```
 
-## Listen;
+## Listen
 ```ts
 app.listen(3000);
 // or
@@ -78,7 +81,7 @@ app.listen({
 
 ## Middleware
 ```ts
-import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.1/mod.ts";
+import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
 
 const app = new NHttp();
 
@@ -98,7 +101,7 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.1/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
 
 const app = new NHttp();
 
@@ -131,59 +134,53 @@ params: object;
 path: string;
 query: object;
 search: string | null;
+parsedBody: object | undefined;
+file: object | undefined;
 //   more
 ```
 
-## Handle Request Body and Upload
-Native http is very simple read body and upload file.
+## Handle Body and Upload
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.1/mod.ts";
+import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
 const app = new NHttp();
 
-// read body json
-app.post("/json", async (request, respondWith) => {
-    let body = {};
-    if (request.headers.get('content-type')?.includes('application/json')) {
-        body = await request.json();
-    }
-    console.log(body);
-    respondWith(new Response("test"));
+app.use(jsonBody(), urlencodedBody());
+
+app.post("/hello", async (request, respondWith) => {
+    console.log(request.parsedBody);
+    respondWith(new Response("body was parsed"));
 });
 
-// read body urlencoded
-app.post("/urlencoded", async (request, respondWith) => {
-    let body = {};
-    if (request.headers.get('content-type')?.includes('application/x-www-form-urlencoded')) {
-        body = await request.text();
-    }
-    body = Object.fromEntries(new URLSearchParams(body));
-    console.log(body);
-    respondWith(new Response("test"));
-});
- 
 // handle upload multipart/form-data
-app.post("/upload", async (request, respondWith) => {
-    let body;
-    if (request.headers.get('content-type')?.includes('multipart/form-data')) {
-        body = await request.formData();
+app.post("/upload", multipartBody({ fileKey: "image" }), async (request, respondWith) => {
+    if (!request.file?.image) {
+      throw new Error("Image is required");
     }
-    if (!body) {
-        throw new Error("Content type must be multipart/form-data");
-    }
-    const formData = Object.fromEntries(body.entries());
-    if (!formData.file) {
-        throw new Error("File is required");
-    }
-    const file = formData.file as File;
-    console.log(file.name, file.size);
-    const buffer = await file.arrayBuffer();
-    await Deno.writeFile("./" + file.name, new Uint8Array(buffer));
-    respondWith(new Response("Success upload"));
+    let file = request.file.image as File;
+    console.log(file.name);
+    console.log(request.parsedBody);
+
+    // convert to array buffer
+    let arrBuf = await file.arrayBuffer();
+
+    // save file
+    await Deno.writeFile("./" + file.name, new Uint8Array(arrBuf));
+    respondWith(new Response("Success upload file"));
 });
 app.listen(3000);
 ```
-Of course, so that it can be used over and over again, it can be made as middleware.
+For nested object in urlencoded and multipart, you can use qs : 
+```ts
+import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import qs from "https://esm.sh/qs?no-check";
 
+// application/x-www-form-urlencoded
+app.use(urlencodedBody({ parse: qs.parse }));
+
+// multipart/form-data
+app.post("/upload", multipartBody({ fileKey: "image", parse: qs.parse }), ...more);
+
+```
 ## RespondWith
 Just callback Web API [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response).
 ```ts

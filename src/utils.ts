@@ -1,7 +1,14 @@
 import { HttpRequest, NextFunction, RespondWith } from "./types.ts";
 
 export function parsequery(query: string) {
-  return query ? Object.fromEntries(new URLSearchParams(query)) : {};
+  if (!query) return {};
+  const qparams = new URLSearchParams(query);
+  return Object.fromEntries(
+    Array.from(qparams.keys()).map((key) => [
+      key,
+      qparams.getAll(key).length > 1 ? qparams.getAll(key) : qparams.get(key),
+    ]),
+  );
 }
 
 export function modPath(prefix: string) {
