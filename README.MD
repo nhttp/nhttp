@@ -11,7 +11,7 @@ Just native HTTP/2 micro framework for Deno. so hot :rocket:
 * Support middleware.
 * Support sub router.
 
-[See examples](https://github.com/nhttp/nhttp/tree/main/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
 ## Installation
 ### deno.land
@@ -216,7 +216,7 @@ app.on404((request, respondWith) => {
 ```
 
 ## What Next ?
-[See examples](https://github.com/nhttp/nhttp/tree/main/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
 ## License
 
