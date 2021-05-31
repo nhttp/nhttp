@@ -1,10 +1,6 @@
 export type NextFunction = (err?: any) => void;
 export type RespondWith = (r: Response | Promise<Response>) => Promise<void>;
 export type HttpRequest = Request & {
-  pond: (
-    body?: string | { [k: string]: any } | null | undefined,
-    opts?: { status?: number; headers?: Headers },
-  ) => Promise<void>;
   originalUrl: string;
   params: { [k: string]: any };
   path: string;

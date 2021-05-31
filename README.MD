@@ -16,17 +16,16 @@ Just native HTTP/2 micro framework for Deno. so hot :rocket:
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 ```
 ### nest.land
 ```ts
-// will soon
-// import { NHttp } from "https://x.nest.land/nhttp@0.0.3/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@0.0.5/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 
 const app = new NHttp();
 
@@ -35,15 +34,13 @@ app.get("/hello", (request, respondWith) => {
 });
 
 app.get("/json", (request, respondWith) => {
-    // shorthand
-    request.pond({ name: "john" });
+    respondWith(new JsonResponse({ name: "john" }));
 });
 
 app.listen(3000, () => {
     console.log("> Running on port 3000");
 });
 ```
-> Note: request.pond just support string and json only. for other type please use respondWith instead.
 
 > Note: request.url is full url. use request.originalUrl instead.
 
@@ -81,7 +78,7 @@ app.listen({
 
 ## Middleware
 ```ts
-import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 
 const app = new NHttp();
 
@@ -101,7 +98,7 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 
 const app = new NHttp();
 
@@ -128,20 +125,19 @@ app.listen(3000);
 ## Request
 Just Web API [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) with add more some object like :
 ```ts
-pond: (body?: string | json | undefined, opts?: { status: number; headers: Headers });
 originalUrl: string;
 params: object;
 path: string;
 query: object;
 search: string | null;
-parsedBody: object | undefined;
-file: object | undefined;
+parsedBody: object;
+file: object;
 //   more
 ```
 
 ## Handle Body and Upload
 ```ts
-import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 const app = new NHttp();
 
 app.use(jsonBody(), urlencodedBody());
@@ -171,7 +167,7 @@ app.listen(3000);
 ```
 For nested object in urlencoded and multipart, you can use qs : 
 ```ts
-import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
+import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.5/mod.ts";
 import qs from "https://esm.sh/qs?no-check";
 
 // application/x-www-form-urlencoded
@@ -201,16 +197,16 @@ app.get("/hello", (request, respondWith) => {
 ...
 // global error handling
 app.onError((error, request, respondWith) => {
-    respondWith(new Response(error.message), {
+    respondWith(new Response(error.message, {
         status: error.status || 500
-    })
+    }))
 })
 
 // global not found error handling
 app.on404((request, respondWith) => {
-    respondWith(new Response(`${request.originalUrl} not found`), {
+    respondWith(new Response(`${request.originalUrl} not found`, {
         status: 404
-    })
+    }))
 })
 ...
 ```

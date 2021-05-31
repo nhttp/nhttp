@@ -6,7 +6,7 @@ app.post(
   "/upload-image",
   multipartBody({ fileKey: "image" }),
   async (request, respondWith) => {
-    if (!request.file?.image) {
+    if (!request.file.image) {
       throw new Error("Image is required");
     }
     let file = request.file.image as File;

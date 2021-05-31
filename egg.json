@@ -1,0 +1,24 @@
+{
+  "$schema": "https://x.nest.land/eggs@0.3.6/src/schema.json",
+  "name": "nhttp",
+  "entry": "./mod.ts",
+  "description": "Just native HTTP/2 micro framework for Deno.",
+  "homepage": "https://github.com/nhttp/nhttp",
+  "version": "0.0.5",
+  "files": [
+    "./mod.ts",
+    "./src/body.ts",
+    "./src/nhttp.ts",
+    "./src/router.ts",
+    "./src/types.ts",
+    "./src/utils.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "ignore": [],
+  "checkFormat": false,
+  "checkTests": false,
+  "checkInstallation": false,
+  "check": true,
+  "unlisted": false
+}

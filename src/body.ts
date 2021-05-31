@@ -53,21 +53,22 @@ export function multipartBody(
             : formData.get(key),
         ]),
       ));
-      req.file = {};
+      let _file = {} as any;
       if (Array.isArray(fileKey)) {
         for (const key of fileKey) {
           if (body[key]) {
-            req.file[key] = body[key];
+            _file[key] = body[key];
             delete body[key];
           }
         }
       }
       if (typeof fileKey === "string") {
         if (body[fileKey]) {
-          req.file[fileKey] = body[fileKey];
+          _file[fileKey] = body[fileKey];
           delete body[fileKey];
         }
       }
+      req.file = _file;
       req.parsedBody = body;
     }
     next();

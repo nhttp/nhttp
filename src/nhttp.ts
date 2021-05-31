@@ -12,7 +12,7 @@ const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
 type TypeNhttp = { parseQuery?: any };
 
-export default class NHttp extends Router {
+export class NHttp extends Router {
   #parseQuery: (query: string) => any;
   constructor({ parseQuery }: TypeNhttp = {}) {
     super();
@@ -122,18 +122,6 @@ export default class NHttp extends Router {
     request.path = url.pathname;
     request.query = this.#parseQuery(url.search);
     request.search = url.search;
-    // shorthand send response
-    request.pond = (
-      body?: string | { [k: string]: any } | null | undefined,
-      opts = {} as any,
-    ) => {
-      if (typeof body === "object") {
-        body = JSON.stringify(body);
-        opts.headers = opts.headers || new Headers();
-        opts.headers.set("Content-Type", JSON_TYPE_CHARSET);
-      }
-      return respondWith(new Response(body, opts));
-    };
     next();
   }
   #handleConn = async (conn: Deno.Conn) => {
@@ -203,5 +191,13 @@ export default class NHttp extends Router {
         });
       }
     }
+  }
+}
+
+export class JsonResponse extends Response {
+  constructor(json: { [k: string]: any } | null, opts: ResponseInit = {}) {
+    opts.headers = (opts.headers || new Headers()) as Headers;
+    opts.headers.set("content-type", JSON_TYPE_CHARSET);
+    super(JSON.stringify(json), opts);
   }
 }
