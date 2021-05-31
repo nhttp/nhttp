@@ -10,7 +10,7 @@ export type HttpRequest = Request & {
   path: string;
   query: { [k: string]: any };
   parsedBody: { [k: string]: any };
-  file: { [k: string]: any } | undefined;
+  file: { [k: string]: any };
   search: string | null;
   [k: string]: any;
 };
