@@ -16,17 +16,17 @@ Just native HTTP/2 micro framework for Deno. so hot :rocket:
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 ```
 ### nest.land
 ```ts
 // will soon
-// import { NHttp } from "https://x.nest.land/nhttp@0.0.2/mod.ts";
+// import { NHttp } from "https://x.nest.land/nhttp@0.0.3/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 
 const app = new NHttp();
 
@@ -81,7 +81,7 @@ app.listen({
 
 ## Middleware
 ```ts
-import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp, HttpRequest, RespondWith, NextFunction } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 
 const app = new NHttp();
 
@@ -101,7 +101,7 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 
 const app = new NHttp();
 
@@ -141,7 +141,7 @@ file: object | undefined;
 
 ## Handle Body and Upload
 ```ts
-import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 const app = new NHttp();
 
 app.use(jsonBody(), urlencodedBody());
@@ -171,7 +171,7 @@ app.listen(3000);
 ```
 For nested object in urlencoded and multipart, you can use qs : 
 ```ts
-import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.2/mod.ts";
+import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.0.3/mod.ts";
 import qs from "https://esm.sh/qs?no-check";
 
 // application/x-www-form-urlencoded

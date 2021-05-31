@@ -140,11 +140,15 @@ export default class NHttp extends Router {
     try {
       const httpConn = Deno.serveHttp(conn);
       for await (const { request, respondWith } of httpConn) {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = respondWith(promise);
-        this.handle(request as HttpRequest, resp! as RespondWith);
-        await rw;
+        if (request.body === null) {
+          this.handle(request as HttpRequest, respondWith);
+        } else {
+          let resp: (res: Response) => void;
+          const promise = new Promise<Response>((ok) => (resp = ok));
+          const rw = respondWith(promise);
+          this.handle(request as HttpRequest, resp! as RespondWith);
+          await rw;
+        }
       }
     } catch (_e) {}
   };
@@ -156,6 +160,10 @@ export default class NHttp extends Router {
       | { [k: string]: any },
     callback?: (
       err?: Error,
+      opts?:
+        | Deno.ListenOptions
+        | Deno.ListenTlsOptions
+        | { [k: string]: any },
     ) => void | Promise<void>,
   ) {
     let isTls = false;
@@ -169,7 +177,13 @@ export default class NHttp extends Router {
       )
     ) as Deno.Listener;
     try {
-      if (callback) callback();
+      if (callback) {
+        callback(undefined, {
+          ...opts,
+          hostname: opts.hostname || "localhost",
+          server,
+        });
+      }
       while (true) {
         try {
           const conn = await server.accept();
@@ -181,7 +195,13 @@ export default class NHttp extends Router {
         } catch (_e) {}
       }
     } catch (error) {
-      if (callback) callback(error);
+      if (callback) {
+        callback(error, {
+          ...opts,
+          hostname: opts.hostname || "localhost",
+          server,
+        });
+      }
     }
   }
 }
