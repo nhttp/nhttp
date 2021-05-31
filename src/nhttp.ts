@@ -128,15 +128,11 @@ export class NHttp extends Router {
     try {
       const httpConn = Deno.serveHttp(conn);
       for await (const { request, respondWith } of httpConn) {
-        if (request.body === null) {
-          this.handle(request as HttpRequest, respondWith);
-        } else {
-          let resp: (res: Response) => void;
-          const promise = new Promise<Response>((ok) => (resp = ok));
-          const rw = respondWith(promise);
-          this.handle(request as HttpRequest, resp! as RespondWith);
-          await rw;
-        }
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = respondWith(promise);
+        this.handle(request as HttpRequest, resp! as RespondWith);
+        await rw;
       }
     } catch (_e) {}
   };
