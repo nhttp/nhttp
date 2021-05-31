@@ -43,6 +43,18 @@ export class NHttp extends Router {
       this.on(el.method, prefix + el.path, ...el.handlers);
     }
   };
+  #handleConn = async (conn: Deno.Conn) => {
+    try {
+      const httpConn = Deno.serveHttp(conn);
+      for await (const { request, respondWith } of httpConn) {
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = respondWith(promise);
+        this.handle(request as HttpRequest, resp! as RespondWith);
+        await rw;
+      }
+    } catch (_e) {}
+  };
   onError(
     fn: (
       err: any,
@@ -124,18 +136,6 @@ export class NHttp extends Router {
     request.search = url.search;
     next();
   }
-  #handleConn = async (conn: Deno.Conn) => {
-    try {
-      const httpConn = Deno.serveHttp(conn);
-      for await (const { request, respondWith } of httpConn) {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = respondWith(promise);
-        this.handle(request as HttpRequest, resp! as RespondWith);
-        await rw;
-      }
-    } catch (_e) {}
-  };
   async listen(
     opts:
       | number
