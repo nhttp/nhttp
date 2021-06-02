@@ -4,12 +4,13 @@
 
 Just native HTTP/2 micro framework for [Deno](https://deno.land/). so hot :rocket:
 
-> Note: Deno native HTTP/2 [Hyper](https://hyper.rs/) need Deno version 1.9.0 or higher.
+> Note: Deno native HTTP/2 [Hyper](https://hyper.rs/) requires Deno version 1.9.0 or higher.
 
 ## Features
-* Support HTTP/2.
-* Support middleware.
-* Support sub router.
+
+* HTTP/2 support.
+* Middleware support.
+* Sub router support.
 * No third party modules and no std/lib by default.
 
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
@@ -23,7 +24,7 @@ Here the simple benchmark.
 |NHttp|21127|2.5 MB|
 |std/http|14569|626 KB|
 
-> Note: maybe not relevan if compare with std/http or other Deno framework using std/http. nhttp use native deno http. 
+> Note: maybe not relevant if compared with std/http or other Deno framework using std/http. nhttp uses native deno http. 
 
 ## Installation
 ### deno.land
@@ -161,7 +162,9 @@ app.get("/hello", (rev) => {
 ...
 ```
 ### Body and File (post, put, patch. or any)
-body and file is available where use jsonBody, urlencodedBody or multipartBody.
+
+body and file are available where use jsonBody, urlencodedBody or multipartBody.
+
 ```ts
 import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
 const app = new NHttp();
@@ -249,7 +252,7 @@ app.listen({
 }, callback);
 ```
 
-## What Next ?
+## What's Next ?
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
 ## License
