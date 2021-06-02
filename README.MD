@@ -22,7 +22,7 @@ Here the simple benchmark.
 |Native|21433|2.5 MB|
 |NHttp|21127|2.5 MB|
 |std/http|14569|626 KB|
-<br>
+
 > Note: maybe not relevan if compare with std/http or other Deno framework using std/http. nhttp use native deno http. 
 
 ## Installation
