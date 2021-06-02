@@ -1,4 +1,4 @@
-import { THandler, THandlers } from "./types.ts";
+import { Handler, Handlers, RequestEvent } from "./types.ts";
 
 function findBase(pathname: string) {
   let iof = pathname.indexOf("/", 1);
@@ -6,21 +6,23 @@ function findBase(pathname: string) {
   return pathname;
 }
 
-export default class Router {
+export default class Router<
+  Rev extends RequestEvent = RequestEvent,
+> {
   route: Record<string, any> = {};
   c_routes: Record<string, any>[] = [];
-  midds: THandler[] = [];
+  midds: Handler<Rev>[] = [];
   pmidds: Record<string, any> = {};
-  get: (path: string, ...handlers: THandlers) => this;
-  post: (path: string, ...handlers: THandlers) => this;
-  put: (path: string, ...handlers: THandlers) => this;
-  patch: (path: string, ...handlers: THandlers) => this;
-  delete: (path: string, ...handlers: THandlers) => this;
-  any: (path: string, ...handlers: THandlers) => this;
-  head: (path: string, ...handlers: THandlers) => this;
-  options: (path: string, ...handlers: THandlers) => this;
-  trace: (path: string, ...handlers: THandlers) => this;
-  connect: (path: string, ...handlers: THandlers) => this;
+  get: (path: string, ...handlers: Handlers<Rev>) => this;
+  post: (path: string, ...handlers: Handlers<Rev>) => this;
+  put: (path: string, ...handlers: Handlers<Rev>) => this;
+  patch: (path: string, ...handlers: Handlers<Rev>) => this;
+  delete: (path: string, ...handlers: Handlers<Rev>) => this;
+  any: (path: string, ...handlers: Handlers<Rev>) => this;
+  head: (path: string, ...handlers: Handlers<Rev>) => this;
+  options: (path: string, ...handlers: Handlers<Rev>) => this;
+  trace: (path: string, ...handlers: Handlers<Rev>) => this;
+  connect: (path: string, ...handlers: Handlers<Rev>) => this;
   constructor() {
     this.get = this.on.bind(this, "GET");
     this.post = this.on.bind(this, "POST");
@@ -34,9 +36,9 @@ export default class Router {
     this.connect = this.on.bind(this, "CONNECT");
   }
   #addMidd = (
-    midds: THandler[],
-    notFound: THandler,
-    fns: THandler[],
+    midds: Handler<Rev>[],
+    notFound: Handler<Rev>,
+    fns: Handler<Rev>[],
     url: string = "/",
     midAsset?: { [k: string]: any },
   ) => {
@@ -47,11 +49,11 @@ export default class Router {
     if (midds.length) fns = midds.concat(fns);
     return (fns = fns.concat([notFound]));
   };
-  on(method: string, path: string, ...handlers: THandlers) {
+  on(method: string, path: string, ...handlers: Handlers<Rev>) {
     this.c_routes.push({ method, path, handlers });
     return this;
   }
-  findRoute(method: string, url: string, notFound: THandler) {
+  findRoute(method: string, url: string, notFound: Handler<Rev>) {
     let params: { [key: string]: any } = {},
       handlers: any[] = [];
     if (this.route[method + url]) {

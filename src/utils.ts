@@ -1,4 +1,4 @@
-import { HttpRequest, NextFunction, RespondWith } from "./types.ts";
+import { Handler, RequestEvent } from "./types.ts";
 
 export function parsequery(query: string) {
   if (!query) return {};
@@ -11,16 +11,13 @@ export function parsequery(query: string) {
   );
 }
 
-export function modPath(prefix: string) {
-  return function (
-    request: HttpRequest,
-    respondWith: RespondWith,
-    next: NextFunction,
-  ) {
-    request.originalUrl = request.originalUrl.substring(prefix.length) || "/";
-    request.path = request.path
-      ? request.path.substring(prefix.length) || "/"
-      : "/";
+export function modPath(prefix: string): Handler {
+  return (rev, next) => {
+    rev.url = rev.url.substring(prefix.length) || "/";
+    rev.path = rev.path ? rev.path.substring(prefix.length) || "/" : "/";
+    rev.headers = rev.request.headers;
+    rev.method = rev.request.method;
+    rev.respond = ({ body, status, headers }: any) => rev.respondWith(new Response(body, { status, headers }));
     next();
   };
 }
@@ -87,10 +84,9 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
   return { params, pathx };
 }
 
-export function parseurl(request: HttpRequest) {
-  let arr = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(request.url) as any[];
-  let str = arr[2] as string,
-    url = request._parsedUrl;
+export function parseurl(rev: RequestEvent) {
+  let str = rev.url,
+    url = rev._parsedUrl;
   if (url && url._raw === str) return url;
   let pathname = str,
     query = null,
@@ -111,5 +107,5 @@ export function parseurl(request: HttpRequest) {
   url.pathname = pathname;
   url.query = query;
   url.search = search;
-  return (request._parsedUrl = url);
+  return (rev._parsedUrl = url);
 }

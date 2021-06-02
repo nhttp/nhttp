@@ -2,7 +2,7 @@ import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
 
-app.get("/hello", (request, respondWith) => {
+app.get("/hello", ({ respondWith }) => {
   respondWith(new Response("Hello"));
 });
 

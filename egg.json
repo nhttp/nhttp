@@ -4,7 +4,7 @@
   "entry": "./mod.ts",
   "description": "Just native HTTP/2 micro framework for Deno.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "files": [
     "./mod.ts",
     "./src/body.ts",

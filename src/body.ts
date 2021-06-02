@@ -1,35 +1,38 @@
-import { HttpRequest, NextFunction, RespondWith } from "./types.ts";
+import { Handler, RequestEvent } from "./types.ts";
 import { parsequery as parsequeryOri } from "./utils.ts";
 
 type TMultipart = { fileKey?: string | string[]; parse?: (data: any) => any };
 type TUrlencoded = { parse?: (data: any) => any };
 
-function isBody(req: HttpRequest) {
-  if (req.parsedBody === void 0) req.parsedBody = {};
-  if (req.body && req.bodyUsed === false) return true;
+function isBody(rev: RequestEvent) {
+  if (rev.body === void 0) rev.body = {};
+  if (rev.request.bodyUsed === false && rev.request.body) return true;
   return false;
 }
 
-export function jsonBody() {
-  return async (req: HttpRequest, _: RespondWith, next: NextFunction) => {
+export function jsonBody(): Handler {
+  return async (rev, next) => {
     if (
-      isBody(req) &&
-      req.headers.get("content-type") === "application/json"
+      isBody(rev) &&
+      rev.request.headers.get("content-type") === "application/json"
     ) {
-      req.parsedBody = await req.json();
+      rev.body = await rev.request.json();
     }
     next();
   };
 }
 
-export function urlencodedBody({ parse = parsequeryOri }: TUrlencoded = {}) {
-  return async (req: HttpRequest, _: RespondWith, next: NextFunction) => {
+export function urlencodedBody(
+  { parse = parsequeryOri }: TUrlencoded = {},
+): Handler {
+  return async (rev, next) => {
     if (
-      isBody(req) &&
-      req.headers.get("content-type") === "application/x-www-form-urlencoded"
+      isBody(rev) &&
+      rev.request.headers.get("content-type") ===
+        "application/x-www-form-urlencoded"
     ) {
-      const str = await req.text();
-      req.parsedBody = parse(str);
+      const str = await rev.request.text();
+      rev.body = parse(str);
     }
     next();
   };
@@ -37,14 +40,14 @@ export function urlencodedBody({ parse = parsequeryOri }: TUrlencoded = {}) {
 
 export function multipartBody(
   { fileKey, parse = (noop) => noop }: TMultipart = {},
-) {
-  return async (req: HttpRequest, _: RespondWith, next: NextFunction) => {
-    if (req.file === void 0) req.file = {};
+): Handler {
+  return async (rev, next) => {
+    if (rev.file === void 0) rev.file = {};
     if (
-      isBody(req) &&
-      req.headers.get("content-type")?.includes("multipart/form-data")
+      isBody(rev) &&
+      rev.request.headers.get("content-type")?.includes("multipart/form-data")
     ) {
-      const formData = await req.formData();
+      const formData = await rev.request.formData();
       let body = parse(Object.fromEntries(
         Array.from(formData.keys()).map((key) => [
           key,
@@ -68,8 +71,8 @@ export function multipartBody(
           delete body[fileKey];
         }
       }
-      req.file = _file;
-      req.parsedBody = body;
+      rev.file = _file;
+      rev.body = body;
     }
     next();
   };

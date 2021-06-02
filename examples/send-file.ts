@@ -19,7 +19,7 @@ class FileResponse extends Response {
 
 const app = new NHttp();
 
-app.get("/send-file", (request, respondWith) => {
+app.get("/send-file", ({ respondWith }) => {
   respondWith(new FileResponse("/public/test.css"));
 });
 

@@ -4,9 +4,9 @@ const app = new NHttp();
 
 app.use(jsonBody(), urlencodedBody());
 
-app.post("/hello", (request, respondWith) => {
-  console.log(request.parsedBody);
-  respondWith(new Response("Hello"));
+app.post("/hello", (rev) => {
+  console.log(rev.body);
+  rev.respondWith(new Response("Hello"));
 });
 
 app.listen(3000, () => {

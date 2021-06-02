@@ -1,4 +1,4 @@
-import { HttpRequest, NextFunction, RespondWith, THandlers } from "./types.ts";
+import { Handlers, Handler, NextFunction, RequestEvent } from "./types.ts";
 import Router from "./router.ts";
 import {
   findFns,
@@ -12,7 +12,9 @@ const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
 type TypeNhttp = { parseQuery?: any };
 
-export class NHttp extends Router {
+export class NHttp<
+  Rev extends RequestEvent = RequestEvent,
+> extends Router<Rev> {
   #parseQuery: (query: string) => any;
   constructor({ parseQuery }: TypeNhttp = {}) {
     super();
@@ -20,17 +22,15 @@ export class NHttp extends Router {
   }
   #onError = (
     err: any,
-    request: HttpRequest,
-    respondWith: RespondWith,
+    rev: Rev,
     next: NextFunction,
-  ) => respondWith(new Response(err.message));
+  ) => rev.respondWith(new Response(err.message));
   #on404 = (
-    request: HttpRequest,
-    respondWith: RespondWith,
+    rev: Rev,
     next: NextFunction,
   ) =>
-    respondWith(
-      new Response(`${request.method}${request.originalUrl} not found`),
+    rev.respondWith(
+      new Response(`${rev.request.method}${rev.url} not found`),
     );
   #addRoutes = (arg: string, args: any[], routes: any[]) => {
     let prefix = "", midds = findFns(args), i = 0, len = routes.length;
@@ -50,7 +50,10 @@ export class NHttp extends Router {
         let resp: (res: Response) => void;
         const promise = new Promise<Response>((ok) => (resp = ok));
         const rw = respondWith(promise);
-        this.handle(request as HttpRequest, resp! as RespondWith);
+        this.handle({
+          request: request,
+          respondWith: resp!,
+        } as Rev);
         await rw;
       }
     } catch (_e) {}
@@ -58,8 +61,7 @@ export class NHttp extends Router {
   onError(
     fn: (
       err: any,
-      request: HttpRequest,
-      respondWith: RespondWith,
+      rev: Rev,
       next: NextFunction,
     ) => any,
   ) {
@@ -67,15 +69,24 @@ export class NHttp extends Router {
   }
   on404(
     fn: (
-      request: HttpRequest,
-      respondWith: RespondWith,
+      rev: Rev,
       next: NextFunction,
     ) => any,
   ) {
     this.#on404 = fn;
   }
-  use(...middlewares: THandlers): this;
-  use(prefix: string, ...middlewares: THandlers): this;
+  use(prefix: string, routers: Router<Rev>[]): this;
+  use(prefix: string, router: Router<Rev>): this;
+  use(router: Router<Rev>): this;
+  use(router: Router<Rev>[]): this;
+  use(middleware: Handler<Rev>, routers: Router<Rev>[]): this;
+  use(middleware: Handler<Rev>, router: Router<Rev>): this;
+  use(middleware: Handler<Rev>): this;
+  use(...middlewares: Handlers<Rev>): this;
+  use(prefix: string, middleware: Handler<Rev>, routers: Router<Rev>[]): this;
+  use(prefix: string, middleware: Handler<Rev>, router: Router<Rev>): this;
+  use(prefix: string, middleware: Handler<Rev>): this;
+  use(prefix: string, ...middlewares: Handlers<Rev>): this;
   use(...args: any): this;
   use(...args: any) {
     let arg = args[0],
@@ -99,7 +110,7 @@ export class NHttp extends Router {
     } else this.midds = this.midds.concat(findFns(args));
     return this;
   }
-  on(method: string, path: string, ...handlers: THandlers): this {
+  on(method: string, path: string, ...handlers: Handlers<Rev>): this {
     let fns = findFns(handlers);
     let obj = toPathx(path, method === "ANY");
     if (obj !== void 0) {
@@ -112,28 +123,30 @@ export class NHttp extends Router {
     } else this.route[method + path] = { handlers: fns };
     return this;
   }
-  handle(request: HttpRequest, respondWith: RespondWith) {
-    let url = parseurl(request),
-      obj = this.findRoute(request.method, url.pathname, this.#on404),
+  handle(rev: Rev) {
+    let arr = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(rev.request.url) as any[];
+    rev.url = arr[2] as string;
+    let url = parseurl(rev),
+      obj = this.findRoute(rev.request.method, url.pathname, this.#on404),
       i = 0,
       next: NextFunction = (err?: any) => {
         if (err === void 0) {
           let ret;
           try {
-            ret = obj.handlers[i++](request, respondWith, next);
+            ret = obj.handlers[i++](rev, next);
           } catch (error) {
             return next(error);
           }
           if (ret && typeof ret.then === "function") {
             ret.then(void 0).catch(next);
           }
-        } else this.#onError(err, request, respondWith, next);
+        } else this.#onError(err, rev, next);
       };
-    request.originalUrl = url._raw;
-    request.params = obj.params;
-    request.path = url.pathname;
-    request.query = this.#parseQuery(url.search);
-    request.search = url.search;
+    rev.originalUrl = rev.url;
+    rev.params = obj.params;
+    rev.path = url.pathname;
+    rev.query = this.#parseQuery(url.search);
+    rev.search = url.search;
     next();
   }
   async listen(

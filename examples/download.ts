@@ -23,7 +23,7 @@ class DownloadResponse extends Response {
 
 const app = new NHttp();
 
-app.get("/download", async (request, respondWith) => {
+app.get("/download", ({ respondWith }) => {
   respondWith(new DownloadResponse("/public/test.css"));
 });
 
