@@ -29,16 +29,16 @@ Here the simple benchmark.
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 ```
 ### nest.land
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.1.0/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@0.1.1/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 
 const app = new NHttp();
 
@@ -64,7 +64,7 @@ deno run --allow-net --allow-read --unstable yourfile.ts
 
 ## Middleware
 ```ts
-import { NHttp, Handler } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp, Handler } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 
 const app = new NHttp();
 
@@ -84,7 +84,7 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 
 const app = new NHttp();
 
@@ -166,7 +166,7 @@ app.get("/hello", (rev) => {
 body and file are available where use jsonBody, urlencodedBody or multipartBody.
 
 ```ts
-import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 const app = new NHttp();
 
 app.use(jsonBody(), urlencodedBody());
@@ -196,7 +196,7 @@ app.listen(3000);
 ```
 For nested object in urlencoded and multipart, you can use qs : 
 ```ts
-import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.0/mod.ts";
+import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
 import qs from "https://esm.sh/qs?no-check";
 
 // application/x-www-form-urlencoded
@@ -254,6 +254,14 @@ app.listen({
 
 ## What's Next ?
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
+
+### Want to contribute to this project? I gladly welcome it.
+* Please ***fork***.
+* Create a ***branch***. 
+* ***Commit*** changes (before commit, please format the code with the command `deno fmt` in the src folder).
+* Push to the created ***branch***.
+* Make a ***PR (Pull Requests)***. 
+* Thanks.
 
 ## License
 

@@ -1,4 +1,4 @@
-import { Handlers, Handler, NextFunction, RequestEvent } from "./types.ts";
+import { Handler, Handlers, NextFunction, RequestEvent } from "./types.ts";
 import Router from "./router.ts";
 import {
   findFns,
@@ -24,13 +24,23 @@ export class NHttp<
     err: any,
     rev: Rev,
     next: NextFunction,
-  ) => rev.respondWith(new Response(err.message));
+  ) => {
+    let status = err.status || err.code || err.statusCode || 500;
+    if (typeof status !== "number") status = 500;
+    return rev.respondWith(
+      new Response(err.stack || err.message || "Something went wrong", {
+        status,
+      }),
+    );
+  };
   #on404 = (
     rev: Rev,
     next: NextFunction,
   ) =>
     rev.respondWith(
-      new Response(`${rev.request.method}${rev.url} not found`),
+      new Response(`${rev.request.method}${rev.url} not found`, {
+        status: 404,
+      }),
     );
   #addRoutes = (arg: string, args: any[], routes: any[]) => {
     let prefix = "", midds = findFns(args), i = 0, len = routes.length;
