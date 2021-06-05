@@ -207,6 +207,47 @@ app.post("/upload", multipartBody({ fileKey: "image", parse: qs.parse }), ...mor
 
 ```
 
+### Params
+Just object path parameters.
+```ts
+...
+app.get("/user/:name", ({ respondWith, params }) => {
+    console.log(params);
+    // => { name: 'john' }
+
+    respondWith(new Response(params.name));
+});
+...
+
+// optional params.
+// => { name: 'john' } or { name: null }
+app.get("/user/:name?", ...handlers);
+
+// extension params (Example: only png and jpg).
+// => { filename: 'file.jpg' } or { filename: 'file.png' }
+app.get("/image/:filename.(png|jpg)", ...handlers);
+
+// exact params.
+// => { wild: ['param1', 'param2'] }
+app.get("/all/*", ...handlers);
+
+```
+
+### Query
+Just object query parameters.
+```ts
+...
+// example: /user?name=john
+app.get("/user", ({ respondWith, query }) => {
+    console.log(query);
+    // => { name: 'john' }
+
+    respondWith(new Response(query.name));
+});
+...
+
+```
+
 ## Error Handling
 ```ts
 ...
