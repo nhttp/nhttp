@@ -1,4 +1,4 @@
-export { NHttp } from "../../mod.ts";
+export { JsonResponse, NHttp } from "../../mod.ts";
 export type { RequestEvent } from "../../mod.ts";
 export {
   addControllers,
