@@ -418,7 +418,7 @@ const app = new NHttp({
 ```
 
 ## What's Next ?
-[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/next/examples)
 
 ### Want to contribute to this project? I gladly welcome it.
 * Please ***fork***.
