@@ -11,9 +11,10 @@ Just native HTTP/2 micro framework for [Deno](https://deno.land/). so hot :rocke
 * HTTP/2 support.
 * Middleware support.
 * Sub router support.
+* Includes body parser (jsonBody, urlencodeBody).
 * No third party modules and no std/lib by default.
 
-[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/next/examples)
 ## Benchmark
 Here the simple benchmark.
 
@@ -27,28 +28,27 @@ Here the simple benchmark.
 > Note: maybe not relevant if compared with std/http or other Deno framework using std/http. nhttp uses native deno http. 
 
 ## Installation
-### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
-```
-### nest.land
-```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.1.1/mod.ts";
+import { NHttp } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
+import { NHttp, JsonResponse } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
 
 const app = new NHttp();
 
 // rev is RequestEvent
 app.get("/hello", (rev) => {
-    rev.respondWith(new Response("Hello"));
+    rev.response.body('Hello')
 });
 
-app.get("/json", ({ respondWith }) => {
-    respondWith(new JsonResponse({ name: "john" }));
+app.get("/json", ({ response }) => {
+    response.json({ name: 'nhttp' })
+});
+
+app.post("/save", ({ response, body }) => {
+    response.json(body);
 });
 
 app.listen(3000, () => {
@@ -64,7 +64,7 @@ deno run --allow-net --allow-read --unstable yourfile.ts
 
 ## Middleware
 ```ts
-import { NHttp, Handler } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
+import { NHttp, Handler } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
 
 const app = new NHttp();
 
@@ -75,8 +75,8 @@ const foo: Handler = (rev, next) => {
 
 app.use(foo);
 
-app.get("/foo", ({ respondWith, foo }) => {
-    respondWith(new Response(foo));
+app.get("/foo", ({ response, foo }) => {
+    response.send(foo)
 });
 
 app.listen(3000);
@@ -84,20 +84,20 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
+import { NHttp, Router } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
 
 const app = new NHttp();
 
 // user router
 const userRouter = new Router();
-userRouter.get("/user", ({ respondWith }) => {
-    respondWith(new Response("hello user"));
+userRouter.get("/user", ({ response }) => {
+    response.send("hello user");
 });
 
 // item router
 const itemRouter = new Router();
-itemRouter.get("/item", ({ respondWith }) => {
-    respondWith(new Response("hello item"));
+itemRouter.get("/item", ({ response }) => {
+    response.send("hello item");
 });
 
 // register the router
@@ -116,15 +116,17 @@ request: Request;
 respondWith(r: Response | Promise<Response>): Promise<void>;
 
 // custom
-body: object;
-file: object;
+body: { [k: string]: any };
+file: { [k: string]: any };
+responseInit: ResponseInit;
+response: HttpResponse;
 url: string;
 originalUrl: string;
-params: object;
+params: { [k: string]: any };
 path: string;
-query: object;
+query: { [k: string]: any };
 search: string | null;
-_parsedUrl: object;
+_parsedUrl: { [k: string]: any };
 // more...
 ```
 
@@ -146,6 +148,91 @@ console.log(rev.request.headers);
 ...
 ```
 > Note: rev.request.url is a full url. rev.url is a path url.
+### Response
+```ts
+...
+// example with status and headers
+app.get("/hello", ({ response }) => {
+    response.status(200).header({ 'name': 'value' }).send('hello');
+})
+...
+```
+
+### Response.header
+header: (key?: object | string | undefined, value?: any) => HttpResponse | string | Headers;
+```ts
+...
+// key and value
+res.header("key1", "value1");
+
+// with object
+res.header({ "key2": "value2" });
+
+// multiple header
+res.header({
+    "key3": "value3",
+    "key4": "value4"
+});
+
+// get header
+console.log(res.header());
+// => Headers {
+//         "key1":"value1",
+//         "key2":"value2",
+//         "key3":"value3",
+//         "key4":"value4",
+//     }
+
+// get header by key
+console.log(res.header("key1"));
+// => value1
+
+// delete key1
+res.header().delete("key1");
+console.log(res.header());
+// => Headers {
+//         "key2":"value2",
+//         "key3":"value3",
+//         "key4":"value4",
+//     }
+
+// convert to json object
+console.log(Object.fromEntries(res.header().entries()));
+// => {
+//       "key2":"value2",
+//       "key3":"value3",
+//       "key4":"value4",
+//    }
+
+// reset header
+res.header(new Headers());
+console.log(res.header());
+// => Headers { }
+```
+### Response.type
+Shorthand for response.header("Content-Type", yourContentType);
+
+### Response.status
+status: (code?: number | undefined) => HttpResponse | number;
+```ts
+// set status
+res.status(201);
+
+// get status
+console.log(res.status());
+// => 201
+```
+
+### Response.send
+send: (body?: BodyInit | { [k: string]: any } | null) => Promise<void>;
+
+### Response.json
+json: (body: { [k: string]: any } | null) => Promise<void>;
+
+### Response.redirect
+redirect: (path: string, status?: number) => Promise<void>;
+
+
 ### RespondWith
 Just callback Web API [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response).
 ```ts
@@ -161,50 +248,73 @@ app.get("/hello", (rev) => {
 })
 ...
 ```
-### Body and File (post, put, patch. or any)
-
-body and file are available where use jsonBody, urlencodedBody or multipartBody.
+### Upload File
 
 ```ts
-import { NHttp, jsonBody, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
+import { NHttp, multipart } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
 const app = new NHttp();
 
-app.use(jsonBody(), urlencodedBody());
-
-app.post("/hello", ({ respondWith, body }) => {
-    console.log(body);
-    respondWith(new Response("body was parsed"));
-});
-
 // handle upload multipart/form-data
-app.post("/upload", multipartBody({ fileKey: "image" }), async (rev) => {
-    if (!rev.file?.image) {
-      throw new Error("Image is required");
-    }
-    let file = rev.file.image as File;
-    console.log(file.name);
-    console.log(rev.body);
-
-    // convert to array buffer
-    let arrBuf = await file.arrayBuffer();
-
-    // save file
-    await Deno.writeFile("./" + file.name, new Uint8Array(arrBuf));
-    rev.respondWith(new Response("Success upload file"));
+app.post("/upload", multipart.upload({ name: "image" }), ({ response, file }) => {
+    console.log(file.image);
+    // => file or [file1, file2]
+    response.send('success upload file');
 });
 app.listen(3000);
 ```
-For nested object in urlencoded and multipart, you can use qs : 
+### Multipart
 ```ts
-import { NHttp, urlencodedBody, multipartBody } from "https://deno.land/x/nhttp@0.1.1/mod.ts";
-import qs from "https://esm.sh/qs?no-check";
+...
 
-// application/x-www-form-urlencoded
-app.use(urlencodedBody({ parse: qs.parse }));
+// non upload
+multipart.default();
 
-// multipart/form-data
-app.post("/upload", multipartBody({ fileKey: "image", parse: qs.parse }), ...more);
+// upload
+multipart.upload({ name: "image" });
 
+// single upload
+multipart.upload({ name: "image", maxCount: 1 });
+
+// required field (will throw bad request error 400)
+multipart.upload({ name: "image", required: true });
+
+// accept file
+multipart.upload({ name: "image", accept: 'png|jpg' });
+
+// maxSize file
+multipart.upload({ name: "image", maxSize: '2 mb' });
+
+// callback
+multipart.upload({
+    name: "image", 
+    callback: (file) => {
+        // change filename
+        file.filename = Date.now() + file.name;
+    }
+});
+
+// destination
+multipart.upload({
+    name: "image", 
+    dest: "public/user_folder/"
+});
+
+// multiple field
+multipart.upload(
+    [
+        { 
+            name: "user_image", 
+            dest: "public/user_folder/"
+            // other
+        },
+        { 
+            name: "employee_image", 
+            dest: "public/employee_folder/"
+            // other
+        }
+    ]
+);
+...
 ```
 
 ### Params
@@ -291,6 +401,20 @@ app.listen({
     keyFile: "./path/to/localhost.key",
     alpnProtocols: ["h2", "http/1.1"]
 }, callback);
+```
+## Config
+```ts
+...
+// example config
+const app = new NHttp({
+    parseQuery: qs.parse,  /* default from utils */
+    bodyLimit: {
+        json: "1mb",       /* default 1mb */
+        urlencoded: "1mb"  /* default 1mb */
+    },
+    env: "development"
+});
+...
 ```
 
 ## What's Next ?

@@ -1,47 +1,65 @@
-import { Handler, Handlers, NextFunction, RequestEvent } from "./types.ts";
+import {
+  Handler,
+  Handlers,
+  HttpResponse,
+  NextFunction,
+  RequestEvent,
+  TBodyLimit,
+} from "./types.ts";
 import Router from "./router.ts";
 import {
   findFns,
+  findUrl,
   modPath,
-  parsequery as parsequeryOri,
+  parseQuery as parseQueryOri,
   parseurl,
   toPathx,
 } from "./utils.ts";
+import { buildResponse } from "./response.ts";
+import { withBody } from "./body.ts";
+import { getError, NotFoundError } from "./error.ts";
 
-const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
-
-type TypeNhttp = { parseQuery?: any };
+type TApp = {
+  parseQuery?: (data: any, ...args: any) => any;
+  bodyLimit?: TBodyLimit;
+  env?: string;
+};
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
-  #parseQuery: (query: string) => any;
-  constructor({ parseQuery }: TypeNhttp = {}) {
+  #parseQuery: (data: any, ...args: any) => any;
+  #bodyLimit?: TBodyLimit;
+  #env: string;
+  constructor({ parseQuery, bodyLimit, env }: TApp = {}) {
     super();
-    this.#parseQuery = parseQuery || parsequeryOri;
+    this.#parseQuery = parseQuery || parseQueryOri;
+    this.#bodyLimit = bodyLimit;
+    this.#env = env || "development";
+    if (parseQuery) {
+      this.use((rev: RequestEvent, next) => {
+        rev.__parseQuery = parseQuery;
+        next();
+      });
+    }
   }
   #onError = (
     err: any,
     rev: Rev,
-    next: NextFunction,
+    _: NextFunction,
   ) => {
-    let status = err.status || err.code || err.statusCode || 500;
-    if (typeof status !== "number") status = 500;
-    return rev.respondWith(
-      new Response(err.stack || err.message || "Something went wrong", {
-        status,
-      }),
-    );
+    let obj = getError(err, this.#env === "development");
+    return rev.response.status(obj.status).json(obj);
   };
   #on404 = (
     rev: Rev,
-    next: NextFunction,
-  ) =>
-    rev.respondWith(
-      new Response(`${rev.request.method}${rev.url} not found`, {
-        status: 404,
-      }),
+    _: NextFunction,
+  ) => {
+    let obj = getError(
+      new NotFoundError(`Route ${rev.request.method}${rev.url} not found`),
     );
+    return rev.response.status(obj.status).json(obj);
+  };
   #addRoutes = (arg: string, args: any[], routes: any[]) => {
     let prefix = "", midds = findFns(args), i = 0, len = routes.length;
     if (typeof arg === "string" && arg.length > 1 && arg.charAt(0) === "/") {
@@ -134,8 +152,7 @@ export class NHttp<
     return this;
   }
   handle(rev: Rev) {
-    let arr = /^(?:\w+\:\/\/)?([^\/]+)(.*)$/.exec(rev.request.url) as any[];
-    rev.url = arr[2] as string;
+    rev.url = findUrl(rev.request.url);
     let url = parseurl(rev),
       obj = this.findRoute(rev.request.method, url.pathname, this.#on404),
       i = 0,
@@ -152,12 +169,16 @@ export class NHttp<
           }
         } else this.#onError(err, rev, next);
       };
-    rev.originalUrl = rev.url;
     rev.params = obj.params;
     rev.path = url.pathname;
-    rev.query = this.#parseQuery(url.search);
+    rev.query = this.#parseQuery(url.query);
     rev.search = url.search;
-    next();
+    buildResponse(
+      rev.response = {} as HttpResponse,
+      rev.respondWith,
+      rev.responseInit = {},
+    );
+    withBody(rev, next, this.#parseQuery, this.#bodyLimit);
   }
   async listen(
     opts:
@@ -210,13 +231,5 @@ export class NHttp<
         });
       }
     }
-  }
-}
-
-export class JsonResponse extends Response {
-  constructor(json: { [k: string]: any } | null, opts: ResponseInit = {}) {
-    opts.headers = (opts.headers || new Headers()) as Headers;
-    opts.headers.set("content-type", JSON_TYPE_CHARSET);
-    super(JSON.stringify(json), opts);
   }
 }

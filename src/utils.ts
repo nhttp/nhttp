@@ -1,16 +1,5 @@
 import { Handler, RequestEvent } from "./types.ts";
 
-export function parsequery(query: string) {
-  if (!query) return {};
-  const qparams = new URLSearchParams(query);
-  return Object.fromEntries(
-    Array.from(qparams.keys()).map((key) => [
-      key,
-      qparams.getAll(key).length > 1 ? qparams.getAll(key) : qparams.get(key),
-    ]),
-  );
-}
-
 export function modPath(prefix: string): Handler {
   return (rev, next) => {
     rev.url = rev.url.substring(prefix.length) || "/";
@@ -30,6 +19,15 @@ export function findFns(arr: any[]): any[] {
     else if (typeof arr[i] === "function") ret.push(arr[i]);
   }
   return ret;
+}
+
+export function findUrl(str: string) {
+  let idx = [], i = -1;
+  while ((i = str.indexOf("/", i + 1)) != -1) {
+    idx.push(i);
+    if (idx.length === 3) break;
+  }
+  return str.substring(idx[2]);
 }
 
 export function toPathx(path: string | RegExp, isAny: boolean) {
@@ -88,7 +86,7 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
 export function parseurl(rev: RequestEvent) {
   let str = rev.url,
     url = rev._parsedUrl;
-  if (url && url._raw === str) return url;
+  if (url !== void 0 && url._raw === str) return url;
   let pathname = str,
     query = null,
     search = null,
@@ -109,4 +107,56 @@ export function parseurl(rev: RequestEvent) {
   url.query = query;
   url.search = search;
   return (rev._parsedUrl = url);
+}
+
+function needPatch(data: any, keys: any, value: any) {
+  if (keys.length === 0) {
+    return value;
+  }
+  let key = keys.shift();
+  if (!key) {
+    data = data || [];
+    if (Array.isArray(data)) {
+      key = data.length;
+    }
+  }
+  let index = +key;
+  if (!isNaN(index)) {
+    data = data || [];
+    key = index;
+  }
+  data = data || {};
+  let val = needPatch(data[key], keys, value);
+  data[key] = val;
+  return data;
+}
+
+export function myParse(arr: any[]) {
+  let obj = arr.reduce((red: any, [field, value]: any) => {
+    if (red.hasOwnProperty(field)) {
+      if (Array.isArray(red[field])) {
+        red[field] = [...red[field], value];
+      } else {
+        red[field] = [red[field], value];
+      }
+    } else {
+      let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      if (keys) {
+        keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m: any) => m[1]);
+        value = needPatch(red[prefix], keys, value);
+      }
+      red[prefix] = value;
+    }
+    return red;
+  }, {});
+  return obj;
+}
+
+export function parseQuery(query: any) {
+  if (query === null) return {};
+  if (typeof query === "string") {
+    let data = new URLSearchParams("?" + query);
+    return myParse(Array.from(data.entries()));
+  }
+  return myParse(Array.from(query.entries()));
 }

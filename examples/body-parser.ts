@@ -1,8 +1,6 @@
-import { jsonBody, NHttp, urlencodedBody } from "../mod.ts";
+import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
-
-app.use(jsonBody(), urlencodedBody());
 
 app.post("/hello", (rev) => {
   console.log(rev.body);
