@@ -8,7 +8,9 @@
   "files": [
     "./mod.ts",
     "./src/body.ts",
+    "./src/error.ts",
     "./src/nhttp.ts",
+    "./src/response.ts",
     "./src/router.ts",
     "./src/types.ts",
     "./src/utils.ts",
