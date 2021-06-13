@@ -11,7 +11,7 @@ Just native HTTP/2 micro framework for [Deno](https://deno.land/). so hot :rocke
 * HTTP/2 support.
 * Middleware support.
 * Sub router support.
-* Includes body parser (jsonBody, urlencodeBody).
+* Includes body parser (jsonBody, urlencodedBody).
 * No third party modules and no std/lib by default.
 
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
