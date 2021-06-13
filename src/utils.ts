@@ -177,34 +177,20 @@ function fnWithMiddleware(...middlewares: any): Handler {
   return (rev, next) => {
     let res = rev.response;
     // misc
-    if (serialize) {
-      if (rev.headers === void 0 || rev.headers instanceof Headers) {
-        rev.headers = Object.fromEntries(rev.request.headers.entries());
+    rev.headers = serialize ? Object.fromEntries(rev.request.headers.entries()) : rev.request.headers;
+    rev.method = rev.request.method;
+    res.setHeader = res.set = res.header;
+    res.getHeader = res.get = (a: string) => res.header(a);
+    res.hasHeader = (a: string) => res.header(a) !== null;
+    res.removeHeader = (a: string) => res.header().delete(a);
+    res.end = res.send;
+    res.writeHead = (a: number, ...b: any) => {
+      res.status(a);
+      for (let i = 0; i < b.length; i++) {
+        const el = b[i];
+        if (typeof el === "object") res.header(el);
       }
-    } else {
-      if (rev.headers === void 0) rev.headers = rev.request.headers;
-    }
-    if (rev.method === void 0) rev.method = rev.request.method;
-    if (res.setHeader === void 0) res.setHeader = res.header;
-    if (res.getHeader === void 0) res.getHeader = (a: string) => res.header(a);
-    if (res.hasHeader === void 0) {
-      res.hasHeader = (a: string) => res.header(a) !== null;
-    }
-    if (res.removeHeader === void 0) {
-      res.removeHeader = (a: string) => res.header().delete(a);
-    }
-    if (res.set === void 0) res.set = res.header;
-    if (res.get === void 0) res.get = res.getHeader;
-    if (res.end === void 0) res.end = res.send;
-    if (res.writeHead === void 0) {
-      res.writeHead = (a: number, ...b: any) => {
-        res.status(a);
-        for (let i = 0; i < b.length; i++) {
-          const el = b[i];
-          if (typeof el === "object") res.header(el);
-        }
-      };
-    }
+    };
     let i = 0, len = fns.length;
     if (len === 0) return next();
     while (i < len) fns[i++](rev, res, next);
