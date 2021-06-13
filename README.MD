@@ -114,8 +114,6 @@ app.post("/user", validator, ({ response, body }) => {
 
 app.listen(3000);
 ```
-wrapMiddleware({ serializeHeaders: boolean }, ...middleware);
-serializeHeaders default `true`. 
 
 ## Router
 ```ts

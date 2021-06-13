@@ -161,40 +161,29 @@ export function parseQuery(query: any) {
   return myParse(Array.from(query.entries()));
 }
 
-function fnWithMiddleware(
-  { serializeHeaders }: { serializeHeaders: boolean },
-  ...middlewares: any
-): Handler;
-function fnWithMiddleware(...middlewares: any): Handler;
-function fnWithMiddleware(...middlewares: any): Handler {
-  let midds = middlewares;
-  let serialize = true;
-  let larg = midds[0];
-  if (typeof larg === "object") {
-    serialize = larg.serializeHeaders !== void 0 ? larg.serializeHeaders : true;
-  }
-  let fns = findFns(midds);
+export function wrapMiddleware(...middlewares: any): Handler {
+  let fns = findFns(middlewares);
   return (rev, next) => {
     let res = rev.response;
-    // misc
-    rev.headers = serialize ? Object.fromEntries(rev.request.headers.entries()) : rev.request.headers;
-    rev.method = rev.request.method;
-    res.setHeader = res.set = res.header;
-    res.getHeader = res.get = (a: string) => res.header(a);
-    res.hasHeader = (a: string) => res.header(a) !== null;
-    res.removeHeader = (a: string) => res.header().delete(a);
-    res.end = res.send;
-    res.writeHead = (a: number, ...b: any) => {
-      res.status(a);
-      for (let i = 0; i < b.length; i++) {
-        const el = b[i];
-        if (typeof el === "object") res.header(el);
-      }
-    };
+    if (rev.__isWrapMiddleware === void 0) {
+      rev.headers = Object.fromEntries(rev.request.headers.entries());
+      rev.method = rev.request.method;
+      res.setHeader = res.set = res.header;
+      res.getHeader = res.get = (a: string) => res.header(a);
+      res.hasHeader = (a: string) => res.header(a) !== null;
+      res.removeHeader = (a: string) => res.header().delete(a);
+      res.end = res.send;
+      res.writeHead = (a: number, ...b: any) => {
+        res.status(a);
+        for (let i = 0; i < b.length; i++) {
+          const el = b[i];
+          if (typeof el === "object") res.header(el);
+        }
+      };
+      rev.__isWrapMiddleware = true;
+    }
     let i = 0, len = fns.length;
-    if (len === 0) return next();
+    if (!len) return next();
     while (i < len) fns[i++](rev, res, next);
   };
 }
-
-export const wrapMiddleware = fnWithMiddleware;
