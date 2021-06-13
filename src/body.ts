@@ -48,7 +48,7 @@ export const withBody = async (
     const headers = rev.request.headers;
     if (headers.get("content-type") === "application/json") {
       try {
-        const body = await getBody(rev.request, opts?.json || "1mb");
+        const body = await getBody(rev.request, opts?.json || "3mb");
         rev.body = JSON.parse(body);
       } catch (error) {
         return next(error);
@@ -57,7 +57,7 @@ export const withBody = async (
       headers.get("content-type") === "application/x-www-form-urlencoded"
     ) {
       try {
-        const body = await getBody(rev.request, opts?.urlencoded || "1mb");
+        const body = await getBody(rev.request, opts?.urlencoded || "3mb");
         rev.body = parse(body);
       } catch (error) {
         return next(error);

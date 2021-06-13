@@ -14,7 +14,7 @@ Just native HTTP/2 micro framework for [Deno](https://deno.land/). so hot :rocke
 * Includes body parser (jsonBody, urlencodeBody).
 * No third party modules and no std/lib by default.
 
-[See examples](https://github.com/nhttp/nhttp/tree/next/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 ## Benchmark
 Here the simple benchmark.
 
@@ -28,13 +28,18 @@ Here the simple benchmark.
 > Note: maybe not relevant if compared with std/http or other Deno framework using std/http. nhttp uses native deno http. 
 
 ## Installation
+### deno.land
 ```ts
-import { NHttp } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
+```
+### nest.land
+```ts
+import { NHttp } from "https://x.nest.land/nhttp@0.2.0/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp, JsonResponse } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 
 const app = new NHttp();
 
@@ -64,7 +69,7 @@ deno run --allow-net --allow-read --unstable yourfile.ts
 
 ## Middleware
 ```ts
-import { NHttp, Handler } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, Handler } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 
 const app = new NHttp();
 
@@ -86,7 +91,7 @@ app.listen(3000);
 Simple wrapper like HOC for middleware (req, res, next);
 > Note: not all middleware can work.
 ```ts
-import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const app = new NHttp();
@@ -117,7 +122,7 @@ app.listen(3000);
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 
 const app = new NHttp();
 
@@ -284,7 +289,7 @@ app.get("/hello", (rev) => {
 ### Upload File
 
 ```ts
-import { NHttp, multipart } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, multipart } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 const app = new NHttp();
 
 // handle upload multipart/form-data
@@ -409,7 +414,7 @@ app.on404((rev) => {
 ## Error
 Simple error handling.
 ```ts
-import { NHttp, BadRequestError } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 
 const app = new NHttp();
 
@@ -456,8 +461,8 @@ app.listen({
 const app = new NHttp({
     parseQuery: qs.parse,  /* default from utils */
     bodyLimit: {
-        json: "1mb",       /* default 1mb */
-        urlencoded: "1mb"  /* default 1mb */
+        json: "1mb",       /* default 3mb */
+        urlencoded: "1mb"  /* default 3mb */
     },
     env: "development"
 });
@@ -465,7 +470,7 @@ const app = new NHttp({
 ```
 
 ## What's Next ?
-[See examples](https://github.com/nhttp/nhttp/tree/next/examples)
+[See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
 ### Want to contribute to this project? I gladly welcome it.
 * Please ***fork***.
