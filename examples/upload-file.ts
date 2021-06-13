@@ -4,7 +4,7 @@ const app = new NHttp();
 
 app.post(
   "/upload-image",
-  multipart.upload({ name: "image" }),
+  multipart.upload({ name: "image", required: true }),
   ({ response, body, file }) => {
     console.log(file.image);
     console.log(body);
