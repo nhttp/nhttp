@@ -71,7 +71,7 @@ export function buildResponse(
   res.json = function (body: { [k: string]: any } | null) {
     return respondWith(new JsonResponse(body, opts));
   };
-  res.redirect = function(url: string, status?: number) {
+  res.redirect = function (url: string, status?: number) {
     opts.status = status || 302;
     opts.headers = { "Location": url };
     return respondWith(new Response(void 0, opts));

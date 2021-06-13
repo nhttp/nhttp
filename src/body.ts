@@ -158,7 +158,7 @@ export const multipart = {
             }
             j++;
           }
-        }
+        };
         const uploadFiles = async (files: File[], opts: TMultipartUpload) => {
           const cwd = Deno.cwd();
           let i = 0, len = files.length;

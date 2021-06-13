@@ -160,3 +160,55 @@ export function parseQuery(query: any) {
   }
   return myParse(Array.from(query.entries()));
 }
+
+function fnWithMiddleware(
+  { serializeHeaders }: { serializeHeaders: boolean },
+  ...middlewares: any
+): Handler;
+function fnWithMiddleware(...middlewares: any): Handler;
+function fnWithMiddleware(...middlewares: any): Handler {
+  let midds = middlewares;
+  let serialize = true;
+  let larg = midds[0];
+  if (typeof larg === "object") {
+    serialize = larg.serializeHeaders !== void 0 ? larg.serializeHeaders : true;
+  }
+  let fns = findFns(midds);
+  return (rev, next) => {
+    let res = rev.response;
+    // misc
+    if (serialize) {
+      if (rev.headers === void 0 || rev.headers instanceof Headers) {
+        rev.headers = Object.fromEntries(rev.request.headers.entries());
+      }
+    } else {
+      if (rev.headers === void 0) rev.headers = rev.request.headers;
+    }
+    if (rev.method === void 0) rev.method = rev.request.method;
+    if (res.setHeader === void 0) res.setHeader = res.header;
+    if (res.getHeader === void 0) res.getHeader = (a: string) => res.header(a);
+    if (res.hasHeader === void 0) {
+      res.hasHeader = (a: string) => res.header(a) !== null;
+    }
+    if (res.removeHeader === void 0) {
+      res.removeHeader = (a: string) => res.header().delete(a);
+    }
+    if (res.set === void 0) res.set = res.header;
+    if (res.get === void 0) res.get = res.getHeader;
+    if (res.end === void 0) res.end = res.send;
+    if (res.writeHead === void 0) {
+      res.writeHead = (a: number, ...b: any) => {
+        res.status(a);
+        for (let i = 0; i < b.length; i++) {
+          const el = b[i];
+          if (typeof el === "object") res.header(el);
+        }
+      };
+    }
+    let i = 0, len = fns.length;
+    if (len === 0) return next();
+    while (i < len) fns[i++](rev, res, next);
+  };
+}
+
+export const wrapMiddleware = fnWithMiddleware;

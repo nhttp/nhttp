@@ -82,6 +82,41 @@ app.get("/foo", ({ response, foo }) => {
 app.listen(3000);
 ```
 
+## Wrapper for middleware
+Simple wrapper like HOC for middleware (req, res, next);
+> Note: not all middleware can work.
+```ts
+import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+import { body, validationResult } from "https://esm.sh/express-validator";
+
+const app = new NHttp();
+
+// example express validator
+const validator: Handler[] = [
+  wrapMiddleware([
+    body("username").isString(),
+    body("password").isLength({ min: 6 }),
+    body("email").isEmail(),
+  ]),
+  (rev, next) => {
+    const errors = validationResult(rev);
+    if (!errors.isEmpty()) {
+       // status 422
+      throw new UnprocessableEntityError(errors.array());
+    }
+    next();
+  },
+];
+
+app.post("/user", validator, ({ response, body }) => {
+    response.send(body)
+});
+
+app.listen(3000);
+```
+wrapMiddleware({ serializeHeaders: boolean }, ...middleware);
+serializeHeaders default `true`. 
+
 ## Router
 ```ts
 import { NHttp, Router } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
@@ -321,11 +356,11 @@ multipart.upload(
 Just object path parameters.
 ```ts
 ...
-app.get("/user/:name", ({ respondWith, params }) => {
+app.get("/user/:name", ({ response, params }) => {
     console.log(params);
     // => { name: 'john' }
 
-    respondWith(new Response(params.name));
+    response.send(params.name);
 });
 ...
 
@@ -348,11 +383,11 @@ Just object query parameters.
 ```ts
 ...
 // example: /user?name=john
-app.get("/user", ({ respondWith, query }) => {
+app.get("/user", ({ response, query }) => {
     console.log(query);
     // => { name: 'john' }
 
-    respondWith(new Response(query.name));
+    response.send(query.name);
 });
 ...
 
@@ -363,18 +398,32 @@ app.get("/user", ({ respondWith, query }) => {
 ...
 // global error handling
 app.onError((error, rev) => {
-    rev.respondWith(new Response(error.message, {
-        status: error.status || 500
-    }))
+    response.status(error.status || 500).send(error.message);
 })
 
 // global not found error handling
 app.on404((rev) => {
-    rev.respondWith(new Response(`${rev.url} not found`, {
-        status: 404
-    }))
+    response.status(404).send('Not Found');
 })
 ...
+```
+
+## Error
+Simple error handling.
+```ts
+import { NHttp, BadRequestError } from "https://raw.githubusercontent.com/nhttp/nhttp/next/mod.ts";
+
+const app = new NHttp();
+
+app.post("/user", ({ response }) => {
+    const data = await saveUser();
+    if (!data) {
+        throw new BadRequestError('Bad request for save');
+    }
+    response.send(data);
+});
+
+app.listen(3000);
 ```
 
 ## Listen

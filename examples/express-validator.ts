@@ -1,15 +1,13 @@
-import { Handler, NHttp, UnprocessableEntityError } from "../mod.ts";
+import {
+  Handler,
+  NHttp,
+  UnprocessableEntityError,
+  wrapMiddleware,
+} from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
-function withExpressValidator(arr: any[]): Handler {
-  return (rev, next) => {
-    let i = 0, len = arr.length;
-    while (i < len) arr[i++](rev, void 0, next);
-  };
-}
-
 const validator: Handler[] = [
-  withExpressValidator([
+  wrapMiddleware([
     body("username").isString(),
     body("password").isLength({ min: 6 }),
     body("email").isEmail(),
