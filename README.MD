@@ -464,7 +464,7 @@ const app = new NHttp({
         json: "1mb",       /* default 3mb */
         urlencoded: "1mb"  /* default 3mb */
     },
-    env: "development"
+    env: "development"     /* or production */
 });
 ...
 ```
