@@ -162,6 +162,9 @@ export function parseQuery(query: any) {
 }
 
 function fnWrapMiddleware(
+  { beforeWrap }: TWrapMiddleware,
+): Handler;
+function fnWrapMiddleware(
   middlewares: any,
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
@@ -188,8 +191,7 @@ function fnWrapMiddleware(...middlewares: any): Handler {
       res.writeHead = (a: number, ...b: any) => {
         res.status(a);
         for (let i = 0; i < b.length; i++) {
-          const el = b[i];
-          if (typeof el === "object") res.header(el);
+          if (typeof b[i] === "object") res.header(b[i]);
         }
       };
       rev.__isWrapMiddleware = true;
