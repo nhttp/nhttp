@@ -5,4 +5,4 @@ export {
   Controller,
   Get,
   Inject,
-} from "https://deno.land/x/nhttp_controller@0.0.4/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.2.0/mod.ts";

@@ -172,9 +172,8 @@ function fnWrapMiddleware(
 function fnWrapMiddleware(...middlewares: any): Handler;
 function fnWrapMiddleware(...middlewares: any): Handler {
   let midds = middlewares;
-  let beforeWrap = void 0 as any;
   let opts = midds.length && midds[midds.length - 1];
-  if (typeof opts === "object") beforeWrap = opts.beforeWrap;
+  let beforeWrap = (typeof opts === "object") && opts.beforeWrap;
   let fns = findFns(midds);
   return (rev, next) => {
     let res = rev.response;
