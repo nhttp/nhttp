@@ -45,11 +45,11 @@ const app = new NHttp();
 
 // rev is RequestEvent
 app.get("/hello", (rev) => {
-    rev.response.body('Hello')
+    rev.response.send('Hello');
 });
 
 app.get("/json", ({ response }) => {
-    response.json({ name: 'nhttp' })
+    response.json({ name: 'nhttp' });
 });
 
 app.post("/save", ({ response, body }) => {
