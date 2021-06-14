@@ -43,3 +43,7 @@ export type TBodyLimit = {
   json?: number | string;
   urlencoded?: number | string;
 };
+
+export type TWrapMiddleware = {
+  beforeWrap: (rev: RequestEvent, res: HttpResponse) => void;
+};

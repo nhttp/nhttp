@@ -10,6 +10,12 @@ const app = new NHttp();
 
 app.use(wrapMiddleware(
   cookieParser("mysecret"),
+  {
+    beforeWrap: (rev) => {
+      // need convert headers to object json
+      rev.headers = Object.fromEntries(rev.request.headers.entries());
+    },
+  },
 ));
 
 const checkUser = (auth: string) => {

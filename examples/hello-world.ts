@@ -3,7 +3,7 @@ import { NHttp } from "../mod.ts";
 const app = new NHttp();
 
 app.get("/hello", ({ response }) => {
-  response.send('Hello');
+  response.send("Hello");
 });
 
 app.listen(3000, () => {

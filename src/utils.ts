@@ -1,4 +1,4 @@
-import { Handler, RequestEvent } from "./types.ts";
+import { Handler, RequestEvent, TWrapMiddleware } from "./types.ts";
 
 export function modPath(prefix: string): Handler {
   return (rev, next) => {
@@ -161,12 +161,25 @@ export function parseQuery(query: any) {
   return myParse(Array.from(query.entries()));
 }
 
-export function wrapMiddleware(...middlewares: any): Handler {
-  let fns = findFns(middlewares);
+function fnWrapMiddleware(
+  middlewares: any,
+  { beforeWrap }: TWrapMiddleware,
+): Handler;
+function fnWrapMiddleware(
+  middlewares: any[],
+  { beforeWrap }: TWrapMiddleware,
+): Handler;
+function fnWrapMiddleware(...middlewares: any): Handler;
+function fnWrapMiddleware(...middlewares: any): Handler {
+  let midds = middlewares;
+  let beforeWrap = void 0 as any;
+  let opts = midds.length && midds[midds.length - 1];
+  if (typeof opts === "object") beforeWrap = opts.beforeWrap;
+  let fns = findFns(midds);
   return (rev, next) => {
     let res = rev.response;
     if (rev.__isWrapMiddleware === void 0) {
-      rev.headers = Object.fromEntries(rev.request.headers.entries());
+      rev.headers = rev.request.headers;
       rev.method = rev.request.method;
       res.setHeader = res.set = res.header;
       res.getHeader = res.get = (a: string) => res.header(a);
@@ -182,8 +195,11 @@ export function wrapMiddleware(...middlewares: any): Handler {
       };
       rev.__isWrapMiddleware = true;
     }
+    if (beforeWrap) beforeWrap(rev, res);
     let i = 0, len = fns.length;
     if (!len) return next();
     while (i < len) fns[i++](rev, res, next);
   };
 }
+
+export const wrapMiddleware = fnWrapMiddleware;
