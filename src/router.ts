@@ -13,11 +13,101 @@ export default class Router<
   c_routes: Record<string, any>[] = [];
   midds: Handler<Rev>[] = [];
   pmidds: Record<string, any> = {};
+  /**
+   * method GET (app or router)
+   * @example
+   * app.get("/", ...handlers);
+   *
+   * app.get("/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.get("/", midd1, midd2, ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.get("/", [midd1, midd2], ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   get: (path: string, ...handlers: Handlers<Rev>) => this;
+  /**
+   * method POST (app or router)
+   * @example
+   * app.post("/", ...handlers);
+   *
+   * app.post("/", ({ response }) => {
+   *    response.status(201).send("Created");
+   * })
+   * app.post("/", midd1, midd2, ({ response }) => {
+   *    response.status(201).send("Created");
+   * })
+   * app.post("/", [midd1, midd2], ({ response }) => {
+   *    response.status(201).send("Created");
+   * })
+   */
   post: (path: string, ...handlers: Handlers<Rev>) => this;
+  /**
+   * method PUT (app or router)
+   * @example
+   * app.put("/", ...handlers);
+   *
+   * app.put("/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.put("/", midd1, midd2, ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.put("/", [midd1, midd2], ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   put: (path: string, ...handlers: Handlers<Rev>) => this;
+  /**
+   * method PATCH (app or router)
+   * @example
+   * app.patch("/", ...handlers);
+   *
+   * app.patch("/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.patch("/", midd1, midd2, ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.patch("/", [midd1, midd2], ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   patch: (path: string, ...handlers: Handlers<Rev>) => this;
+  /**
+   * method DELETE (app or router)
+   * @example
+   * app.delete("/", ...handlers);
+   *
+   * app.delete("/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.delete("/", midd1, midd2, ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.delete("/", [midd1, midd2], ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   delete: (path: string, ...handlers: Handlers<Rev>) => this;
+  /**
+   * method ANY (allow all method directly) (app or router)
+   * @example
+   * app.any("/", ...handlers);
+   *
+   * app.any("/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.any("/", midd1, midd2, ({ response }) => {
+   *    response.send("Hello");
+   * })
+   * app.any("/", [midd1, midd2], ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   any: (path: string, ...handlers: Handlers<Rev>) => this;
   head: (path: string, ...handlers: Handlers<Rev>) => this;
   options: (path: string, ...handlers: Handlers<Rev>) => this;
@@ -49,6 +139,15 @@ export default class Router<
     if (midds.length) fns = midds.concat(fns);
     return (fns = fns.concat([notFound]));
   };
+  /**
+   * Build handlers (app or router)
+   * @example
+   * app.on("GET", "/", ...handlers)
+   *
+   * app.on("GET", "/", ({ response }) => {
+   *    response.send("Hello");
+   * })
+   */
   on(method: string, path: string, ...handlers: Handlers<Rev>) {
     this.c_routes.push({ method, path, handlers });
     return this;

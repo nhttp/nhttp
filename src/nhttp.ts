@@ -103,6 +103,23 @@ export class NHttp<
   ) {
     this.#on404 = fn;
   }
+  /**
+  * Add router or middlware.
+  * @example
+  * // middleware
+  * app.use(...middlewares);
+  * app.use(midd1, midd2);
+  * app.use([midd1, midd2]);
+  * app.use(wrapMiddleware([
+  *    cors(),
+  *    helmet(),
+  * ]));
+  * // router
+  * app.use(router);
+  * app.use([router1, router2]);
+  * app.use('/api/v1', routers);
+  * app.use('/api/v1', middlewares, routers);
+  */
   use(prefix: string, routers: Router<Rev>[]): this;
   use(prefix: string, router: Router<Rev>): this;
   use(router: Router<Rev>): this;
@@ -180,6 +197,36 @@ export class NHttp<
     );
     withBody(rev, next, this.#parseQuery, this.#bodyLimit);
   }
+  /**
+   * listen the server
+   * @example
+   * // example 1
+   * app.listen(3000);
+   * app.listen({ port: 3000, hostname: 'localhost' });
+   *
+   * // example 2 (callback)
+   * app.listen(3000, (error, opts) => {
+   *     if (error) {
+   *        console.log(error)
+   *     }
+   *     console.log("> Running on port " + opts?.port);
+   * });
+   *
+   * // example 3 (https)
+   * app.listen({
+   *    port: 443,
+   *    certFile: "./path/to/localhost.crt",
+   *    keyFile: "./path/to/localhost.key",
+   * }, callback);
+   *
+   * // example 4 (http/2)
+   * app.listen({
+   *    port: 443,
+   *    certFile: "./path/to/localhost.crt",
+   *    keyFile: "./path/to/localhost.key",
+   *    alpnProtocols: ["h2", "http/1.1"]
+   * }, callback);
+   */
   async listen(
     opts:
       | number

@@ -100,6 +100,9 @@ const cleanUpBodyMultipart = (body: any) => {
 };
 
 export const multipart = {
+  /**
+   * default handler multipart/form-data
+   */
   default: (): Handler => {
     return async (rev, next) => {
       if (rev.body === void 0) rev.body = {};
@@ -115,6 +118,30 @@ export const multipart = {
       next();
     };
   },
+  /**
+   * upload handler multipart/form-data
+   * @example
+   * const upload = multipart.upload({
+   *    // required
+   *    name: "image";
+   *
+   *    // optional
+   *    maxCount: 10;
+   *    maxSize: "2mb";
+   *    accept: "png|jpg|jpeg";
+   *    callback: (file) => {
+   *        file.filename = Date.now() + file.name;
+   *    };
+   *    dest: "public/image";
+   *    required: true;
+   * });
+   *
+   * app.post("/hello", upload, ({ response, body, file }) => {
+   *    console.log("path upload => ", file.image.path);
+   *    console.log(body);
+   *    response.send("success upload");
+   * });
+   */
   upload: (options: TMultipartUpload | TMultipartUpload[]): Handler => {
     return async (rev, next) => {
       if (rev.body === void 0) rev.body = {};

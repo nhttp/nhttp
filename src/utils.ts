@@ -157,6 +157,18 @@ export function parseQuery(query: any) {
   return myParse(Array.from(query.entries()));
 }
 
+/**
+ * Wrapper middleware for framework express like (req, res, next)
+ * @example
+ * ...
+ * import cors from "https://esm.sh/cors?no-check";
+ * import helmet from "https://esm.sh/helmet?no-check";
+ * ...
+ * app.use(wrapMiddleware([
+ *    cors(),
+ *    helmet(),
+ * ]));
+ */
 function fnWrapMiddleware(
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
