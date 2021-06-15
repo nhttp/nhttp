@@ -4,10 +4,6 @@ export function modPath(prefix: string): Handler {
   return (rev, next) => {
     rev.url = rev.url.substring(prefix.length) || "/";
     rev.path = rev.path ? rev.path.substring(prefix.length) || "/" : "/";
-    rev.headers = rev.request.headers;
-    rev.method = rev.request.method;
-    rev.respond = ({ body, status, headers }: any) =>
-      rev.respondWith(new Response(body, { status, headers }));
     next();
   };
 }
@@ -194,6 +190,8 @@ function fnWrapMiddleware(...middlewares: any): Handler {
           if (typeof b[i] === "object") res.header(b[i]);
         }
       };
+      rev.respond = ({ body, status, headers }: any) =>
+        rev.respondWith(new Response(body, { status, headers }));
       rev.__isWrapMiddleware = true;
     }
     if (beforeWrap) beforeWrap(rev, res);

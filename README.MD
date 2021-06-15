@@ -30,16 +30,16 @@ Here the simple benchmark.
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 ```
 ### nest.land
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.2.2/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@0.2.3/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp, JsonResponse } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 
 const app = new NHttp();
 
@@ -69,7 +69,7 @@ deno run --allow-net --allow-read --unstable yourfile.ts
 
 ## Middleware
 ```ts
-import { NHttp, Handler } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp, Handler } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 
 const app = new NHttp();
 
@@ -91,7 +91,7 @@ app.listen(3000);
 Simple wrapper like HOC for middleware (req, res, next);
 > Note: not all middleware can work.
 ```ts
-import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const app = new NHttp();
@@ -140,7 +140,7 @@ app.use(wrapMiddleware(
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 
 const app = new NHttp();
 
@@ -307,7 +307,7 @@ app.get("/hello", (rev) => {
 ### Upload File
 
 ```ts
-import { NHttp, multipart } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp, multipart } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 const app = new NHttp();
 
 // handle upload multipart/form-data
@@ -432,7 +432,7 @@ app.on404((rev) => {
 ## Error
 Simple error handling.
 ```ts
-import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.2/mod.ts";
+import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
 
 const app = new NHttp();
 
