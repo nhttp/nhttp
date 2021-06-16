@@ -14,8 +14,9 @@ const app = new NHttp();
 
 app.use((rev, next) => {
   rev.jsx = (element: any, opts = {} as any) => {
+    // deno-fmt-ignore
     rev.response.type("text/html").send(
-      `<html>
+            `<html>
                 <head>
                     <title>${opts?.title || "No Title"}</title>
                 </head>

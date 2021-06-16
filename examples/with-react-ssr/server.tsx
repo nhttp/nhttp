@@ -25,20 +25,19 @@ class Server extends NHttp {
     this.use((rev, next) => {
       rev.jsx = (element: any, opts = {} as any) => {
         const content = (ReactDOMServer as any).renderToString(element);
+        // deno-fmt-ignore
         rev.response.type("text/html").send(
-          `<!doctype html>
+                `<!doctype html>
                     <html>
-                    <head>
-                        <title>${opts.title}</title>
-                        <meta name="description" content="${opts.description}">
-                        <script>window.__INITIAL_DATA__ = ${
-            JSON.stringify(opts)
-          };</script>
-                    </head>
-                    <body>
-                        <div id="root">${content}</div>
-                        <script src="${BROWSER_PATH}" defer></script>
-                    </body>
+                        <head>
+                            <title>${opts.title}</title>
+                            <meta name="description" content="${opts.description}">
+                            <script>window.__INITIAL_DATA__ = ${JSON.stringify(opts)};</script>
+                        </head>
+                        <body>
+                            <div id="root">${content}</div>
+                            <script src="${BROWSER_PATH}" defer></script>
+                        </body>
                     </html>`,
         );
       };
