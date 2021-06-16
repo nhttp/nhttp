@@ -1,6 +1,11 @@
 ## NHttp
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp%2Fmod.ts)](https://deno.land/x/nhttp)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
+![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
+![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
+[![nest.land](https://nest.land/badge.svg)](https://nest.land/package/nhttp)
 
 Just native HTTP/2 micro framework for [Deno](https://deno.land/). so hot :rocket:
 
@@ -30,16 +35,16 @@ Here the simple benchmark.
 ## Installation
 ### deno.land
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 ```
 ### nest.land
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.2.3/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@0.2.4/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 
 const app = new NHttp();
 
@@ -69,7 +74,7 @@ deno run --allow-net --allow-read --unstable yourfile.ts
 
 ## Middleware
 ```ts
-import { NHttp, Handler } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp, Handler } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 
 const app = new NHttp();
 
@@ -91,7 +96,7 @@ app.listen(3000);
 Simple wrapper like HOC for middleware (req, res, next);
 > Note: not all middleware can work.
 ```ts
-import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const app = new NHttp();
@@ -140,7 +145,7 @@ app.use(wrapMiddleware(
 
 ## Router
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 
 const app = new NHttp();
 
@@ -307,7 +312,7 @@ app.get("/hello", (rev) => {
 ### Upload File
 
 ```ts
-import { NHttp, multipart } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp, multipart } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 const app = new NHttp();
 
 // handle upload multipart/form-data
@@ -432,7 +437,7 @@ app.on404((rev) => {
 ## Error
 Simple error handling.
 ```ts
-import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.3/mod.ts";
+import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.4/mod.ts";
 
 const app = new NHttp();
 
@@ -497,6 +502,16 @@ const app = new NHttp({
 * Push to the created ***branch***.
 * Make a ***PR (Pull Requests)***. 
 * Thanks.
+
+## List
+- [x] Server App
+- [x] Middleware
+- [x] Router
+- [x] Body Parser
+- [x] Examples
+- [x] Doc
+- [ ] Unit Test
+- [ ] Coverage
 
 ## License
 
