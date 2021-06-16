@@ -10,7 +10,7 @@ export class NHttpError extends Error {
 
 // 4xx
 /**
- * Status 400
+ * status 400
  * @example
  * throw new BadRequestError("message");
  */
@@ -20,7 +20,7 @@ export class BadRequestError extends NHttpError {
   }
 }
 /**
- * Status 401
+ * status 401
  * @example
  * throw new UnauthorizedError("message");
  */
@@ -30,7 +30,7 @@ export class UnauthorizedError extends NHttpError {
   }
 }
 /**
- * Status 402
+ * status 402
  * @example
  * throw new PaymentRequiredError("message");
  */
@@ -40,7 +40,7 @@ export class PaymentRequiredError extends NHttpError {
   }
 }
 /**
- * Status 403
+ * status 403
  * @example
  * throw new ForbiddenError("message");
  */
@@ -50,7 +50,7 @@ export class ForbiddenError extends NHttpError {
   }
 }
 /**
- * Status 404
+ * status 404
  * @example
  * throw new NotFoundError("message");
  */
@@ -60,7 +60,7 @@ export class NotFoundError extends NHttpError {
   }
 }
 /**
- * Status 405
+ * status 405
  * @example
  * throw new MethodNotAllowedError("message");
  */
@@ -70,7 +70,7 @@ export class MethodNotAllowedError extends NHttpError {
   }
 }
 /**
- * Status 406
+ * status 406
  * @example
  * throw new NotAcceptableError("message");
  */
@@ -80,7 +80,7 @@ export class NotAcceptableError extends NHttpError {
   }
 }
 /**
- * Status 407
+ * status 407
  * @example
  * throw new ProxyAuthRequiredError("message");
  */
@@ -90,7 +90,7 @@ export class ProxyAuthRequiredError extends NHttpError {
   }
 }
 /**
- * Status 408
+ * status 408
  * @example
  * throw new RequestTimeoutError("message");
  */
@@ -100,7 +100,7 @@ export class RequestTimeoutError extends NHttpError {
   }
 }
 /**
- * Status 409
+ * status 409
  * @example
  * throw new ConflictError("message");
  */
@@ -110,7 +110,7 @@ export class ConflictError extends NHttpError {
   }
 }
 /**
- * Status 410
+ * status 410
  * @example
  * throw new GoneError("message");
  */
@@ -120,7 +120,7 @@ export class GoneError extends NHttpError {
   }
 }
 /**
- * Status 411
+ * status 411
  * @example
  * throw new LengthRequiredError("message");
  */
@@ -130,7 +130,7 @@ export class LengthRequiredError extends NHttpError {
   }
 }
 /**
- * Status 412
+ * status 412
  * @example
  * throw new PreconditionFailedError("message");
  */
@@ -140,7 +140,7 @@ export class PreconditionFailedError extends NHttpError {
   }
 }
 /**
- * Status 413
+ * status 413
  * @example
  * throw new RequestEntityTooLargeError("message");
  */
@@ -150,7 +150,7 @@ export class RequestEntityTooLargeError extends NHttpError {
   }
 }
 /**
- * Status 414
+ * status 414
  * @example
  * throw new RequestURITooLongError("message");
  */
@@ -160,7 +160,7 @@ export class RequestURITooLongError extends NHttpError {
   }
 }
 /**
- * Status 415
+ * status 415
  * @example
  * throw new UnsupportedMediaTypeError("message");
  */
@@ -170,7 +170,7 @@ export class UnsupportedMediaTypeError extends NHttpError {
   }
 }
 /**
- * Status 416
+ * status 416
  * @example
  * throw new RequestedRangeNotSatisfiableError("message");
  */
@@ -180,7 +180,7 @@ export class RequestedRangeNotSatisfiableError extends NHttpError {
   }
 }
 /**
- * Status 417
+ * status 417
  * @example
  * throw new ExpectationFailedError("message");
  */
@@ -190,7 +190,7 @@ export class ExpectationFailedError extends NHttpError {
   }
 }
 /**
- * Status 418
+ * status 418
  * @example
  * throw new TeapotError("message");
  */
@@ -200,7 +200,7 @@ export class TeapotError extends NHttpError {
   }
 }
 /**
- * Status 421
+ * status 421
  * @example
  * throw new MisdirectedRequestError("message");
  */
@@ -210,7 +210,7 @@ export class MisdirectedRequestError extends NHttpError {
   }
 }
 /**
- * Status 422
+ * status 422
  * @example
  * throw new UnprocessableEntityError("message");
  */
@@ -220,7 +220,7 @@ export class UnprocessableEntityError extends NHttpError {
   }
 }
 /**
- * Status 423
+ * status 423
  * @example
  * throw new LockedError("message");
  */
@@ -230,7 +230,7 @@ export class LockedError extends NHttpError {
   }
 }
 /**
- * Status 424
+ * status 424
  * @example
  * throw new FailedDependencyError("message");
  */
@@ -240,7 +240,7 @@ export class FailedDependencyError extends NHttpError {
   }
 }
 /**
- * Status 425
+ * status 425
  * @example
  * throw new TooEarlyError("message");
  */
@@ -250,7 +250,7 @@ export class TooEarlyError extends NHttpError {
   }
 }
 /**
- * Status 426
+ * status 426
  * @example
  * throw new UpgradeRequiredError("message");
  */
@@ -260,7 +260,7 @@ export class UpgradeRequiredError extends NHttpError {
   }
 }
 /**
- * Status 428
+ * status 428
  * @example
  * throw new PreconditionRequiredError("message");
  */
@@ -270,7 +270,7 @@ export class PreconditionRequiredError extends NHttpError {
   }
 }
 /**
- * Status 429
+ * status 429
  * @example
  * throw new TooManyRequestsError("message");
  */
@@ -280,7 +280,7 @@ export class TooManyRequestsError extends NHttpError {
   }
 }
 /**
- * Status 431
+ * status 431
  * @example
  * throw new RequestHeaderFieldsTooLargeError("message");
  */
@@ -290,7 +290,7 @@ export class RequestHeaderFieldsTooLargeError extends NHttpError {
   }
 }
 /**
- * Status 451
+ * status 451
  * @example
  * throw new UnavailableForLegalReasonsError("message");
  */
@@ -302,7 +302,7 @@ export class UnavailableForLegalReasonsError extends NHttpError {
 
 // 5xx
 /**
- * Status 500
+ * status 500
  * @example
  * throw new InternalServerError("message");
  */
@@ -312,7 +312,7 @@ export class InternalServerError extends NHttpError {
   }
 }
 /**
- * Status 501
+ * status 501
  * @example
  * throw new NotImplementedError("message");
  */
@@ -322,7 +322,7 @@ export class NotImplementedError extends NHttpError {
   }
 }
 /**
- * Status 502
+ * status 502
  * @example
  * throw new BadGatewayError("message");
  */
@@ -332,7 +332,7 @@ export class BadGatewayError extends NHttpError {
   }
 }
 /**
- * Status 503
+ * status 503
  * @example
  * throw new ServiceUnavailableError("message");
  */
@@ -342,7 +342,7 @@ export class ServiceUnavailableError extends NHttpError {
   }
 }
 /**
- * Status 504
+ * status 504
  * @example
  * throw new GatewayTimeoutError("message");
  */
@@ -352,7 +352,7 @@ export class GatewayTimeoutError extends NHttpError {
   }
 }
 /**
- * Status 505
+ * status 505
  * @example
  * throw new HTTPVersionNotSupportedError("message");
  */
@@ -362,7 +362,7 @@ export class HTTPVersionNotSupportedError extends NHttpError {
   }
 }
 /**
- * Status 506
+ * status 506
  * @example
  * throw new VariantAlsoNegotiatesError("message");
  */
@@ -372,7 +372,7 @@ export class VariantAlsoNegotiatesError extends NHttpError {
   }
 }
 /**
- * Status 507
+ * status 507
  * @example
  * throw new InsufficientStorageError("message");
  */
@@ -382,7 +382,7 @@ export class InsufficientStorageError extends NHttpError {
   }
 }
 /**
- * Status 508
+ * status 508
  * @example
  * throw new LoopDetectedError("message");
  */
@@ -392,7 +392,7 @@ export class LoopDetectedError extends NHttpError {
   }
 }
 /**
- * Status 510
+ * status 510
  * @example
  * throw new NotExtendedError("message");
  */
@@ -402,7 +402,7 @@ export class NotExtendedError extends NHttpError {
   }
 }
 /**
- * Status 511
+ * status 511
  * @example
  * throw new NetworkAuthenticationRequiredError("message");
  */

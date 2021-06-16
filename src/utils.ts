@@ -1,12 +1,4 @@
-import { Handler, RequestEvent, TWrapMiddleware } from "./types.ts";
-
-export function modPath(prefix: string): Handler {
-  return (rev, next) => {
-    rev.url = rev.url.substring(prefix.length) || "/";
-    rev.path = rev.path ? rev.path.substring(prefix.length) || "/" : "/";
-    next();
-  };
-}
+import { Handler, TSizeList, TWrapMiddleware } from "./types.ts";
 
 export function findFns(arr: any[]): any[] {
   let ret = [] as any, i = 0, len = arr.length;
@@ -17,13 +9,27 @@ export function findFns(arr: any[]): any[] {
   return ret;
 }
 
-export function findUrl(str: string) {
-  let idx = [], i = -1;
-  while ((i = str.indexOf("/", i + 1)) != -1) {
-    idx.push(i);
-    if (idx.length === 3) break;
+export function toBytes(arg: string | number) {
+  let sizeList: TSizeList = {
+    b: 1,
+    kb: 1 << 10,
+    mb: 1 << 20,
+    gb: 1 << 30,
+    tb: Math.pow(1024, 4),
+    pb: Math.pow(1024, 5),
+  };
+  if (typeof arg === "number") return arg;
+  let arr = (/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i).exec(arg),
+    val: any,
+    unt = "b";
+  if (!arr) {
+    val = parseInt(val, 10);
+    unt = "b";
+  } else {
+    val = parseFloat(arr[1]);
+    unt = arr[4].toLowerCase();
   }
-  return str.substring(idx[2]);
+  return Math.floor(sizeList[unt] * val);
 }
 
 export function toPathx(path: string | RegExp, isAny: boolean) {
@@ -77,32 +83,6 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
     params = newArr.concat(params);
   }
   return { params, pathx };
-}
-
-export function parseurl(rev: RequestEvent) {
-  let str = rev.url,
-    url = rev._parsedUrl;
-  if (url !== void 0 && url._raw === str) return url;
-  let pathname = str,
-    query = null,
-    search = null,
-    i = 0,
-    len = str.length;
-  while (i < len) {
-    if (str.charCodeAt(i) === 0x3f) {
-      pathname = str.substring(0, i);
-      query = str.substring(i + 1);
-      search = str.substring(i);
-      break;
-    }
-    i++;
-  }
-  url = {};
-  url.path = url._raw = url.href = str;
-  url.pathname = pathname;
-  url.query = query;
-  url.search = search;
-  return (rev._parsedUrl = url);
 }
 
 function needPatch(data: any, keys: any, value: any) {

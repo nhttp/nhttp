@@ -1,6 +1,6 @@
 export type NextFunction = (err?: any) => void;
 
-export interface HttpResponse {
+export type HttpResponse = {
   /**
    * set header or get header
    * @example
@@ -17,7 +17,7 @@ export interface HttpResponse {
   header: (
     key?: { [k: string]: any } | string,
     value?: any,
-  ) => this | (this & Headers) | (this & string);
+  ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
   /**
    * set status or get status
    * @example
@@ -26,13 +26,13 @@ export interface HttpResponse {
    * // get status
    * response.status();
    */
-  status: (code?: number) => this | (this & number);
+  status: (code?: number) => HttpResponse | (HttpResponse & number);
   /**
    * shorthand for content-type headers
    * @example
    * response.type("text/html");
    */
-  type: (contentType: string) => this;
+  type: (contentType: string) => HttpResponse;
   /**
    * send response body
    * @example
@@ -59,7 +59,7 @@ export interface HttpResponse {
    */
   redirect: (url: string, status?: number) => Promise<void>;
   [k: string]: any;
-}
+};
 
 export type RequestEvent = Deno.RequestEvent & {
   body: { [k: string]: any };
@@ -72,7 +72,14 @@ export type RequestEvent = Deno.RequestEvent & {
   path: string;
   query: { [k: string]: any };
   search: string | null;
-  _parsedUrl: { [k: string]: any };
+  _parsedUrl: {
+    _raw: string;
+    href: string;
+    path: string;
+    pathname: string;
+    query: string | null;
+    search: string | null;
+  };
   [k: string]: any;
 };
 
@@ -97,4 +104,14 @@ export type TWrapMiddleware = {
    * modify RequestEvent or HttpResponse before wrap middleware
    */
   beforeWrap: (rev: RequestEvent, res: HttpResponse) => void;
+};
+
+export type TSizeList = {
+  b: number;
+  kb: number;
+  mb: number;
+  gb: number;
+  tb: number;
+  pb: number;
+  [key: string]: any;
 };

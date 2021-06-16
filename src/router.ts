@@ -134,13 +134,17 @@ export default class Router<
   ) => {
     if (midAsset !== void 0) {
       let pfx = findBase(url);
-      if (midAsset[pfx]) fns = midAsset[pfx].concat(fns);
+      if (midAsset[pfx]) {
+        fns = midAsset[pfx].concat(fns);
+      }
     }
-    if (midds.length) fns = midds.concat(fns);
+    if (midds.length) {
+      fns = midds.concat(fns);
+    }
     return (fns = fns.concat([notFound]));
   };
   /**
-   * Build handlers (app or router)
+   * build handlers (app or router)
    * @example
    * app.on("GET", "/", ...handlers)
    *
@@ -153,12 +157,13 @@ export default class Router<
     return this;
   }
   findRoute(method: string, url: string, notFound: Handler<Rev>) {
-    let params: { [key: string]: any } = {},
-      handlers: any[] = [];
+    let params: { [key: string]: any } = {};
+    let handlers: Handler<Rev>[] = [];
     if (this.route[method + url]) {
       let obj = this.route[method + url];
-      if (obj.m) handlers = obj.handlers;
-      else {
+      if (obj.m) {
+        handlers = obj.handlers;
+      } else {
         handlers = this.#addMidd(this.midds, notFound, obj.handlers);
         this.route[method + url] = {
           m: true,
@@ -170,12 +175,15 @@ export default class Router<
       if (url.lastIndexOf("/") === (url.length - 1)) {
         let _key = url.slice(0, -1);
         key = _key.substring(0, _key.lastIndexOf("/"));
-      } else key = url.substring(0, url.lastIndexOf("/"));
+      } else {
+        key = url.substring(0, url.lastIndexOf("/"));
+      }
       if (this.route[method + key + "/:p"]) {
         let obj = this.route[method + key + "/:p"];
         params[obj.params] = url.substring(url.lastIndexOf("/") + 1);
-        if (obj.m) handlers = obj.handlers;
-        else {
+        if (obj.m) {
+          handlers = obj.handlers;
+        } else {
           handlers = this.#addMidd(this.midds, notFound, obj.handlers);
           this.route[method + key + "/:p"] = {
             m: true,
@@ -186,11 +194,13 @@ export default class Router<
       } else {
         let i = 0,
           j = 0,
-          obj: any = {},
+          obj = {} as any,
           routes = this.route[method] || [],
           matches = [],
           nf = true;
-        if (this.route["ANY"]) routes = routes.concat(this.route["ANY"]);
+        if (this.route["ANY"]) {
+          routes = routes.concat(this.route["ANY"]);
+        }
         let len = routes.length;
         if (len) {
           while (i < len) {
@@ -209,7 +219,9 @@ export default class Router<
                 while (j < obj.params.length) {
                   params[obj.params[j]] = matches[++j] || null;
                 }
-                if (params["wild"]) params["wild"] = params["wild"].split("/");
+                if (params["wild"]) {
+                  params["wild"] = params["wild"].split("/");
+                }
               }
               break;
             }

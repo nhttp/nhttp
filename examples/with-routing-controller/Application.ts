@@ -17,9 +17,9 @@ export default class Application extends NHttp {
       });
     });
     this.on404(({ response, url }) => {
-      response.status(404).send({ 
-        message: `${url} not found`, 
-        status: 404 
+      response.status(404).send({
+        message: `${url} not found`,
+        status: 404,
       });
     });
   }
