@@ -58,6 +58,20 @@ export type HttpResponse = {
    * response.redirect("/home", 301);
    */
   redirect: (url: string, status?: number) => Promise<void>;
+  /**
+   * cookie
+   * @example
+   * response.cookie("key", "value" , {
+   *    HttpOnly: true
+   * });
+   */
+  cookie: (name: string, value: any, options?: Cookie) => HttpResponse;
+  /**
+   * clear cookie
+   * @example
+   * response.clearCookie("name");
+   */
+  clearCookie: (name: string, options?: Cookie) => void;
   [k: string]: any;
 };
 
@@ -72,6 +86,13 @@ export type RequestEvent = Deno.RequestEvent & {
   path: string;
   query: { [k: string]: any };
   search: string | null;
+  /**
+   * get cookies from request
+   * @example
+   * const object = rev.getCookies();
+   * const objectWithDecode = rev.getCookies(true);
+   */
+  getCookies: (decode?: boolean) => Record<string, string>;
   _parsedUrl: {
     _raw: string;
     href: string;
@@ -114,4 +135,16 @@ export type TSizeList = {
   tb: number;
   pb: number;
   [key: string]: any;
+};
+
+export type Cookie = {
+  expires?: Date;
+  maxAge?: number;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+  other?: string[];
+  encode?: boolean;
 };

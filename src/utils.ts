@@ -1,4 +1,9 @@
-import { Handler, TSizeList, TWrapMiddleware } from "./types.ts";
+import { Cookie, Handler, TSizeList, TWrapMiddleware } from "./types.ts";
+
+const SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export function findFns(arr: any[]): any[] {
   let ret = [] as any, i = 0, len = arr.length;
@@ -194,3 +199,90 @@ function fnWrapMiddleware(...middlewares: any): Handler {
 }
 
 export const wrapMiddleware = fnWrapMiddleware;
+
+export function serializeCookie(
+  name: string,
+  value: string,
+  cookie: Cookie = {},
+) {
+  if (!SERIALIZE_COOKIE_REGEXP.test(name)) {
+    throw new TypeError("name is invalid");
+  }
+  if (value !== "" && !SERIALIZE_COOKIE_REGEXP.test(value)) {
+    throw new TypeError("value is invalid");
+  }
+  cookie.encode = !!cookie.encode;
+  if (cookie.encode) {
+    let enc = encoder.encode(value);
+    value = btoa(enc.toString());
+  }
+  let ret = `${name}=${value}`;
+  
+  if (name.startsWith("__Secure")) {
+    cookie.secure = true;
+  }
+  if (name.startsWith("__Host")) {
+    cookie.path = "/";
+    cookie.secure = true;
+    delete cookie.domain;
+  }
+  if (cookie.secure) {
+    ret += `; Secure`;
+  }
+  if (cookie.httpOnly) {
+    ret += `; HttpOnly`;
+  }
+  if (typeof cookie.maxAge === "number" && Number.isInteger(cookie.maxAge)) {
+    ret += `; Max-Age=${cookie.maxAge}`;
+  }
+  if (cookie.domain) {
+    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.domain)) {
+      throw new TypeError("domain is invalid");
+    }
+    ret += `; Domain=${cookie.domain}`;
+  }
+  if (cookie.sameSite) {
+    ret += `; SameSite=${cookie.sameSite}`;
+  }
+  if (cookie.path) {
+    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.path)) {
+      throw new TypeError("path is invalid");
+    }
+    ret += `; Path=${cookie.path}`;
+  }
+  if (cookie.expires) {
+    if (typeof cookie.expires.toUTCString !== "function") {
+      throw new TypeError("expires is invalid");
+    }
+    ret += `; Expires=${cookie.expires.toUTCString()}`;
+  }
+  if (cookie.other) {
+    ret += `; ${cookie.other.join("; ")}`;
+  }
+  return ret;
+}
+
+function tryDecode(str: string){
+  try {
+    const dec = atob(str);
+    const uin = Uint8Array.from(dec.split(',') as any);
+    return decoder.decode(uin) || str;
+  } catch (error) {
+    return str;
+  }
+}
+
+export function getReqCookies(req: Request, decode?: boolean, i = 0) {
+  const str = req.headers.get("Cookie");
+  if (str === null) return {};
+  const ret = {} as Record<string, string>;
+  const arr = str.split(";");
+  const len = arr.length;
+  while (i < len) {
+    const [key, ...oriVal] = arr[i].split("=");
+    let val = oriVal.join("=");
+    ret[key.trim()] = decode ? tryDecode(val) : val;
+    i++;
+  }
+  return ret;
+}

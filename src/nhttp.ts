@@ -7,7 +7,12 @@ import {
   TBodyLimit,
 } from "./types.ts";
 import Router from "./router.ts";
-import { findFns, parseQuery as parseQueryOri, toPathx } from "./utils.ts";
+import {
+  findFns,
+  getReqCookies,
+  parseQuery as parseQueryOri,
+  toPathx,
+} from "./utils.ts";
 import { buildResponse } from "./response.ts";
 import { withBody } from "./body.ts";
 import { getError, NotFoundError } from "./error.ts";
@@ -43,7 +48,7 @@ export class NHttp<
   *     rev.response.status(error.status || 500).send(error.message);
   * })
   */
-   onError(
+  onError(
     fn: (
       err: any,
       rev: Rev,
@@ -339,10 +344,11 @@ export class NHttp<
     rev.path = rev._parsedUrl.pathname;
     rev.query = this.#parseQuery(rev._parsedUrl.query);
     rev.search = rev._parsedUrl.search;
+    rev.getCookies = (n) => getReqCookies(rev.request, n);
     buildResponse(
       rev.response = {} as HttpResponse,
       rev.respondWith,
-      rev.responseInit = {},
+      rev.responseInit = {}
     );
     withBody(
       rev,
@@ -351,5 +357,4 @@ export class NHttp<
       this.#bodyLimit,
     );
   };
-  
 }
