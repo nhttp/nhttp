@@ -122,7 +122,7 @@ export type TBodyLimit = {
 
 export type TWrapMiddleware = {
   /**
-   * modify RequestEvent or HttpResponse before wrap middleware
+   * mutate RequestEvent or HttpResponse before wrap middleware
    */
   beforeWrap: (rev: RequestEvent, res: HttpResponse) => void;
 };

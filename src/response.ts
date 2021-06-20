@@ -70,7 +70,7 @@ export function buildResponse(
     return this.header("Location", url).status(status || 302).send();
   };
   res.cookie = function (name, value, _opts = {}) {
-    _opts.httpOnly = _opts.httpOnly || true;
+    _opts.httpOnly = _opts.httpOnly !== false;
     _opts.path = _opts.path || "/";
     if (_opts.maxAge) {
       opts.expires = new Date(Date.now() + opts.maxAge);
@@ -84,7 +84,7 @@ export function buildResponse(
     return this;
   };
   res.clearCookie = function (name, _opts = {}) {
-    _opts.httpOnly = _opts.httpOnly || true;
+    _opts.httpOnly = _opts.httpOnly !== false;
     this.header().append(
       "Set-Cookie",
       serializeCookie(name, "", {..._opts, expires: new Date(0)}),
