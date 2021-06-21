@@ -14,10 +14,10 @@ export class JsonResponse extends Response {
 export function buildResponse(
   res: HttpResponse,
   respondWith: (r: Response | Promise<Response>) => Promise<void>,
-  opts: { [k: string]: any }
+  opts: ResponseInit
 ) {
   res.header = function (key, value) {
-    opts.headers = opts.headers || new Headers();
+    opts.headers = (opts.headers || new Headers()) as Headers;
     if (typeof key === "string" && typeof value === "string") {
       opts.headers.set(key as string, value);
       return this;
@@ -58,7 +58,7 @@ export function buildResponse(
         return respondWith(new Response(body as BodyInit, opts));
       }
       body = JSON.stringify(body);
-      opts.headers = opts.headers || new Headers();
+      opts.headers = (opts.headers || new Headers()) as Headers;
       opts.headers.set("Content-Type", JSON_TYPE_CHARSET);
     }
     return respondWith(new Response(body, opts));
@@ -73,8 +73,8 @@ export function buildResponse(
     _opts.httpOnly = _opts.httpOnly !== false;
     _opts.path = _opts.path || "/";
     if (_opts.maxAge) {
-      opts.expires = new Date(Date.now() + opts.maxAge);
-      opts.maxAge /= 1000;
+      _opts.expires = new Date(Date.now() + _opts.maxAge);
+      _opts.maxAge /= 1000;
     }
     value = typeof value === 'object' ? 'j:' + JSON.stringify(value) : String(value);
     this.header().append(
