@@ -217,7 +217,7 @@ export function serializeCookie(
     value = btoa(enc.toString());
   }
   let ret = `${name}=${value}`;
-  
+
   if (name.startsWith("__Secure")) {
     cookie.secure = true;
   }
@@ -262,10 +262,10 @@ export function serializeCookie(
   return ret;
 }
 
-function tryDecode(str: string){
+function tryDecode(str: string) {
   try {
     const dec = atob(str);
-    const uin = Uint8Array.from(dec.split(',') as any);
+    const uin = Uint8Array.from(dec.split(",") as any);
     return decoder.decode(uin) || str;
   } catch (error) {
     return str;

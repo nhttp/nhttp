@@ -348,7 +348,7 @@ export class NHttp<
     buildResponse(
       rev.response = {} as HttpResponse,
       rev.respondWith,
-      rev.responseInit = {}
+      rev.responseInit = {},
     );
     withBody(
       rev,

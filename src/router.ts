@@ -171,13 +171,19 @@ export default class Router<
         };
       }
     } else {
-      let key = "";
-      if (url.lastIndexOf("/") === (url.length - 1)) {
-        let _key = url.slice(0, -1);
-        key = _key.substring(0, _key.lastIndexOf("/"));
-      } else {
-        key = url.substring(0, url.lastIndexOf("/"));
+      if (url[url.length - 1] === "/") {
+        return {
+          params,
+          handlers: this.#addMidd(
+            this.midds,
+            notFound,
+            [],
+            url,
+            this.pmidds,
+          ),
+        };
       }
+      let key = url.substring(0, url.lastIndexOf("/"));
       if (this.route[method + key + "/:p"]) {
         let obj = this.route[method + key + "/:p"];
         params[obj.params] = url.substring(url.lastIndexOf("/") + 1);

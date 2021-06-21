@@ -14,7 +14,7 @@ export class JsonResponse extends Response {
 export function buildResponse(
   res: HttpResponse,
   respondWith: (r: Response | Promise<Response>) => Promise<void>,
-  opts: ResponseInit
+  opts: ResponseInit,
 ) {
   res.header = function (key, value) {
     opts.headers = (opts.headers || new Headers()) as Headers;
@@ -33,7 +33,7 @@ export function buildResponse(
       return this;
     }
     if (typeof key === "string") {
-      return opts.headers.get(key) as & HttpResponse & string;
+      return opts.headers.get(key) as HttpResponse & string;
     }
     return opts.headers as HttpResponse & Headers;
   };
@@ -76,10 +76,12 @@ export function buildResponse(
       _opts.expires = new Date(Date.now() + _opts.maxAge);
       _opts.maxAge /= 1000;
     }
-    value = typeof value === 'object' ? 'j:' + JSON.stringify(value) : String(value);
+    value = typeof value === "object"
+      ? "j:" + JSON.stringify(value)
+      : String(value);
     this.header().append(
-      "Set-Cookie", 
-      serializeCookie(name, value, _opts)
+      "Set-Cookie",
+      serializeCookie(name, value, _opts),
     );
     return this;
   };
@@ -87,7 +89,7 @@ export function buildResponse(
     _opts.httpOnly = _opts.httpOnly !== false;
     this.header().append(
       "Set-Cookie",
-      serializeCookie(name, "", {..._opts, expires: new Date(0)}),
+      serializeCookie(name, "", { ..._opts, expires: new Date(0) }),
     );
   };
 }
