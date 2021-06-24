@@ -3,7 +3,6 @@ import Router from "./router.ts";
 import {
   findFns,
   getReqCookies,
-  mutObj,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
@@ -337,9 +336,7 @@ export class NHttp<
     };
     rev.params = obj.params;
     rev.path = rev._parsedUrl.pathname;
-    rev.query = rev._parsedUrl.query
-      ? mutObj(this.#parseQuery(rev._parsedUrl.query))
-      : {};
+    rev.query = this.#parseQuery(rev._parsedUrl.query);
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
     response(
