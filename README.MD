@@ -96,7 +96,8 @@ app.listen(3000);
 Simple wrapper like HOC for middleware (req, res, next);
 > Note: not all middleware can work.
 ```ts
-import { NHttp, Handler, wrapMiddleware, UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.9/mod.ts";
+import { NHttp, Handler, wrapMiddleware } from "https://deno.land/x/nhttp@0.2.9/mod.ts";
+import { UnprocessableEntityError } from "https://deno.land/x/nhttp@0.2.9/error.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const app = new NHttp();
@@ -469,7 +470,8 @@ app.on404((rev) => {
 
 ## Throw Error
 ```ts
-import { NHttp, BadRequestError } from "https://deno.land/x/nhttp@0.2.9/error.ts";
+import { NHttp  } from "https://deno.land/x/nhttp@0.2.9/mod.ts";
+import { BadRequestError } from "https://deno.land/x/nhttp@0.2.9/error.ts";
 
 const app = new NHttp();
 
