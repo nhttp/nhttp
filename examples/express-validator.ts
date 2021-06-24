@@ -1,10 +1,6 @@
-import {
-  Handler,
-  NHttp,
-  UnprocessableEntityError,
-  wrapMiddleware,
-} from "../mod.ts";
+import { Handler, NHttp, wrapMiddleware } from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
+import { UnprocessableEntityError } from "../error.ts";
 
 const validator: Handler[] = [
   wrapMiddleware([

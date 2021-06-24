@@ -1,4 +1,6 @@
-import { Handler, Handlers, RequestEvent } from "./types.ts";
+import { RequestEvent } from "./request_event.ts";
+import { Handler, Handlers } from "./types.ts";
+import { mutObj } from "./utils.ts";
 
 function findBase(pathname: string) {
   let iof = pathname.indexOf("/", 1);
@@ -238,6 +240,7 @@ export default class Router<
           handlers = this.#addMidd(this.midds, notFound, [], url, this.pmidds);
         }
       }
+      params = mutObj(params);
     }
     return { params, handlers };
   }

@@ -1,4 +1,5 @@
-import { Handler, NHttp, UnauthorizedError } from "../mod.ts";
+import { UnauthorizedError } from "../error.ts";
+import { Handler, NHttp } from "../mod.ts";
 
 // username: admin
 // password: admin

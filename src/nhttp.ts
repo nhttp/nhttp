@@ -1,21 +1,16 @@
-import {
-  Handler,
-  Handlers,
-  HttpResponse,
-  NextFunction,
-  RequestEvent,
-  TBodyLimit,
-} from "./types.ts";
+import { Handler, Handlers, NextFunction, TBodyLimit } from "./types.ts";
 import Router from "./router.ts";
 import {
   findFns,
   getReqCookies,
+  mutObj,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
-import { buildResponse } from "./response.ts";
 import { withBody } from "./body.ts";
-import { getError, NotFoundError } from "./error.ts";
+import { getError, NotFoundError } from "./../error.ts";
+import { RequestEvent } from "./request_event.ts";
+import { HttpResponse, response } from "./http_response.ts";
 
 type TApp = {
   parseQuery?: (data: any, ...args: any) => any;
@@ -342,10 +337,12 @@ export class NHttp<
     };
     rev.params = obj.params;
     rev.path = rev._parsedUrl.pathname;
-    rev.query = this.#parseQuery(rev._parsedUrl.query);
+    rev.query = rev._parsedUrl.query
+      ? mutObj(this.#parseQuery(rev._parsedUrl.query))
+      : {};
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
-    buildResponse(
+    response(
       rev.response = {} as HttpResponse,
       rev.respondWith,
       rev.responseInit = {},

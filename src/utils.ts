@@ -37,6 +37,37 @@ export function toBytes(arg: string | number) {
   return Math.floor(sizeList[unt] * val);
 }
 
+const isObj = (n: any) => n.constructor === Object;
+const isArr = (n: any) => Array.isArray(n);
+const isBool = (n: any) => n === "true" || n === "false";
+const isNum = (n: any) => !isNaN(parseFloat(n)) && isFinite(n);
+const mutValue = (n: any, checkFile = false) => {
+  if (checkFile && (n instanceof File)) return n;
+  if (typeof n === "undefined" || n === "") return null;
+  if (isNum(n)) return parseFloat(n);
+  if (isBool(n)) return n === "true";
+  if (isArr(n)) return mutArr(n, checkFile);
+  if (isObj(n)) return mutObj(n);
+  return n;
+};
+const mutArr = (arr: any[], checkFile = false, i = 0) => {
+  let ret = [] as any[];
+  let len = arr.length;
+  while (i < len) {
+    ret[i] = mutValue(arr[i], checkFile);
+    i++;
+  }
+  return ret;
+};
+export const mutObj = (obj: any, checkFile = false) => {
+  let ret = {} as any, value;
+  for (const k in obj) {
+    value = mutValue(obj[k], checkFile);
+    if (value !== null) ret[k] = value;
+  }
+  return ret;
+};
+
 export function toPathx(path: string | RegExp, isAny: boolean) {
   if (path instanceof RegExp) return { params: null, pathx: path };
   let trgx = /\?|\*|\./;

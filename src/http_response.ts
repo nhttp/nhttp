@@ -1,7 +1,82 @@
-import { HttpResponse } from "./types.ts";
+import { Cookie } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
+
+export class HttpResponse {
+  /**
+  * set header or get header
+  * @example
+  * // set headers
+  * response.header("content-type", "text/css");
+  * response.header({"content-type": "text/css"});
+  * // get headers
+  * response.header("content-type");
+  * // get all headers
+  * response.header();
+  * // delete headers
+  * response.header().delete("content-type");
+  */
+  header!: (
+    key?: { [k: string]: any } | string,
+    value?: any,
+  ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
+  /**
+  * set status or get status
+  * @example
+  * // set status
+  * response.status(200);
+  * // get status
+  * response.status();
+  */
+  status!: (code?: number) => HttpResponse | (HttpResponse & number);
+  /**
+  * shorthand for content-type headers
+  * @example
+  * response.type("text/html");
+  */
+  type!: (contentType: string) => HttpResponse;
+  /**
+  * send response body
+  * @example
+  * // send text
+  * response.send("hello");
+  * response.status(201).send("Created");
+  * // send json
+  * response.send({ name: "john" });
+  * // simple send file
+  * response.type("text/css").send(await Deno.readFile("./path/file"));
+  */
+  send!: (body?: BodyInit | { [k: string]: any } | null) => Promise<void>;
+  /**
+  * shorthand for send json body
+  * @example
+  * response.json({ name: "john" });
+  */
+  json!: (body: { [k: string]: any } | null) => Promise<void>;
+  /**
+  * redirect url
+  * @example
+  * response.redirect("/home");
+  * response.redirect("/home", 301);
+  */
+  redirect!: (url: string, status?: number) => Promise<void>;
+  /**
+  * cookie
+  * @example
+  * response.cookie("key", "value" , {
+  *    HttpOnly: true
+  * });
+  */
+  cookie!: (name: string, value: any, options?: Cookie) => HttpResponse;
+  /**
+  * clear cookie
+  * @example
+  * response.clearCookie("name");
+  */
+  clearCookie!: (name: string, options?: Cookie) => void;
+  [k: string]: any
+}
 
 export class JsonResponse extends Response {
   constructor(json: { [k: string]: any } | null, opts: ResponseInit = {}) {
@@ -11,7 +86,7 @@ export class JsonResponse extends Response {
   }
 }
 
-export function buildResponse(
+export function response(
   res: HttpResponse,
   respondWith: (r: Response | Promise<Response>) => Promise<void>,
   opts: ResponseInit,

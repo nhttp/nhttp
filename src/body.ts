@@ -1,6 +1,7 @@
-import { BadRequestError } from "./error.ts";
-import { Handler, NextFunction, RequestEvent, TBodyLimit } from "./types.ts";
-import { parseQuery, toBytes } from "./utils.ts";
+import { BadRequestError } from "../error.ts";
+import { RequestEvent } from "./request_event.ts";
+import { Handler, NextFunction, TBodyLimit } from "./types.ts";
+import { mutObj, parseQuery, toBytes } from "./utils.ts";
 
 const decoder = new TextDecoder();
 
@@ -120,6 +121,7 @@ class Multipart {
         rev.body = await this.#body(formData, {
           parse: rev.__parseQuery,
         });
+        rev.body = mutObj(rev.body, true);
       }
       next();
     };
@@ -209,6 +211,7 @@ class Multipart {
           }
           this.#cleanUp(rev.body);
         }
+        rev.body = mutObj(rev.body, true);
       }
       next();
     };
@@ -247,7 +250,7 @@ export const withBody = async (
     ) {
       try {
         const body = await verifyBody(rev.request, opts?.urlencoded || "3mb");
-        rev.body = parse(body);
+        rev.body = mutObj(parse(body));
       } catch (error) {
         return next(error);
       }
