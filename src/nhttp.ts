@@ -34,6 +34,7 @@ export class NHttp<
         next();
       });
     }
+    this.fetchEventHandler = this.fetchEventHandler.bind(this);
   }
   /**
   * global error handling.
@@ -184,6 +185,20 @@ export class NHttp<
       this.#parseQuery,
       this.#bodyLimit,
     );
+  }
+  fetchEventHandler() {
+    return {
+      handleEvent: async (event: any) => {
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = event.respondWith(promise);
+        this.handle({
+          request: event.request,
+          respondWith: resp!,
+        } as any);
+        await rw;
+      },
+    };
   }
   /**
    * listen the server
@@ -352,18 +367,3 @@ export class NHttp<
     rev._parsedUrl = url;
   };
 }
-
-export const fetchEventHandler = (app: NHttp) => {
-  return {
-    handleEvent: async (event: any) => {
-      let resp: (res: Response) => void;
-      const promise = new Promise<Response>((ok) => (resp = ok));
-      const rw = event.respondWith(promise);
-      app.handle({
-        request: event.request,
-        respondWith: resp!,
-      } as any);
-      await rw;
-    },
-  };
-};
