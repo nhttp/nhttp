@@ -213,8 +213,7 @@ export function serializeCookie(
   }
   cookie.encode = !!cookie.encode;
   if (cookie.encode) {
-    let enc = encoder.encode(value);
-    value = btoa(enc.toString());
+    value = "E:" + btoa(encoder.encode(value).toString());
   }
   let ret = `${name}=${value}`;
 
@@ -264,9 +263,17 @@ export function serializeCookie(
 
 function tryDecode(str: string) {
   try {
+    str = str.substring(2);
     const dec = atob(str);
-    const uin = Uint8Array.from(dec.split(",") as any);
-    return decoder.decode(uin) || str;
+    const uint = Uint8Array.from(dec.split(",") as any);
+    const ret = decoder.decode(uint) || str;
+    if (ret !== str) {
+      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
+        const json = ret.substring(2);
+        return JSON.parse(json);
+      }
+    }
+    return decoder.decode(uint) || str;
   } catch (error) {
     return str;
   }
@@ -281,7 +288,9 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   while (i < len) {
     const [key, ...oriVal] = arr[i].split("=");
     let val = oriVal.join("=");
-    ret[key.trim()] = decode ? tryDecode(val) : val;
+    ret[key.trim()] = decode
+      ? (val.startsWith("E:") ? tryDecode(val) : val)
+      : val;
     i++;
   }
   return ret;
