@@ -150,12 +150,16 @@ export class NHttp<
     return this;
   }
   /**
-   * handle request event
+   * fetch request event
    * @example
-   * app.handleRequestEvent(requestEvent);
+   * app.fetchRequestEvent();
    */
-  handleRequestEvent(rev: Deno.RequestEvent): Promise<void>;
-  handleRequestEvent(rev: any): Promise<void>;
+  fetchRequestEvent(): any;
+  fetchRequestEvent() {
+    return {
+      handleEvent: this.handleRequestEvent,
+    };
+  }
   async handleRequestEvent({ request, respondWith }: Deno.RequestEvent) {
     let resp: (res: Response) => void;
     const promise = new Promise<Response>((ok) => (resp = ok));

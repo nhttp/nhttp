@@ -1,4 +1,4 @@
-import { NHttp } from "https://deno.land/x/nhttp@0.5.0/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.6.0/mod.ts";
 
 const app = new NHttp();
 
@@ -8,4 +8,4 @@ app.get("/", ({ response }) => {
     `)
 });
 
-addEventListener("fetch", app.handleRequestEvent);
+addEventListener("fetch", app.fetchRequestEvent());
