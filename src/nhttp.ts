@@ -157,9 +157,20 @@ export class NHttp<
   fetchRequestEvent(): any;
   fetchRequestEvent() {
     return {
-      handleEvent: this.handleRequestEvent,
+      handleEvent: async (event: Deno.RequestEvent) => {
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = event.respondWith(promise);
+        this.handle({
+          request: event.request,
+          respondWith: resp!,
+        } as Rev);
+        await rw;
+      },
     };
   }
+  handleRequestEvent(rev: Deno.RequestEvent): Promise<void>;
+  handleRequestEvent(rev: any): Promise<void>;
   async handleRequestEvent({ request, respondWith }: Deno.RequestEvent) {
     let resp: (res: Response) => void;
     const promise = new Promise<Response>((ok) => (resp = ok));
