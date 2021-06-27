@@ -149,38 +149,6 @@ export class NHttp<
     }
     return this;
   }
-  /**
-   * fetch request event
-   * @example
-   * app.fetchRequestEvent();
-   */
-  fetchRequestEvent(): any;
-  fetchRequestEvent() {
-    return {
-      handleEvent: async (event: Deno.RequestEvent) => {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = event.respondWith(promise);
-        this.handle({
-          request: event.request,
-          respondWith: resp!,
-        } as Rev);
-        await rw;
-      },
-    };
-  }
-  handleRequestEvent(rev: Deno.RequestEvent): Promise<void>;
-  handleRequestEvent(rev: any): Promise<void>;
-  async handleRequestEvent({ request, respondWith }: Deno.RequestEvent) {
-    let resp: (res: Response) => void;
-    const promise = new Promise<Response>((ok) => (resp = ok));
-    const rw = respondWith(promise);
-    this.handle({
-      request: request,
-      respondWith: resp!,
-    } as Rev);
-    await rw;
-  }
   handle(rev: Rev, i = 0) {
     this.#parseUrl(rev);
     const obj = this.findRoute(
@@ -339,8 +307,15 @@ export class NHttp<
   #handleConn = async (conn: Deno.Conn) => {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const rev of httpConn) {
-        await this.handleRequestEvent(rev);
+      for await (const { request, respondWith } of httpConn) {
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = respondWith(promise);
+        this.handle({
+          request: request,
+          respondWith: resp!,
+        } as Rev);
+        await rw;
       }
     } catch (_e) {}
   };
@@ -377,3 +352,18 @@ export class NHttp<
     rev._parsedUrl = url;
   };
 }
+
+export const fetchRequestEvent = (app: NHttp) => {
+  return {
+    handleEvent: async (event: any) => {
+      let resp: (res: Response) => void;
+      const promise = new Promise<Response>((ok) => (resp = ok));
+      const rw = event.respondWith(promise);
+      app.handle({
+        request: event.request,
+        respondWith: resp!,
+      } as any);
+      await rw;
+    },
+  };
+};

@@ -1,4 +1,4 @@
-import { NHttp } from "https://deno.land/x/nhttp@0.6.0/mod.ts";
+import { NHttp } from "https://raw.githubusercontent.com/nhttp/nhttp/master/mod.ts";
 
 const app = new NHttp();
 
