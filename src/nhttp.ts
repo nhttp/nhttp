@@ -351,6 +351,20 @@ export class NHttp<
     url.search = search;
     rev._parsedUrl = url;
   };
+  fetchRequestEvent = () => {
+    return {
+      handleEvent: async (event: any) => {
+        let resp: (res: Response) => void;
+        const promise = new Promise<Response>((ok) => (resp = ok));
+        const rw = event.respondWith(promise);
+        this.handle({
+          request: event.request,
+          respondWith: resp!,
+        } as any);
+        await rw;
+      },
+    }
+  }
 }
 
 export const fetchRequestEvent = (app: NHttp) => {
