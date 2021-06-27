@@ -149,8 +149,47 @@ export class NHttp<
     }
     return this;
   }
-
   /**
+   * handleRequest
+   * @example
+   * app.handleRequestEvent(requestEvent);
+   */
+  handleRequestEvent(rev: Rev, i = 0) {
+    this.#parseUrl(rev);
+    const obj = this.findRoute(
+      rev.request.method,
+      rev._parsedUrl.pathname,
+      this.#on404,
+    );
+    const next: NextFunction = (err?: any) => {
+      if (err) return this.#onError(err, rev, next);
+      let ret;
+      try {
+        ret = obj.handlers[i++](rev, next);
+      } catch (error) {
+        return next(error);
+      }
+      if (ret && typeof ret.then === "function") {
+        ret.then(void 0).catch(next);
+      }
+    };
+    rev.params = obj.params;
+    rev.path = rev._parsedUrl.pathname;
+    rev.query = this.#parseQuery(rev._parsedUrl.query);
+    rev.search = rev._parsedUrl.search;
+    rev.getCookies = (n) => getReqCookies(rev.request, n);
+    response(
+      rev.response = {} as HttpResponse,
+      rev.respondWith,
+      rev.responseInit = {},
+    );
+    withBody(
+      rev,
+      next,
+      this.#parseQuery,
+      this.#bodyLimit,
+    );
+  } /**
    * listen the server
    * @example
    * // example 1
@@ -180,6 +219,7 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
+
   async listen(
     opts:
       | number
@@ -275,7 +315,7 @@ export class NHttp<
         let resp: (res: Response) => void;
         const promise = new Promise<Response>((ok) => (resp = ok));
         const rw = respondWith(promise);
-        this.#handleRequestEvent({
+        this.handleRequestEvent({
           request: request,
           respondWith: resp!,
         } as Rev);
@@ -314,41 +354,5 @@ export class NHttp<
     url.query = query;
     url.search = search;
     rev._parsedUrl = url;
-  };
-  #handleRequestEvent = (rev: Rev, i = 0) => {
-    this.#parseUrl(rev);
-    const obj = this.findRoute(
-      rev.request.method,
-      rev._parsedUrl.pathname,
-      this.#on404,
-    );
-    const next: NextFunction = (err?: any) => {
-      if (err) return this.#onError(err, rev, next);
-      let ret;
-      try {
-        ret = obj.handlers[i++](rev, next);
-      } catch (error) {
-        return next(error);
-      }
-      if (ret && typeof ret.then === "function") {
-        ret.then(void 0).catch(next);
-      }
-    };
-    rev.params = obj.params;
-    rev.path = rev._parsedUrl.pathname;
-    rev.query = this.#parseQuery(rev._parsedUrl.query);
-    rev.search = rev._parsedUrl.search;
-    rev.getCookies = (n) => getReqCookies(rev.request, n);
-    response(
-      rev.response = {} as HttpResponse,
-      rev.respondWith,
-      rev.responseInit = {},
-    );
-    withBody(
-      rev,
-      next,
-      this.#parseQuery,
-      this.#bodyLimit,
-    );
   };
 }
