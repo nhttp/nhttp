@@ -150,11 +150,23 @@ export class NHttp<
     return this;
   }
   /**
-   * handleRequest
+   * handle request event
    * @example
    * app.handleRequestEvent(requestEvent);
    */
-  handleRequestEvent(rev: Rev, i = 0) {
+  handleRequestEvent(rev: Deno.RequestEvent): Promise<void>;
+  handleRequestEvent(rev: any): Promise<void>;
+  async handleRequestEvent({ request, respondWith }: Deno.RequestEvent) {
+    let resp: (res: Response) => void;
+    const promise = new Promise<Response>((ok) => (resp = ok));
+    const rw = respondWith(promise);
+    this.handle({
+      request: request,
+      respondWith: resp!,
+    } as Rev);
+    await rw;
+  }
+  handle(rev: Rev, i = 0) {
     this.#parseUrl(rev);
     const obj = this.findRoute(
       rev.request.method,
@@ -189,7 +201,8 @@ export class NHttp<
       this.#parseQuery,
       this.#bodyLimit,
     );
-  } /**
+  }
+  /**
    * listen the server
    * @example
    * // example 1
@@ -311,15 +324,8 @@ export class NHttp<
   #handleConn = async (conn: Deno.Conn) => {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const { request, respondWith } of httpConn) {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = respondWith(promise);
-        this.handleRequestEvent({
-          request: request,
-          respondWith: resp!,
-        } as Rev);
-        await rw;
+      for await (const rev of httpConn) {
+        await this.handleRequestEvent(rev);
       }
     } catch (_e) {}
   };
