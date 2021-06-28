@@ -43,12 +43,6 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
   if (!trgx.test(path) && isAny === false) {
     let len = (path.match(/\/:/gi) || []).length;
     if (len === 0) return;
-    if (len === 1) {
-      let arr = path.split("/:");
-      if (arr[arr.length - 1].indexOf("/") === -1) {
-        return { params: arr[1], key: arr[0] + "/:p", pathx: null };
-      }
-    }
   }
   let params: any[] | string | null = [],
     pattern = "",

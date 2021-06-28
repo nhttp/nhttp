@@ -23,6 +23,7 @@ export class NHttp<
   #parseQuery: (data: any, ...args: any) => any;
   #bodyLimit?: TBodyLimit;
   #env: string;
+  server: Deno.Listener | undefined;
   constructor({ parseQuery, bodyLimit, env }: TApp = {}) {
     super();
     this.#parseQuery = parseQuery || parseQueryOri;
@@ -137,14 +138,8 @@ export class NHttp<
     let fns = findFns(handlers);
     let obj = toPathx(path, method === "ANY");
     if (obj !== void 0) {
-      if (obj.key) {
-        this.route[method + obj.key] = { params: obj.params, handlers: fns };
-      } else {
-        if (this.route[method] === void 0) {
-          this.route[method] = [];
-        }
-        this.route[method].push({ ...obj, handlers: fns });
-      }
+      this.route[method] = this.route[method] || [];
+      this.route[method].push({ ...obj, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
     }
@@ -251,7 +246,7 @@ export class NHttp<
     } else if (typeof opts === "object") {
       isTls = (opts as any).certFile !== void 0;
     }
-    let server = (
+    this.server = (
       isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
         opts as Deno.ListenOptions & { transport?: "tcp" | undefined },
       )
@@ -261,12 +256,12 @@ export class NHttp<
         callback(undefined, {
           ...opts,
           hostname: opts.hostname || "localhost",
-          server,
+          server: this.server,
         });
       }
       while (true) {
         try {
-          const conn = await server.accept();
+          const conn = await this.server.accept();
           if (conn) {
             this.#handleConn(conn);
           } else {
@@ -279,7 +274,7 @@ export class NHttp<
         callback(error, {
           ...opts,
           hostname: opts.hostname || "localhost",
-          server,
+          server: this.server,
         });
       }
     }
