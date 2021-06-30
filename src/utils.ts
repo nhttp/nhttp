@@ -267,7 +267,7 @@ function tryDecode(str: string) {
         return JSON.parse(json);
       }
     }
-    return decoder.decode(uint) || str;
+    return ret;
   } catch (error) {
     return str;
   }
