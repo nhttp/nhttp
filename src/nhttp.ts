@@ -17,6 +17,8 @@ type TApp = {
   env?: string;
 };
 
+type FetchEvent = any;
+
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
@@ -181,18 +183,21 @@ export class NHttp<
       this.#bodyLimit,
     );
   }
+  /**
+  * fetchEventHandler idealy for deploy
+  * @example
+  * addEventListener("fetch", app.fetchEventHandler());
+  */
   fetchEventHandler() {
-    return {
-      handleEvent: async (event: any) => {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = event.respondWith(promise);
-        this.handle({
-          request: event.request,
-          respondWith: resp!,
-        } as any);
-        await rw;
-      },
+    return async (event: FetchEvent) => {
+      let resp: (res: Response) => void;
+      const promise = new Promise<Response>((ok) => (resp = ok));
+      const rw = event.respondWith(promise);
+      this.handle({
+        request: event.request,
+        respondWith: resp!,
+      } as any);
+      await rw;
     };
   }
   /**

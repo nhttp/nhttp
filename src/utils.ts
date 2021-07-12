@@ -186,9 +186,9 @@ function fnWrapMiddleware(...middlewares: any): Handler {
       rev.__isWrapMiddleware = true;
     }
     if (beforeWrap) beforeWrap(rev, res);
-    let i = 0, len = fns.length;
-    if (!len) return next();
-    while (i < len) fns[i++](rev, res, next);
+    if (!fns.length) return next();
+    let i = 0;
+    fns[i++](rev, res, next);
   };
 }
 
