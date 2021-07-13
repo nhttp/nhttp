@@ -17,6 +17,8 @@ export type Handlers<
 export type TBodyLimit = {
   json?: number | string;
   urlencoded?: number | string;
+  raw?: number | string;
+  multipart?: number | string;
 };
 
 export type TWrapMiddleware = {

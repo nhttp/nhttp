@@ -65,7 +65,7 @@ export class HttpResponse {
   * cookie
   * @example
   * response.cookie("key", "value" , {
-  *    HttpOnly: true
+  *    httpOnly: true
   * });
   */
   cookie!: (name: string, value: any, options?: Cookie) => HttpResponse;
@@ -128,6 +128,8 @@ export function response(
       if (
         body instanceof Uint8Array ||
         body instanceof ReadableStream ||
+        body instanceof FormData ||
+        body instanceof Blob ||
         typeof (body as Deno.Reader).read === "function"
       ) {
         return respondWith(new Response(body as BodyInit, opts));

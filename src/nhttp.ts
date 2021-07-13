@@ -23,21 +23,23 @@ export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
   #parseQuery: (data: any, ...args: any) => any;
+  #multipartParseQuery?: (data: any, ...args: any) => any;
   #bodyLimit?: TBodyLimit;
   #env: string;
   server: Deno.Listener | undefined;
   constructor({ parseQuery, bodyLimit, env }: TApp = {}) {
     super();
     this.#parseQuery = parseQuery || parseQueryOri;
+    this.#multipartParseQuery = parseQuery;
     this.#bodyLimit = bodyLimit;
     this.#env = env || "development";
+    this.fetchEventHandler = this.fetchEventHandler.bind(this);
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
         rev.__parseQuery = parseQuery;
         next();
       });
     }
-    this.fetchEventHandler = this.fetchEventHandler.bind(this);
   }
   /**
   * global error handling.
@@ -180,6 +182,7 @@ export class NHttp<
       rev,
       next,
       this.#parseQuery,
+      this.#multipartParseQuery,
       this.#bodyLimit,
     );
   }
