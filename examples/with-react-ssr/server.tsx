@@ -23,7 +23,9 @@ class Server extends NHttp {
     super();
     // build middleware and mutate body for react
     this.use((rev, next) => {
+      // deno-lint-ignore no-explicit-any
       rev.jsx = (element: any, opts = {} as any) => {
+        // deno-lint-ignore no-explicit-any
         const content = (ReactDOMServer as any).renderToString(element);
         // deno-fmt-ignore
         rev.response.type("text/html").send(

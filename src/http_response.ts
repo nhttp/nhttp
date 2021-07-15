@@ -1,4 +1,4 @@
-import { Cookie } from "./types.ts";
+import { Cookie, TObject } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
@@ -18,8 +18,8 @@ export class HttpResponse {
   * response.header().delete("content-type");
   */
   header!: (
-    key?: { [k: string]: any } | string,
-    value?: any,
+    key?: TObject | string,
+    value?: string | number | string[] | number[],
   ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
   /**
   * set status or get status
@@ -47,13 +47,13 @@ export class HttpResponse {
   * // simple send file
   * response.type("text/css").send(await Deno.readFile("./path/file"));
   */
-  send!: (body?: BodyInit | { [k: string]: any } | null) => Promise<void>;
+  send!: (body?: BodyInit | TObject | null) => Promise<void>;
   /**
   * shorthand for send json body
   * @example
   * response.json({ name: "john" });
   */
-  json!: (body: { [k: string]: any } | null) => Promise<void>;
+  json!: (body: TObject | null) => Promise<void>;
   /**
   * redirect url
   * @example
@@ -68,18 +68,23 @@ export class HttpResponse {
   *    httpOnly: true
   * });
   */
-  cookie!: (name: string, value: any, options?: Cookie) => HttpResponse;
+  cookie!: (
+    name: string,
+    value: string | string[] | number | number[] | TObject | undefined,
+    options?: Cookie,
+  ) => HttpResponse;
   /**
   * clear cookie
   * @example
   * response.clearCookie("name");
   */
   clearCookie!: (name: string, options?: Cookie) => void;
+  // deno-lint-ignore no-explicit-any
   [k: string]: any
 }
 
 export class JsonResponse extends Response {
-  constructor(json: { [k: string]: any } | null, opts: ResponseInit = {}) {
+  constructor(json: TObject | null, opts: ResponseInit = {}) {
     opts.headers = (opts.headers || new Headers()) as Headers;
     opts.headers.set("content-type", JSON_TYPE_CHARSET);
     super(JSON.stringify(json), opts);
@@ -102,7 +107,7 @@ export function response(
         opts.headers = key;
       } else {
         for (const k in key) {
-          opts.headers.set(k, key[k]);
+          opts.headers.set(k, key[k] as string);
         }
       }
       return this;
@@ -130,7 +135,7 @@ export function response(
         body instanceof ReadableStream ||
         body instanceof FormData ||
         body instanceof Blob ||
-        typeof (body as Deno.Reader).read === "function"
+        typeof (body as unknown as Deno.Reader).read === "function"
       ) {
         return respondWith(new Response(body as BodyInit, opts));
       }

@@ -1,4 +1,11 @@
-import { Handler, Handlers, NextFunction, TBodyLimit } from "./types.ts";
+import {
+  Handler,
+  Handlers,
+  NextFunction,
+  TBodyLimit,
+  TObject,
+  TQueryFunc,
+} from "./types.ts";
 import Router from "./router.ts";
 import {
   findFns,
@@ -12,18 +19,31 @@ import { RequestEvent } from "./request_event.ts";
 import { HttpResponse, response } from "./http_response.ts";
 
 type TApp = {
-  parseQuery?: (data: any, ...args: any) => any;
+  parseQuery?: TQueryFunc;
   bodyLimit?: TBodyLimit;
   env?: string;
 };
 
+// deno-lint-ignore no-explicit-any
 type FetchEvent = any;
+
+type TOn404<Rev extends RequestEvent = RequestEvent> = (
+  rev: Rev,
+  next: NextFunction,
+) => Promise<void> | void;
+
+type TOnError<Rev extends RequestEvent = RequestEvent> = (
+  // deno-lint-ignore no-explicit-any
+  err: any,
+  rev: Rev,
+  next: NextFunction,
+) => Promise<void> | void;
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
-  #parseQuery: (data: any, ...args: any) => any;
-  #multipartParseQuery?: (data: any, ...args: any) => any;
+  #parseQuery: TQueryFunc;
+  #multipartParseQuery?: TQueryFunc;
   #bodyLimit?: TBodyLimit;
   #env: string;
   server: Deno.Listener | undefined;
@@ -48,12 +68,14 @@ export class NHttp<
   *     rev.response.status(error.status || 500).send(error.message);
   * })
   */
+  onError(fn: TOnError<Rev>): void;
   onError(
     fn: (
+      // deno-lint-ignore no-explicit-any
       err: any,
       rev: Rev,
       next: NextFunction,
-    ) => any,
+    ) => Promise<void>,
   ) {
     this.#onError = fn;
   }
@@ -64,11 +86,12 @@ export class NHttp<
   *     rev.response.status(404).send(`route ${rev.url} not found`);
   * })
   */
+  on404(fn: TOn404<Rev>): void;
   on404(
     fn: (
       rev: Rev,
       next: NextFunction,
-    ) => any,
+    ) => Promise<void>,
   ) {
     this.#on404 = fn;
   }
@@ -101,49 +124,56 @@ export class NHttp<
   use(prefix: string, middleware: Handler<Rev>, router: Router<Rev>): this;
   use(prefix: string, middleware: Handler<Rev>): this;
   use(prefix: string, ...middlewares: Handlers<Rev>): this;
+  // deno-lint-ignore no-explicit-any
   use(...args: any): this;
+  // deno-lint-ignore no-explicit-any
   use(...args: any) {
     const arg = args[0];
     const larg = args[args.length - 1];
     const len = args.length;
     if (len === 1 && typeof arg === "function") {
-      this.midds.push(arg);
+      this.midds.push(arg as Handler<Rev>);
     } else if (typeof arg === "string" && typeof larg === "function") {
       if (arg === "/" || arg === "") {
-        this.midds = this.midds.concat(findFns(args));
+        this.midds = this.midds.concat(
+          findFns(args) as ConcatArray<Handler<Rev>>,
+        );
       } else {
-        this.pmidds[arg] = [
+        this.pmidds[arg] = ([
           ((rev, next) => {
             rev.url = rev.url.substring(arg.length) || "/";
             rev.path = rev.path ? rev.path.substring(arg.length) || "/" : "/";
             next();
           }) as Handler,
-        ].concat(findFns(args));
+        ]).concat(findFns(args) as ConcatArray<Handler<RequestEvent>>);
       }
     } else if (typeof larg === "object" && larg.c_routes) {
-      this.#addRoutes(arg, args, larg.c_routes);
+      this.#addRoutes(arg as string, args, larg.c_routes);
     } else if (Array.isArray(larg)) {
-      let i = 0, len = larg.length;
+      let i = 0;
+      const len = larg.length;
       while (i < len) {
         const el = larg[i];
         if (typeof el === "object" && el.c_routes) {
-          this.#addRoutes(arg, args, el.c_routes);
+          this.#addRoutes(arg as string, args, el.c_routes);
         } else if (typeof el === "function") {
           this.midds.push(el);
         }
         i++;
       }
     } else {
-      this.midds = this.midds.concat(findFns(args));
+      this.midds = this.midds.concat(
+        findFns(args) as ConcatArray<Handler<Rev>>,
+      );
     }
     return this;
   }
   on(method: string, path: string, ...handlers: Handlers<Rev>): this {
-    let fns = findFns(handlers);
-    let obj = toPathx(path, method === "ANY");
+    const fns = findFns(handlers);
+    const obj = toPathx(path, method === "ANY");
     if (obj !== void 0) {
-      this.route[method] = this.route[method] || [];
-      this.route[method].push({ ...obj, handlers: fns });
+      this.route[method] = (this.route[method] || []);
+      (this.route[method] as TObject[]).push({ ...obj, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
     }
@@ -156,7 +186,7 @@ export class NHttp<
       rev._parsedUrl.pathname,
       this.#on404,
     );
-    const next: NextFunction = (err?: any) => {
+    const next: NextFunction = (err?: Error) => {
       if (err) return this.#onError(err, rev, next);
       let ret;
       try {
@@ -195,11 +225,12 @@ export class NHttp<
     return async (event: FetchEvent) => {
       let resp: (res: Response) => void;
       const promise = new Promise<Response>((ok) => (resp = ok));
-      const rw = event.respondWith(promise);
-      this.handle({
-        request: event.request,
-        respondWith: resp!,
-      } as any);
+      const rw = (event as Rev).respondWith(promise);
+      const _rev = event as Rev;
+      _rev.respondWith = resp! as (
+        r: Response | Promise<Response>,
+      ) => Promise<void>;
+      this.handle(_rev);
       await rw;
     };
   }
@@ -239,20 +270,20 @@ export class NHttp<
       | number
       | Deno.ListenOptions
       | Deno.ListenTlsOptions
-      | { [k: string]: any },
+      | TObject,
     callback?: (
       err?: Error,
       opts?:
         | Deno.ListenOptions
         | Deno.ListenTlsOptions
-        | { [k: string]: any },
+        | TObject,
     ) => void | Promise<void>,
   ) {
     let isTls = false;
     if (typeof opts === "number") {
       opts = { port: opts };
     } else if (typeof opts === "object") {
-      isTls = (opts as any).certFile !== void 0;
+      isTls = (opts as Deno.ListenTlsOptions).certFile !== void 0;
     }
     this.server = (
       isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
@@ -275,7 +306,7 @@ export class NHttp<
           } else {
             break;
           }
-        } catch (_e) {}
+        } catch (_e) { /* noop */ }
       }
     } catch (error) {
       if (callback) {
@@ -288,57 +319,65 @@ export class NHttp<
     }
   }
   #onError = (
+    // deno-lint-ignore no-explicit-any
     err: any,
     rev: Rev,
     _: NextFunction,
   ) => {
-    let obj = getError(err, this.#env === "development");
+    const obj = getError(err, this.#env === "development");
     return rev.response.status(obj.status).json(obj);
   };
   #on404 = (
     rev: Rev,
     _: NextFunction,
   ) => {
-    let obj = getError(
+    const obj = getError(
       new NotFoundError(`Route ${rev.request.method}${rev.url} not found`),
     );
     return rev.response.status(obj.status).json(obj);
   };
   #addRoutes = (
     arg: string,
-    args: any[],
-    routes: any[],
+    args: TObject[],
+    routes: TObject[],
   ) => {
     let prefix = "";
-    let midds = findFns(args);
-    let i = 0, len = routes.length;
+    let i = 0;
+    const midds = findFns(args);
+    const len = routes.length;
     if (typeof arg === "string" && arg.length > 1 && arg.charAt(0) === "/") {
       prefix = arg;
     }
     while (i < len) {
-      let el = routes[i];
+      const el = routes[i];
       el.handlers = midds.concat(el.handlers);
-      this.on(el.method, prefix + el.path, ...el.handlers);
+      this.on(
+        el.method as string,
+        prefix + el.path,
+        ...el.handlers as Handlers,
+      );
       i++;
     }
   };
   #handleConn = async (conn: Deno.Conn) => {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const { request, respondWith } of httpConn) {
+      for await (const requestEvent of httpConn) {
         let resp: (res: Response) => void;
         const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = respondWith(promise);
-        this.handle({
-          request: request,
-          respondWith: resp!,
-        } as Rev);
+        const rw = requestEvent.respondWith(promise);
+        const _rev = requestEvent as Rev;
+        _rev.respondWith = resp! as (
+          r: Response | Promise<Response>,
+        ) => Promise<void>;
+        this.handle(_rev);
         await rw;
       }
-    } catch (_e) {}
+    } catch (_e) { /* noop */ }
   };
   #findUrl = (str: string) => {
-    let idx = [], i = -1;
+    const idx = [];
+    let i = -1;
     while ((i = str.indexOf("/", i + 1)) != -1) {
       idx.push(i);
       if (idx.length === 3) break;
@@ -346,14 +385,14 @@ export class NHttp<
     return str.substring(idx[2]);
   };
   #parseUrl = (rev: RequestEvent) => {
-    let str = rev.url = this.#findUrl(rev.request.url);
-    let url = rev._parsedUrl || {};
+    const str = rev.url = this.#findUrl(rev.request.url);
+    const url = rev._parsedUrl || {};
     if (url._raw === str) return;
     let pathname = str,
       query = null,
       search = null,
-      i = 0,
-      len = str.length;
+      i = 0;
+    const len = str.length;
     while (i < len) {
       if (str.charCodeAt(i) === 0x3f) {
         pathname = str.substring(0, i);

@@ -15,8 +15,8 @@ const checkUser = (auth: string | null) => {
   return void 0;
 };
 
-const authenticate: Handler = async (rev, next) => {
-  let cookie = rev.getCookies(true);
+const authenticate: Handler = (rev, next) => {
+  const cookie = rev.getCookies(true);
   if (!cookie.session) {
     const auth = rev.request.headers.get("authorization") || null;
     if (checkUser(auth)) {

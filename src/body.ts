@@ -1,6 +1,12 @@
 import { BadRequestError } from "../error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Handler, NextFunction, TBodyLimit } from "./types.ts";
+import {
+  Handler,
+  NextFunction,
+  TBodyLimit,
+  TObject,
+  TQueryFunc,
+} from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
 const decoder = new TextDecoder();
@@ -16,11 +22,11 @@ type TMultipartUpload = {
 };
 
 type TMultipartHandler = {
-  parse?: (data: any, ...args: any) => any;
+  parse?: TQueryFunc;
 };
 
 class Multipart {
-  createBody = async (
+  createBody = (
     formData: FormData,
     { parse }: TMultipartHandler = {},
   ) => {
@@ -36,11 +42,12 @@ class Multipart {
       : parseQuery(formData);
   };
 
-  #cleanUp = (body: { [k: string]: any }) => {
+  #cleanUp = (body: TObject) => {
     for (const key in body) {
       if (Array.isArray(body[key])) {
-        for (let i = 0; i < body[key].length; i++) {
-          const el = body[key][i];
+        const arr = body[key] as Array<unknown>;
+        for (let i = 0; i < arr.length; i++) {
+          const el = arr[i];
           if (el instanceof File) {
             delete body[key];
             break;
@@ -52,8 +59,9 @@ class Multipart {
     }
   };
 
-  #validate = async (files: File[], opts: TMultipartUpload) => {
-    let j = 0, len = files.length;
+  #validate = (files: File[], opts: TMultipartUpload) => {
+    let j = 0;
+    const len = files.length;
     if (opts?.maxCount) {
       if (len > opts.maxCount) {
         throw new BadRequestError(
@@ -84,7 +92,8 @@ class Multipart {
 
   #upload = async (files: File[], opts: TMultipartUpload) => {
     const cwd = Deno.cwd();
-    let i = 0, len = files.length;
+    let i = 0;
+    const len = files.length;
     while (i < len) {
       const file = files[i] as File & { filename: string; path: string };
       const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
@@ -142,11 +151,12 @@ class Multipart {
         if (rev.request.bodyUsed === false) {
           const formData = await rev.request.formData();
           rev.body = await this.createBody(formData, {
-            parse: rev.__parseQuery,
+            parse: rev.__parseQuery as TQueryFunc,
           });
         }
         if (Array.isArray(options)) {
-          let j = 0, i = 0, len = options.length;
+          let j = 0, i = 0;
+          const len = options.length;
           while (j < len) {
             const obj = options[j] as TMultipartUpload;
             if (obj.required && rev.body[obj.name] === void 0) {
@@ -216,8 +226,8 @@ function acceptContentType(headers: Headers, cType: string) {
 export const withBody = async (
   rev: RequestEvent,
   next: NextFunction,
-  parse: (query: any) => any,
-  parseMultipart?: (query: any) => any,
+  parse: TQueryFunc,
+  parseMultipart?: TQueryFunc,
   opts?: TBodyLimit,
 ) => {
   rev.body = {};
@@ -249,7 +259,7 @@ export const withBody = async (
           const body = await verifyBody(rev.request, opts?.raw || "3mb");
           try {
             rev.body = JSON.parse(body);
-          } catch (err) {
+          } catch (_err) {
             rev.body = { _raw: body };
           }
         } catch (error) {

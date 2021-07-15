@@ -1,21 +1,32 @@
-import { Cookie, Handler, TSizeList, TWrapMiddleware } from "./types.ts";
+import { HttpResponse } from "./http_response.ts";
+import { RequestEvent } from "./request_event.ts";
+import {
+  Cookie,
+  Handler,
+  NextFunction,
+  TObject,
+  TSizeList,
+  TWrapMiddleware,
+} from "./types.ts";
 
+// deno-lint-ignore no-control-regex
 const SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function findFns(arr: any[]): any[] {
-  let ret = [] as any, i = 0, len = arr.length;
+export function findFns(arr: TObject[]): Array<unknown> {
+  let ret: Array<unknown>[] = [], i = 0;
+  const len = arr.length;
   for (; i < len; i++) {
-    if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i]));
-    else if (typeof arr[i] === "function") ret.push(arr[i]);
+    if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i] as TObject[]));
+    else if (typeof arr[i] === "function") ret.push(arr[i] as Array<unknown>);
   }
   return ret;
 }
 
 export function toBytes(arg: string | number) {
-  let sizeList: TSizeList = {
+  const sizeList: TSizeList = {
     b: 1,
     kb: 1 << 10,
     mb: 1 << 20,
@@ -24,45 +35,45 @@ export function toBytes(arg: string | number) {
     pb: Math.pow(1024, 5),
   };
   if (typeof arg === "number") return arg;
-  let arr = (/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i).exec(arg),
-    val: any,
-    unt = "b";
+  const arr = (/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i).exec(arg);
+  let val, unt = "b";
   if (!arr) {
-    val = parseInt(val, 10);
+    val = parseInt(val as unknown as string, 10);
     unt = "b";
   } else {
     val = parseFloat(arr[1]);
     unt = arr[4].toLowerCase();
   }
-  return Math.floor(sizeList[unt] * val);
+  return Math.floor(sizeList[unt] as number * val);
 }
 
 export function toPathx(path: string | RegExp, isAny: boolean) {
   if (path instanceof RegExp) return { params: null, pathx: path };
-  let trgx = /\?|\*|\./;
+  const trgx = /\?|\*|\./;
   if (!trgx.test(path) && isAny === false) {
-    let len = (path.match(/\/:/gi) || []).length;
+    const len = (path.match(/\/:/gi) || []).length;
     if (len === 0) return;
   }
-  let params: any[] | string | null = [],
-    pattern = "",
-    strReg = "/([^/]+?)",
-    strRegQ = "(?:/([^/]+?))?";
+  let params: TObject[] | string | string[] | ConcatArray<string> | null = [],
+    pattern = "";
+  const strReg = "/([^/]+?)", strRegQ = "(?:/([^/]+?))?";
   if (trgx.test(path)) {
-    let arr = path.split("/"), obj: string | any[], el: string, i = 0;
+    const arr = path.split("/");
+    let obj: string | TObject[], el: string, i = 0;
     arr[0] || arr.shift();
     for (; i < arr.length; i++) {
       obj = arr[i];
       el = obj[0];
       if (el === "*") {
-        params.push("wild");
+        (params as string[]).push("wild");
         pattern += "/(.*)";
       } else if (el === ":") {
-        let isQuest = obj.indexOf("?") !== -1, isExt = obj.indexOf(".") !== -1;
+        const isQuest = obj.indexOf("?") !== -1,
+          isExt = obj.indexOf(".") !== -1;
         if (isQuest && !isExt) pattern += strRegQ;
         else pattern += strReg;
         if (isExt) {
-          let _ext = obj.substring(obj.indexOf("."));
+          const _ext = obj.substring(obj.indexOf("."));
           let _pattern = pattern + (isQuest ? "?" : "") + "\\" + _ext;
           _pattern = _pattern.replaceAll(
             strReg + "\\" + _ext,
@@ -73,41 +84,43 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
       } else pattern += "/" + obj;
     }
   } else pattern = path.replace(/\/:[a-z_-]+/gi, strReg);
-  let pathx = new RegExp(`^${pattern}/?$`, "i"),
+  const pathx = new RegExp(`^${pattern}/?$`, "i"),
     matches = path.match(/\:([a-z_-]+)/gi);
   if (!params.length) {
     params = matches && matches.map((e: string) => e.substring(1));
   } else {
-    let newArr = matches ? matches.map((e: string) => e.substring(1)) : [];
-    params = newArr.concat(params);
+    const newArr = matches ? matches.map((e: string) => e.substring(1)) : [];
+    params = newArr.concat(params as ConcatArray<string>);
   }
   return { params, pathx };
 }
 
-function needPatch(data: any, keys: any, value: any) {
+function needPatch(data: TObject | TObject[], keys: number[], value: string) {
   if (keys.length === 0) {
     return value;
   }
-  let key = keys.shift();
+  let key = keys.shift() as number;
   if (!key) {
     data = data || [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
-  let index = +key;
+  const index = +key;
   if (!isNaN(index)) {
     data = data || [];
     key = index;
   }
-  data = data || {};
-  let val = needPatch(data[key], keys, value);
+  data = (data || {}) as TObject;
+  const val = needPatch(data[key] as TObject, keys, value);
   data[key] = val;
   return data;
 }
 
+// deno-lint-ignore no-explicit-any
 export function myParse(arr: any[]) {
-  let obj = arr.reduce((red: any, [field, value]: any) => {
+  // deno-lint-ignore no-explicit-any
+  const obj = arr.reduce((red: any, [field, value]: any) => {
     if (red.hasOwnProperty(field)) {
       if (Array.isArray(red[field])) {
         red[field] = [...red[field], value];
@@ -117,7 +130,10 @@ export function myParse(arr: any[]) {
     } else {
       let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
       if (keys) {
-        keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m: any) => m[1]);
+        keys = Array.from(
+          keys.matchAll(/\[([^\]]*)\]/g),
+          (m: Array<number>) => m[1],
+        );
         value = needPatch(red[prefix], keys, value);
       }
       red[prefix] = value;
@@ -127,13 +143,13 @@ export function myParse(arr: any[]) {
   return obj;
 }
 
-export function parseQuery(query: any) {
+export function parseQuery(query: unknown | string) {
   if (query === null) return {};
   if (typeof query === "string") {
-    let data = new URLSearchParams("?" + query);
+    const data = new URLSearchParams("?" + query);
     return myParse(Array.from(data.entries()));
   }
-  return myParse(Array.from(query.entries()));
+  return myParse(Array.from((query as FormData).entries()));
 }
 
 /**
@@ -148,25 +164,36 @@ export function parseQuery(query: any) {
  *    helmet(),
  * ]));
  */
+type TWrapMidd = (
+  req: { [k: string]: unknown },
+  res: { [k: string]: unknown },
+  next: NextFunction,
+) => Promise<void> | void;
 function fnWrapMiddleware(
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
 function fnWrapMiddleware(
-  middlewares: any,
+  middlewares: TWrapMidd,
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
 function fnWrapMiddleware(
-  middlewares: any[],
+  middlewares: TWrapMidd[],
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
+// deno-lint-ignore no-explicit-any
 function fnWrapMiddleware(...middlewares: any): Handler;
+// deno-lint-ignore no-explicit-any
 function fnWrapMiddleware(...middlewares: any): Handler {
-  let midds = middlewares;
-  let opts = midds.length && midds[midds.length - 1];
-  let beforeWrap = (typeof opts === "object") && opts.beforeWrap;
-  let fns = findFns(midds);
+  const midds = middlewares;
+  const opts = midds.length && midds[midds.length - 1];
+  const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
+  const fns = findFns(midds) as ((
+    req: RequestEvent,
+    res: HttpResponse,
+    next: NextFunction,
+  ) => Promise<void> | void)[];
   return (rev, next) => {
-    let res = rev.response;
+    const res = rev.response;
     if (rev.__isWrapMiddleware === void 0) {
       rev.headers = rev.request.headers;
       rev.method = rev.request.method;
@@ -175,14 +202,17 @@ function fnWrapMiddleware(...middlewares: any): Handler {
       res.hasHeader = (a: string) => res.header(a) !== null;
       res.removeHeader = (a: string) => res.header().delete(a);
       res.end = res.send;
+      // deno-lint-ignore no-explicit-any
       res.writeHead = (a: number, ...b: any) => {
         res.status(a);
         for (let i = 0; i < b.length; i++) {
           if (typeof b[i] === "object") res.header(b[i]);
         }
       };
-      rev.respond = ({ body, status, headers }: any) =>
-        rev.respondWith(new Response(body, { status, headers }));
+      rev.respond = ({ body, status, headers }: TObject) =>
+        rev.respondWith(
+          new Response(body as BodyInit, { status, headers } as TObject),
+        );
       rev.__isWrapMiddleware = true;
     }
     if (beforeWrap) beforeWrap(rev, res);
@@ -259,7 +289,7 @@ function tryDecode(str: string) {
   try {
     str = str.substring(2);
     const dec = atob(str);
-    const uint = Uint8Array.from(dec.split(",") as any);
+    const uint = Uint8Array.from(dec.split(",") as Iterable<number>);
     const ret = decoder.decode(uint) || str;
     if (ret !== str) {
       if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
@@ -268,7 +298,7 @@ function tryDecode(str: string) {
       }
     }
     return ret;
-  } catch (error) {
+  } catch (_error) {
     return str;
   }
 }
@@ -281,7 +311,7 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   const len = arr.length;
   while (i < len) {
     const [key, ...oriVal] = arr[i].split("=");
-    let val = oriVal.join("=");
+    const val = oriVal.join("=");
     ret[key.trim()] = decode
       ? (val.startsWith("E:") ? tryDecode(val) : val)
       : val;

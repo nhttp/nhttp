@@ -1,17 +1,18 @@
 import { HttpResponse } from "./http_response.ts";
+import { TObject } from "./types.ts";
 
 export class RequestEvent {
   readonly request!: Request;
   respondWith!: (r: Response | Promise<Response>) => Promise<void>;
-  body!: { [k: string]: any };
-  file!: { [k: string]: any };
+  body!: TObject;
+  file!: TObject;
   responseInit!: ResponseInit;
   response!: HttpResponse;
   url!: string;
   originalUrl!: string;
-  params!: { [k: string]: any };
+  params!: TObject;
   path!: string;
-  query!: { [k: string]: any };
+  query!: TObject;
   search!: string | null;
   /**
   * get cookies from request
@@ -28,5 +29,6 @@ export class RequestEvent {
     query: string | null;
     search: string | null;
   };
-  [k: string]: any
+  // deno-lint-ignore no-explicit-any
+  [k: string]: any;
 }

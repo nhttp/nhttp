@@ -1,5 +1,9 @@
+// deno-lint-ignore no-explicit-any
+type TMessage = string | number | { [k: string]: any } | TMessage[];
+
 export class NHttpError extends Error {
   status: number;
+  // deno-lint-ignore no-explicit-any
   constructor(message: any, status: number = 500, name?: string) {
     super(message);
     this.message = message;
@@ -15,7 +19,7 @@ export class NHttpError extends Error {
  * throw new BadRequestError("message");
  */
 export class BadRequestError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 400, "BadRequestError");
   }
 }
@@ -25,7 +29,7 @@ export class BadRequestError extends NHttpError {
  * throw new UnauthorizedError("message");
  */
 export class UnauthorizedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 401, "UnauthorizedError");
   }
 }
@@ -35,7 +39,7 @@ export class UnauthorizedError extends NHttpError {
  * throw new PaymentRequiredError("message");
  */
 export class PaymentRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 402, "PaymentRequiredError");
   }
 }
@@ -45,7 +49,7 @@ export class PaymentRequiredError extends NHttpError {
  * throw new ForbiddenError("message");
  */
 export class ForbiddenError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 403, "ForbiddenError");
   }
 }
@@ -55,7 +59,7 @@ export class ForbiddenError extends NHttpError {
  * throw new NotFoundError("message");
  */
 export class NotFoundError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 404, "NotFoundError");
   }
 }
@@ -65,7 +69,7 @@ export class NotFoundError extends NHttpError {
  * throw new MethodNotAllowedError("message");
  */
 export class MethodNotAllowedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 405, "MethodNotAllowedError");
   }
 }
@@ -75,7 +79,7 @@ export class MethodNotAllowedError extends NHttpError {
  * throw new NotAcceptableError("message");
  */
 export class NotAcceptableError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 406, "NotAcceptableError");
   }
 }
@@ -85,7 +89,7 @@ export class NotAcceptableError extends NHttpError {
  * throw new ProxyAuthRequiredError("message");
  */
 export class ProxyAuthRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 407, "ProxyAuthRequiredError");
   }
 }
@@ -95,7 +99,7 @@ export class ProxyAuthRequiredError extends NHttpError {
  * throw new RequestTimeoutError("message");
  */
 export class RequestTimeoutError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 408, "RequestTimeoutError");
   }
 }
@@ -105,7 +109,7 @@ export class RequestTimeoutError extends NHttpError {
  * throw new ConflictError("message");
  */
 export class ConflictError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 409, "ConflictError");
   }
 }
@@ -115,7 +119,7 @@ export class ConflictError extends NHttpError {
  * throw new GoneError("message");
  */
 export class GoneError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 410, "GoneError");
   }
 }
@@ -125,7 +129,7 @@ export class GoneError extends NHttpError {
  * throw new LengthRequiredError("message");
  */
 export class LengthRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 411, "LengthRequiredError");
   }
 }
@@ -135,7 +139,7 @@ export class LengthRequiredError extends NHttpError {
  * throw new PreconditionFailedError("message");
  */
 export class PreconditionFailedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 412, "PreconditionFailedError");
   }
 }
@@ -145,7 +149,7 @@ export class PreconditionFailedError extends NHttpError {
  * throw new RequestEntityTooLargeError("message");
  */
 export class RequestEntityTooLargeError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 413, "RequestEntityTooLargeError");
   }
 }
@@ -155,7 +159,7 @@ export class RequestEntityTooLargeError extends NHttpError {
  * throw new RequestURITooLongError("message");
  */
 export class RequestURITooLongError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 414, "RequestURITooLongError");
   }
 }
@@ -165,7 +169,7 @@ export class RequestURITooLongError extends NHttpError {
  * throw new UnsupportedMediaTypeError("message");
  */
 export class UnsupportedMediaTypeError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 415, "UnsupportedMediaTypeError");
   }
 }
@@ -175,7 +179,7 @@ export class UnsupportedMediaTypeError extends NHttpError {
  * throw new RequestedRangeNotSatisfiableError("message");
  */
 export class RequestedRangeNotSatisfiableError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 416, "RequestedRangeNotSatisfiableError");
   }
 }
@@ -185,7 +189,7 @@ export class RequestedRangeNotSatisfiableError extends NHttpError {
  * throw new ExpectationFailedError("message");
  */
 export class ExpectationFailedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 417, "ExpectationFailedError");
   }
 }
@@ -195,7 +199,7 @@ export class ExpectationFailedError extends NHttpError {
  * throw new TeapotError("message");
  */
 export class TeapotError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 418, "TeapotError");
   }
 }
@@ -205,7 +209,7 @@ export class TeapotError extends NHttpError {
  * throw new MisdirectedRequestError("message");
  */
 export class MisdirectedRequestError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 421, "MisdirectedRequestError");
   }
 }
@@ -215,7 +219,7 @@ export class MisdirectedRequestError extends NHttpError {
  * throw new UnprocessableEntityError("message");
  */
 export class UnprocessableEntityError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 422, "UnprocessableEntityError");
   }
 }
@@ -225,7 +229,7 @@ export class UnprocessableEntityError extends NHttpError {
  * throw new LockedError("message");
  */
 export class LockedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 423, "LockedError");
   }
 }
@@ -235,7 +239,7 @@ export class LockedError extends NHttpError {
  * throw new FailedDependencyError("message");
  */
 export class FailedDependencyError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 424, "FailedDependencyError");
   }
 }
@@ -245,7 +249,7 @@ export class FailedDependencyError extends NHttpError {
  * throw new TooEarlyError("message");
  */
 export class TooEarlyError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 425, "TooEarlyError");
   }
 }
@@ -255,7 +259,7 @@ export class TooEarlyError extends NHttpError {
  * throw new UpgradeRequiredError("message");
  */
 export class UpgradeRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 426, "UpgradeRequiredError");
   }
 }
@@ -265,7 +269,7 @@ export class UpgradeRequiredError extends NHttpError {
  * throw new PreconditionRequiredError("message");
  */
 export class PreconditionRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 428, "PreconditionRequiredError");
   }
 }
@@ -275,7 +279,7 @@ export class PreconditionRequiredError extends NHttpError {
  * throw new TooManyRequestsError("message");
  */
 export class TooManyRequestsError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 429, "TooManyRequestsError");
   }
 }
@@ -285,7 +289,7 @@ export class TooManyRequestsError extends NHttpError {
  * throw new RequestHeaderFieldsTooLargeError("message");
  */
 export class RequestHeaderFieldsTooLargeError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 431, "RequestHeaderFieldsTooLargeError");
   }
 }
@@ -295,7 +299,7 @@ export class RequestHeaderFieldsTooLargeError extends NHttpError {
  * throw new UnavailableForLegalReasonsError("message");
  */
 export class UnavailableForLegalReasonsError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 451, "UnavailableForLegalReasonsError");
   }
 }
@@ -307,7 +311,7 @@ export class UnavailableForLegalReasonsError extends NHttpError {
  * throw new InternalServerError("message");
  */
 export class InternalServerError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 500, "InternalServerError");
   }
 }
@@ -317,7 +321,7 @@ export class InternalServerError extends NHttpError {
  * throw new NotImplementedError("message");
  */
 export class NotImplementedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 501, "NotImplementedError");
   }
 }
@@ -327,7 +331,7 @@ export class NotImplementedError extends NHttpError {
  * throw new BadGatewayError("message");
  */
 export class BadGatewayError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 502, "BadGatewayError");
   }
 }
@@ -337,7 +341,7 @@ export class BadGatewayError extends NHttpError {
  * throw new ServiceUnavailableError("message");
  */
 export class ServiceUnavailableError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 503, "ServiceUnavailableError");
   }
 }
@@ -347,7 +351,7 @@ export class ServiceUnavailableError extends NHttpError {
  * throw new GatewayTimeoutError("message");
  */
 export class GatewayTimeoutError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 504, "GatewayTimeoutError");
   }
 }
@@ -357,7 +361,7 @@ export class GatewayTimeoutError extends NHttpError {
  * throw new HTTPVersionNotSupportedError("message");
  */
 export class HTTPVersionNotSupportedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 505, "HTTPVersionNotSupportedError");
   }
 }
@@ -367,7 +371,7 @@ export class HTTPVersionNotSupportedError extends NHttpError {
  * throw new VariantAlsoNegotiatesError("message");
  */
 export class VariantAlsoNegotiatesError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 506, "VariantAlsoNegotiatesError");
   }
 }
@@ -377,7 +381,7 @@ export class VariantAlsoNegotiatesError extends NHttpError {
  * throw new InsufficientStorageError("message");
  */
 export class InsufficientStorageError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 507, "InsufficientStorageError");
   }
 }
@@ -387,7 +391,7 @@ export class InsufficientStorageError extends NHttpError {
  * throw new LoopDetectedError("message");
  */
 export class LoopDetectedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 508, "LoopDetectedError");
   }
 }
@@ -397,7 +401,7 @@ export class LoopDetectedError extends NHttpError {
  * throw new NotExtendedError("message");
  */
 export class NotExtendedError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 510, "NotExtendedError");
   }
 }
@@ -407,19 +411,20 @@ export class NotExtendedError extends NHttpError {
  * throw new NetworkAuthenticationRequiredError("message");
  */
 export class NetworkAuthenticationRequiredError extends NHttpError {
-  constructor(message: any) {
+  constructor(message: TMessage) {
     super(message, 511, "NetworkAuthenticationRequiredError");
   }
 }
 /**
  * Give error object
  */
-export function getError(err: any, isStack: boolean = false) {
-  let status = err.status || err.statusCode || err.code || 500;
+// deno-lint-ignore no-explicit-any
+export function getError(err: any, isStack?: boolean) {
+  let status: number = err.status || err.statusCode || err.code || 500;
   if (typeof status !== "number") status = 500;
   let stack = void 0;
   if (isStack) {
-    let arr = err.stack ? err.stack.split("\n") : [""];
+    const arr = err.stack ? err.stack.split("\n") : [""];
     arr.shift();
     stack = arr
       .filter((line: string | string[]) => line.indexOf("file://") !== -1)
@@ -427,8 +432,8 @@ export function getError(err: any, isStack: boolean = false) {
   }
   return {
     status,
-    message: err.message || "Something went wrong",
-    name: err.name || "HttpError",
+    message: (err.message || "Something went wrong") as string,
+    name: (err.name || "HttpError") as string,
     stack,
   };
 }

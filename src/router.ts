@@ -1,8 +1,8 @@
 import { RequestEvent } from "./request_event.ts";
-import { Handler, Handlers } from "./types.ts";
+import { Handler, Handlers, TObject, TRoute } from "./types.ts";
 
 function findBase(pathname: string) {
-  let iof = pathname.indexOf("/", 1);
+  const iof = pathname.indexOf("/", 1);
   if (iof !== -1) return pathname.substring(0, iof);
   return pathname;
 }
@@ -10,10 +10,10 @@ function findBase(pathname: string) {
 export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {
-  route: Record<string, any> = {};
-  c_routes: Record<string, any>[] = [];
+  route: TRoute = {};
+  c_routes: TObject[] = [];
   midds: Handler<Rev>[] = [];
-  pmidds: Record<string, any> = {};
+  pmidds: TObject = {};
   /**
    * method GET (app or router)
    * @example
@@ -130,11 +130,11 @@ export default class Router<
     midds: Handler<Rev>[],
     notFound: Handler<Rev>,
     fns: Handler<Rev>[],
-    url: string = "/",
-    midAsset?: { [k: string]: any },
+    url?: string,
+    midAsset?: TObject,
   ) => {
     if (midAsset !== void 0) {
-      let pfx = findBase(url);
+      const pfx = findBase(url || "/");
       if (midAsset[pfx]) {
         fns = midAsset[pfx].concat(fns);
       }
@@ -158,14 +158,18 @@ export default class Router<
     return this;
   }
   findRoute(method: string, url: string, notFound: Handler<Rev>) {
-    let handlers: any[] = [];
-    let params: { [key: string]: any } = {};
+    let handlers: Handler[] = [];
+    const params: TObject = {};
     if (this.route[method + url]) {
-      let obj = this.route[method + url];
+      const obj = this.route[method + url] as TRoute;
       if (obj.m) {
-        handlers = obj.handlers;
+        handlers = obj.handlers as Handler[];
       } else {
-        handlers = this.#addMidd(this.midds, notFound, obj.handlers);
+        handlers = this.#addMidd(
+          this.midds,
+          notFound,
+          obj.handlers as Handler[],
+        ) as Handler[];
         this.route[method + url] = {
           m: true,
           handlers,
@@ -174,13 +178,17 @@ export default class Router<
       return { params, handlers };
     }
     if (url !== "/" && url[url.length - 1] === "/") {
-      let _url = url.slice(0, -1);
+      const _url = url.slice(0, -1);
       if (this.route[method + _url]) {
-        let obj = this.route[method + _url];
+        const obj = this.route[method + _url] as TRoute;
         if (obj.m) {
-          handlers = obj.handlers;
+          handlers = obj.handlers as Handler[];
         } else {
-          handlers = this.#addMidd(this.midds, notFound, obj.handlers);
+          handlers = this.#addMidd(
+            this.midds,
+            notFound,
+            obj.handlers as Handler[],
+          ) as Handler[];
           this.route[method + _url] = {
             m: true,
             handlers,
@@ -191,25 +199,25 @@ export default class Router<
     }
     let i = 0;
     let j = 0;
-    let obj: any = {};
-    let routes = this.route[method] || [];
-    let matches = [];
+    let obj: TRoute = {};
+    let routes = (this.route[method] || []) as TRoute[];
+    let matches = [] as string[];
     let _404 = true;
     if (this.route["ANY"]) {
-      routes = routes.concat(this.route["ANY"]);
+      routes = routes.concat(this.route["ANY"] as Record<string, string>[]);
     }
-    let len = routes.length;
+    const len = routes.length;
     while (i < len) {
       obj = routes[i];
       if (obj.pathx && obj.pathx.test(url)) {
         _404 = false;
         if (obj.params) {
-          matches = obj.pathx.exec(url);
+          matches = obj.pathx.exec(url) as string[];
           while (j < obj.params.length) {
-            params[obj.params[j]] = matches[++j] || null;
+            params[obj.params[j] as unknown as string] = matches[++j] || null;
           }
           if (params["wild"]) {
-            params["wild"] = params["wild"].split("/");
+            params["wild"] = (params["wild"] as string).split("/");
           }
         }
         break;
@@ -219,10 +227,10 @@ export default class Router<
     handlers = this.#addMidd(
       this.midds,
       notFound,
-      _404 ? [] : obj.handlers || [],
+      _404 ? [] as Handler[] : (obj.handlers || []) as Handler[],
       url,
       this.pmidds,
-    );
+    ) as Handler[];
     return { params, handlers };
   }
 }

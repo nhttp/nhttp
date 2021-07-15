@@ -1,14 +1,14 @@
 import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
 
-export type NextFunction = (err?: any) => void;
+export type NextFunction = (err?: Error) => void;
 
 export type Handler<
   Rev extends RequestEvent = RequestEvent,
 > = (
   rev: Rev,
   next: NextFunction,
-) => any;
+) => Promise<void> | void;
 
 export type Handlers<
   Rev extends RequestEvent = RequestEvent,
@@ -35,7 +35,7 @@ export type TSizeList = {
   gb: number;
   tb: number;
   pb: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type Cookie = {
@@ -48,4 +48,15 @@ export type Cookie = {
   sameSite?: "Strict" | "Lax" | "None";
   other?: string[];
   encode?: boolean;
+};
+// deno-lint-ignore no-explicit-any
+export type TObject = { [k: string]: any };
+// deno-lint-ignore no-explicit-any
+export type TQueryFunc = (data: string | unknown, ...args: any) => TObject;
+export type TRoute = {
+  params?: TObject[] | null;
+  pathx?: RegExp;
+  m?: boolean;
+  handlers?: Handlers;
+  [k: string]: unknown;
 };

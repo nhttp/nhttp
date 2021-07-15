@@ -5,6 +5,7 @@ import * as ReactDOMServer from "https://jspm.dev/react-dom@17.0.2/server";
 declare global {
   namespace JSX {
     interface IntrinsicElements {
+      // deno-lint-ignore no-explicit-any
       [k: string]: any;
     }
   }
@@ -13,6 +14,7 @@ declare global {
 const app = new NHttp();
 
 app.use((rev, next) => {
+  // deno-lint-ignore no-explicit-any
   rev.jsx = (element: any, opts = {} as any) => {
     // deno-fmt-ignore
     rev.response.type("text/html").send(

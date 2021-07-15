@@ -6,8 +6,13 @@ const { BrowserRouter } = ReactRouterDom;
 // need hydrate when SSR
 ReactDOM.hydrate(
   <BrowserRouter>
-    <App initData={(window as any).__INITIAL_DATA__} />
+    <App
+      initData={
+        // deno-lint-ignore no-explicit-any
+        (window as any).__INITIAL_DATA__
+      }
+    />
   </BrowserRouter>,
-  //@ts-ignore
+  // @ts-ignore: document as any
   document.getElementById("root"),
 );
