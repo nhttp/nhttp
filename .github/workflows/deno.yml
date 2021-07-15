@@ -12,21 +12,19 @@ jobs:
 
     strategy:
       matrix:
-        deno: ["v1.9", "v1.12", "canary"]
         os: [macOS-latest, windows-latest, ubuntu-latest]
-
+      fail-fast: true
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1.12
+        uses: denoland/setup-deno@main
         with:
-          deno-version: ${{ matrix.deno }}
+          deno-version: 1.12.0
 
       - name: Verify formatting
         run: deno fmt --check
 
       - name: Run linter
-        if: matrix.deno != 'v1.9'
         run: deno lint
