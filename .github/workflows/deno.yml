@@ -24,6 +24,7 @@ jobs:
           deno-version: 1.12.0
 
       - name: Verify formatting
+        if: matrix.os != 'windows-latest'
         run: deno fmt --check
 
       - name: Run linter
