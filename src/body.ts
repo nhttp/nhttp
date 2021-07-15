@@ -168,7 +168,7 @@ class Multipart {
               rev.file[obj.name] = rev.body[obj.name];
               const objFile = rev.file[obj.name];
               const files = Array.isArray(objFile) ? objFile : [objFile];
-              await this.#validate(files, obj);
+              this.#validate(files, obj);
             }
             j++;
           }
@@ -195,7 +195,7 @@ class Multipart {
             rev.file[obj.name] = rev.body[obj.name];
             const objFile = rev.file[obj.name];
             const files = Array.isArray(objFile) ? objFile : [objFile];
-            await this.#validate(files, obj);
+            this.#validate(files, obj);
             await this.#upload(files, obj);
             delete rev.body[obj.name];
           }

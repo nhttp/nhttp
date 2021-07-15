@@ -164,20 +164,17 @@ export function parseQuery(query: unknown | string) {
  *    helmet(),
  * ]));
  */
-type TWrapMidd = (
-  req: { [k: string]: unknown },
-  res: { [k: string]: unknown },
-  next: NextFunction,
-) => Promise<void> | void;
 function fnWrapMiddleware(
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
 function fnWrapMiddleware(
-  middlewares: TWrapMidd,
+  // deno-lint-ignore no-explicit-any
+  middlewares: any,
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
 function fnWrapMiddleware(
-  middlewares: TWrapMidd[],
+  // deno-lint-ignore no-explicit-any
+  middlewares: any,
   { beforeWrap }: TWrapMiddleware,
 ): Handler;
 // deno-lint-ignore no-explicit-any
