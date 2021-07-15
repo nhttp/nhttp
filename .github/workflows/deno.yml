@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        deno: ["v1.9", "canary"]
+        deno: ["v1.9", "v1.12", "canary"]
         os: [macOS-latest, windows-latest, ubuntu-latest]
 
     steps:
@@ -20,8 +20,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup Deno
-        # uses: denoland/setup-deno@v1
-        uses: denoland/setup-deno@4a4e59637fa62bd6c086a216c7e4c5b457ea9e79
+        uses: denoland/setup-deno@v1.12
         with:
           deno-version: ${{ matrix.deno }}
 
@@ -29,4 +28,5 @@ jobs:
         run: deno fmt --check
 
       - name: Run linter
+        if: matrix.deno != 'v1.9'
         run: deno lint
