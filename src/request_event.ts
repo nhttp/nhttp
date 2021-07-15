@@ -30,5 +30,5 @@ export class RequestEvent {
     search: string | null;
   };
   // deno-lint-ignore no-explicit-any
-  [k: string]: any;
+  [k: string]: any
 }
