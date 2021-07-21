@@ -20,7 +20,7 @@ const html = `
                         return;
                     }
                     ws.send(message.value);
-                    chat.innerHTML += "<b>You: </b>" + message.value + "<br/>";
+                    chat.innerHTML += "<b>Me: </b>" + message.value + "<br/>";
                     message.value = "";
                 }
             };
