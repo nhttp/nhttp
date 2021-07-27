@@ -2,6 +2,7 @@ import {
   Handler,
   Handlers,
   NextFunction,
+  RetHandler,
   TBodyLimit,
   TObject,
   TQueryFunc,
@@ -30,14 +31,14 @@ type FetchEvent = any;
 type TOn404<Rev extends RequestEvent = RequestEvent> = (
   rev: Rev,
   next: NextFunction,
-) => Promise<void> | void;
+) => RetHandler;
 
 type TOnError<Rev extends RequestEvent = RequestEvent> = (
   // deno-lint-ignore no-explicit-any
   err: any,
   rev: Rev,
   next: NextFunction,
-) => Promise<void> | void;
+) => RetHandler;
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -65,7 +66,7 @@ export class NHttp<
   * global error handling.
   * @example
   * app.onError((error, rev) => {
-  *     rev.response.status(error.status || 500).send(error.message);
+  *     rev.response.send(error.message);
   * })
   */
   onError(fn: TOnError<Rev>): void;
@@ -77,13 +78,34 @@ export class NHttp<
       next: NextFunction,
     ) => Promise<void>,
   ) {
-    this.#onError = fn;
+    this.#onError = (err, rev, next) => {
+      let status: number = err.status || err.statusCode || err.code || 500;
+      if (typeof status !== "number") status = 500;
+      rev.response.status(status);
+      let ret;
+      try {
+        ret = fn(err, rev, next);
+      } catch (error) {
+        return this.#onError(error, rev, next);
+      }
+      if (ret) {
+        if (typeof (ret as Promise<void>).then === "function") {
+          return this.#withPromise(
+            ret as unknown as Promise<Handler<RequestEvent>>,
+            rev,
+            next,
+            true,
+          );
+        }
+        return rev.response.send(ret);
+      }
+    };
   }
   /**
   * global not found error handling.
   * @example
   * app.on404((rev) => {
-  *     rev.response.status(404).send(`route ${rev.url} not found`);
+  *     rev.response.send(`route ${rev.url} not found`);
   * })
   */
   on404(fn: TOn404<Rev>): void;
@@ -93,24 +115,16 @@ export class NHttp<
       next: NextFunction,
     ) => Promise<void>,
   ) {
-    this.#on404 = fn;
+    this.#on404 = (rev, next) => {
+      rev.response.status(404);
+      return fn(rev, next);
+    };
   }
   /**
   * add router or middlware.
   * @example
-  * // middleware
   * app.use(...middlewares);
-  * app.use(midd1, midd2);
-  * app.use([midd1, midd2]);
-  * app.use(wrapMiddleware([
-  *    cors(),
-  *    helmet(),
-  * ]));
-  * // router
-  * app.use(router);
-  * app.use([router1, router2]);
   * app.use('/api/v1', routers);
-  * app.use('/api/v1', middlewares, routers);
   */
   use(prefix: string, routers: Router<Rev>[]): this;
   use(prefix: string, router: Router<Rev>): this;
@@ -172,7 +186,7 @@ export class NHttp<
     const fns = findFns(handlers);
     const obj = toPathx(path, method === "ANY");
     if (obj !== void 0) {
-      this.route[method] = (this.route[method] || []);
+      this.route[method] = this.route[method] || [];
       (this.route[method] as TObject[]).push({ ...obj, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
@@ -194,8 +208,15 @@ export class NHttp<
       } catch (error) {
         return next(error);
       }
-      if (ret && typeof ret.then === "function") {
-        ret.then(void 0).catch(next);
+      if (ret) {
+        if (typeof (ret as Promise<void>).then === "function") {
+          return this.#withPromise(
+            ret as unknown as Promise<Handler<RequestEvent>>,
+            rev,
+            next,
+          );
+        }
+        return rev.response.send(ret);
       }
     };
     rev.params = obj.params;
@@ -237,26 +258,8 @@ export class NHttp<
   /**
    * listen the server
    * @example
-   * // example 1
    * app.listen(3000);
    * app.listen({ port: 3000, hostname: 'localhost' });
-   *
-   * // example 2 (callback)
-   * app.listen(3000, (error, opts) => {
-   *     if (error) {
-   *        console.log(error)
-   *     }
-   *     console.log("> Running on port " + opts?.port);
-   * });
-   *
-   * // example 3 (https)
-   * app.listen({
-   *    port: 443,
-   *    certFile: "./path/to/localhost.crt",
-   *    keyFile: "./path/to/localhost.key",
-   * }, callback);
-   *
-   * // example 4 (http/2)
    * app.listen({
    *    port: 443,
    *    certFile: "./path/to/localhost.crt",
@@ -323,14 +326,14 @@ export class NHttp<
     err: any,
     rev: Rev,
     _: NextFunction,
-  ) => {
+  ): RetHandler => {
     const obj = getError(err, this.#env === "development");
     return rev.response.status(obj.status).json(obj);
   };
   #on404 = (
     rev: Rev,
     _: NextFunction,
-  ) => {
+  ): RetHandler => {
     const obj = getError(
       new NotFoundError(`Route ${rev.request.method}${rev.url} not found`),
     );
@@ -383,6 +386,23 @@ export class NHttp<
       if (idx.length === 3) break;
     }
     return str.substring(idx[2]);
+  };
+  #withPromise = async (
+    handler: Promise<Handler>,
+    rev: Rev,
+    next: NextFunction,
+    isDepError?: boolean,
+  ) => {
+    try {
+      const ret = await handler;
+      if (!ret) return;
+      rev.response.send(ret);
+    } catch (err) {
+      if (isDepError) {
+        return this.#onError(err, rev, next);
+      }
+      next(err);
+    }
   };
   #parseUrl = (rev: RequestEvent) => {
     const str = rev.url = this.#findUrl(rev.request.url);

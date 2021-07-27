@@ -2,8 +2,8 @@ import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
 
-app.post("/hello", ({ response, body }) => {
-  response.send(body);
+app.post("/hello", ({ body }) => {
+  return body;
 });
 
 app.listen(3000, () => {

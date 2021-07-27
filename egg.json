@@ -2,9 +2,9 @@
   "$schema": "https://x.nest.land/eggs@0.3.6/src/schema.json",
   "name": "nhttp",
   "entry": "./mod.ts",
-  "description": "Just native HTTP/2 micro framework for Deno.",
+  "description": "Fast native http framework for Deno.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "files": [
     "./mod.ts",
     "./error.ts",

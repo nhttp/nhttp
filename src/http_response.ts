@@ -39,13 +39,7 @@ export class HttpResponse {
   /**
   * send response body
   * @example
-  * // send text
   * response.send("hello");
-  * response.status(201).send("Created");
-  * // send json
-  * response.send({ name: "john" });
-  * // simple send file
-  * response.type("text/css").send(await Deno.readFile("./path/file"));
   */
   send!: (body?: BodyInit | TObject | null) => Promise<void>;
   /**
@@ -130,6 +124,9 @@ export function response(
   };
   res.send = function (body) {
     if (typeof body === "object") {
+      if (body instanceof Response) {
+        return respondWith(body);
+      }
       if (
         body instanceof Uint8Array ||
         body instanceof ReadableStream ||

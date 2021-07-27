@@ -2,13 +2,19 @@ import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
 
 export type NextFunction = (err?: Error) => void;
-
+// deno-lint-ignore no-explicit-any
+export type TObject = { [k: string]: any };
+export type RetHandler =
+  | Promise<void | string | TObject>
+  | void
+  | string
+  | TObject;
 export type Handler<
   Rev extends RequestEvent = RequestEvent,
 > = (
   rev: Rev,
   next: NextFunction,
-) => Promise<void> | void;
+) => RetHandler;
 
 export type Handlers<
   Rev extends RequestEvent = RequestEvent,
@@ -49,14 +55,6 @@ export type Cookie = {
   other?: string[];
   encode?: boolean;
 };
-// deno-lint-ignore no-explicit-any
-export type TObject = { [k: string]: any };
+
 // deno-lint-ignore no-explicit-any
 export type TQueryFunc = (data: string | unknown, ...args: any) => TObject;
-export type TRoute = {
-  params?: TObject[] | null;
-  pathx?: RegExp;
-  m?: boolean;
-  handlers?: Handlers;
-  [k: string]: unknown;
-};

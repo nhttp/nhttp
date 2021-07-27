@@ -119,23 +119,8 @@ class Multipart {
   /**
    * upload handler multipart/form-data
    * @example
-   * const upload = multipart.upload({
-   *    // required
-   *    name: "image";
-   *
-   *    // optional
-   *    maxCount: 10;
-   *    maxSize: "2mb";
-   *    accept: "png|jpg|jpeg";
-   *    callback: (file) => {
-   *        file.filename = Date.now() + file.name;
-   *    };
-   *    dest: "public/image";
-   *    required: true;
-   * });
-   *
-   * app.post("/hello", upload, ({ response, body, file }) => {
-   *    console.log("path upload => ", file.image.path);
+   * app.post("/hello", multipart.upload({ name: "image" }), ({ response, body, file }) => {
+   *    console.log("file", file.image);
    *    console.log(body);
    *    response.send("success upload");
    * });

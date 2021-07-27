@@ -1,5 +1,5 @@
 import { RequestEvent } from "./request_event.ts";
-import { Handler, Handlers, TObject, TRoute } from "./types.ts";
+import { Handler, Handlers, TObject } from "./types.ts";
 
 function findBase(pathname: string) {
   const iof = pathname.indexOf("/", 1);
@@ -10,7 +10,7 @@ function findBase(pathname: string) {
 export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {
-  route: TRoute = {};
+  route: TObject = {};
   c_routes: TObject[] = [];
   midds: Handler<Rev>[] = [];
   pmidds: TObject = {};
@@ -18,96 +18,36 @@ export default class Router<
    * method GET (app or router)
    * @example
    * app.get("/", ...handlers);
-   *
-   * app.get("/", ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.get("/", midd1, midd2, ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.get("/", [midd1, midd2], ({ response }) => {
-   *    response.send("Hello");
-   * })
    */
   get: (path: string, ...handlers: Handlers<Rev>) => this;
   /**
    * method POST (app or router)
    * @example
    * app.post("/", ...handlers);
-   *
-   * app.post("/", ({ response }) => {
-   *    response.status(201).send("Created");
-   * })
-   * app.post("/", midd1, midd2, ({ response }) => {
-   *    response.status(201).send("Created");
-   * })
-   * app.post("/", [midd1, midd2], ({ response }) => {
-   *    response.status(201).send("Created");
-   * })
    */
   post: (path: string, ...handlers: Handlers<Rev>) => this;
   /**
    * method PUT (app or router)
    * @example
    * app.put("/", ...handlers);
-   *
-   * app.put("/", ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.put("/", midd1, midd2, ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.put("/", [midd1, midd2], ({ response }) => {
-   *    response.send("Hello");
-   * })
    */
   put: (path: string, ...handlers: Handlers<Rev>) => this;
   /**
    * method PATCH (app or router)
    * @example
    * app.patch("/", ...handlers);
-   *
-   * app.patch("/", ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.patch("/", midd1, midd2, ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.patch("/", [midd1, midd2], ({ response }) => {
-   *    response.send("Hello");
-   * })
    */
   patch: (path: string, ...handlers: Handlers<Rev>) => this;
   /**
    * method DELETE (app or router)
    * @example
    * app.delete("/", ...handlers);
-   *
-   * app.delete("/", ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.delete("/", midd1, midd2, ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.delete("/", [midd1, midd2], ({ response }) => {
-   *    response.send("Hello");
-   * })
    */
   delete: (path: string, ...handlers: Handlers<Rev>) => this;
   /**
    * method ANY (allow all method directly) (app or router)
    * @example
    * app.any("/", ...handlers);
-   *
-   * app.any("/", ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.any("/", midd1, midd2, ({ response }) => {
-   *    response.send("Hello");
-   * })
-   * app.any("/", [midd1, midd2], ({ response }) => {
-   *    response.send("Hello");
-   * })
    */
   any: (path: string, ...handlers: Handlers<Rev>) => this;
   head: (path: string, ...handlers: Handlers<Rev>) => this;
@@ -147,11 +87,7 @@ export default class Router<
   /**
    * build handlers (app or router)
    * @example
-   * app.on("GET", "/", ...handlers)
-   *
-   * app.on("GET", "/", ({ response }) => {
-   *    response.send("Hello");
-   * })
+   * app.on("GET", "/", ...handlers);
    */
   on(method: string, path: string, ...handlers: Handlers<Rev>) {
     this.c_routes.push({ method, path, handlers });
@@ -161,7 +97,7 @@ export default class Router<
     let handlers: Handler[] = [];
     const params: TObject = {};
     if (this.route[method + url]) {
-      const obj = this.route[method + url] as TRoute;
+      const obj = this.route[method + url];
       if (obj.m) {
         handlers = obj.handlers as Handler[];
       } else {
@@ -180,7 +116,7 @@ export default class Router<
     if (url !== "/" && url[url.length - 1] === "/") {
       const _url = url.slice(0, -1);
       if (this.route[method + _url]) {
-        const obj = this.route[method + _url] as TRoute;
+        const obj = this.route[method + _url];
         if (obj.m) {
           handlers = obj.handlers as Handler[];
         } else {
@@ -199,12 +135,12 @@ export default class Router<
     }
     let i = 0;
     let j = 0;
-    let obj: TRoute = {};
-    let routes = (this.route[method] || []) as TRoute[];
+    let obj: TObject = {};
+    let routes = this.route[method] || [];
     let matches = [] as string[];
     let _404 = true;
     if (this.route["ANY"]) {
-      routes = routes.concat(this.route["ANY"] as Record<string, string>[]);
+      routes = routes.concat(this.route["ANY"]);
     }
     const len = routes.length;
     while (i < len) {

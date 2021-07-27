@@ -38,7 +38,7 @@ const html = `
     </html>
 `;
 
-const wsHandler: Handler = ({ request, respondWith }, next) => {
+const wsHandler: Handler = ({ request }, next) => {
   if (request.headers.get("upgrade") != "websocket") {
     return next();
   }
@@ -48,10 +48,11 @@ const wsHandler: Handler = ({ request, respondWith }, next) => {
   websocket.onclose = () => channel.close();
   websocket.onerror = () => channel.close();
   channel.onmessage = (e) => websocket.send(e.data);
-  respondWith(response);
+  return response;
 };
 const htmlHandler: Handler = ({ response }) => {
-  response.type("text/html").send(html);
+  response.type("text/html");
+  return html;
 };
 
 const app = new NHttp();
