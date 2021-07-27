@@ -10,17 +10,17 @@ export default class Application extends NHttp {
         UserController,
       ]),
     );
-    this.onError((err, { response }) => {
-      response.status(err.status || 500).send({
+    this.onError((err) => {
+      return {
         message: err.message || "Something went wrong",
         status: err.status || 500,
-      });
+      };
     });
-    this.on404(({ response, url }) => {
-      response.status(404).send({
+    this.on404(({ url }) => {
+      return {
         message: `${url} not found`,
         status: 404,
-      });
+      };
     });
   }
 }

@@ -149,8 +149,13 @@ export default class Router<
         _404 = false;
         if (obj.params) {
           matches = obj.pathx.exec(url) as string[];
+          matches.shift();
           while (j < obj.params.length) {
-            params[obj.params[j] as unknown as string] = matches[++j] || null;
+            const str = matches[j];
+            params[obj.params[j] as unknown as string] = str
+              ? decodeURIComponent(str)
+              : null;
+            j++;
           }
           if (params["wild"]) {
             params["wild"] = (params["wild"] as string).split("/");
