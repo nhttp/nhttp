@@ -153,7 +153,7 @@ export default class Router<
           while (j < obj.params.length) {
             const str = matches[j];
             params[obj.params[j] as unknown as string] = str
-              ? decodeURIComponent(str)
+              ? unescape(str)
               : null;
             j++;
           }

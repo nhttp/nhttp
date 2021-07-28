@@ -3,7 +3,7 @@
 ## NHttp
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@0.8.1%2Fmod.ts)](https://deno.land/x/nhttp)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@0.8.2%2Fmod.ts)](https://deno.land/x/nhttp)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
@@ -22,7 +22,7 @@ Fast native http framework for [Deno](https://deno.land/),
 - Middleware support.
 - Router support.
 - Includes body parser (jsonBody, urlencodedBody, rawBody, multipartBody).
-- Directly returning handlers.
+- Return directly on handlers.
 - No third party modules and no std/lib by default.
 - Easy deploy to [Deno Deploy](https://deno.com/deploy) and
   [Cloudflare Workers](https://workers.cloudflare.com).
@@ -49,19 +49,19 @@ Here the simple benchmark.
 ### deno.land
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.8.1/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.8.2/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.8.1/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@0.8.2/mod.ts";
 ```
 
 ## Usage
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.8.1/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@0.8.2/mod.ts";
 
 const app = new NHttp();
 
@@ -73,7 +73,7 @@ app.get("/json", ({ response }) => {
   response.json({ name: "nhttp" });
 });
 
-// Directly returning
+// Return directly
 app.get("/hello", () => {
   return "Hello World";
 });
