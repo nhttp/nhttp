@@ -1,5 +1,5 @@
 {
-  "name": "nhttp",
+  "name": "nhttp-workers",
   "version": "0.0.1",
   "description": "Fast native http framework for Deno, Deploy, Cloudflare Workers",
   "main": "index.js",

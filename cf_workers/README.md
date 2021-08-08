@@ -17,7 +17,7 @@ Fast native http framework for [Deno](https://deno.land/),
 
 ```bash
 npm install @cloudflare/wrangler -g
-npm install nhttp --save
+npm install nhttp-workers --save
 ```
 
 ### Generate App
@@ -46,7 +46,7 @@ zone_id = ""
 Modify index.js
 
 ```js
-const { NHttp } = require("nhttp");
+const { NHttp } = require("nhttp-workers");
 
 const app = new NHttp();
 
