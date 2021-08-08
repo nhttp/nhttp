@@ -1,6 +1,6 @@
 {
   "name": "nhttp-workers",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Fast native http framework for Deno, Deploy, Cloudflare Workers",
   "main": "index.js",
   "types": "index.d.ts",
@@ -9,7 +9,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nhttp/nhttp/cf_workers"
+    "url": "https://github.com/nhttp/nhttp"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
