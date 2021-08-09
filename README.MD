@@ -44,6 +44,9 @@ Here the simple benchmark.
 > Note: maybe not relevant if compared with std/http or other Deno framework
 > using std/http. nhttp uses native deno http.
 
+for cloudflare workers visit =>
+https://github.com/nhttp/nhttp/tree/master/cf_workers
+
 ## Installation
 
 ### deno.land
