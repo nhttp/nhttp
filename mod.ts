@@ -10,3 +10,4 @@ export type {
   NextFunction,
   TWrapMiddleware,
 } from "./src/types.ts";
+export * from "./src/error.ts";

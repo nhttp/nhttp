@@ -8,7 +8,7 @@ app.use(wrapMiddleware(
 ));
 
 app.get("/hello", ({ response }) => {
-  response.send("Hello");
+  return response.send("Hello");
 });
 
 app.listen(3000);

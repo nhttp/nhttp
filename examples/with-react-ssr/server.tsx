@@ -28,7 +28,7 @@ class Server extends NHttp {
         // deno-lint-ignore no-explicit-any
         const content = (ReactDOMServer as any).renderToString(element);
         // deno-fmt-ignore
-        rev.response.type("text/html").send(
+        return rev.response.type("text/html").send(
                 `<!doctype html>
                     <html>
                         <head>
@@ -43,11 +43,13 @@ class Server extends NHttp {
                     </html>`,
         );
       };
-      next();
+      return next();
     });
     // get the client js
     this.get(BROWSER_PATH, ({ response }) => {
-      response.type("application/javascript").send(files["deno:///bundle.js"]);
+      return response.type("application/javascript").send(
+        files["deno:///bundle.js"],
+      );
     });
     // exact for all route
     this.get("/*", ({ url, response, jsx }) => {
@@ -65,7 +67,7 @@ class Server extends NHttp {
         );
         return jsx(content, seo);
       }
-      response.status(404).send("Not Found");
+      return response.status(404).send("Not Found");
     });
   }
 }

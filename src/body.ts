@@ -1,4 +1,4 @@
-import { BadRequestError } from "../error.ts";
+import { BadRequestError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Handler,
@@ -122,7 +122,7 @@ class Multipart {
    * app.post("/hello", multipart.upload({ name: "image" }), ({ response, body, file }) => {
    *    console.log("file", file.image);
    *    console.log(body);
-   *    response.send("success upload");
+   *    return response.send("success upload");
    * });
    */
   public upload(options: TMultipartUpload | TMultipartUpload[]): Handler {
@@ -187,7 +187,7 @@ class Multipart {
           this.#cleanUp(rev.body);
         }
       }
-      next();
+      return next();
     };
   }
 }
@@ -260,5 +260,5 @@ export const withBody = async (
       }
     }
   }
-  next();
+  return next();
 };

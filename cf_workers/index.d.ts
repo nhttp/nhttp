@@ -164,7 +164,8 @@ export var NHttp: {
     use(...args: any[]): any;
     midds: any[];
     on(method: any, path: any, ...handlers: any[]): any;
-    handle(rev: any, i?: number): void;
+    handle(rev: any, i?: number): Promise<any>;
+    handleRequest(request: any): Promise<any>;
     listen(opts: any, callback: any): Promise<void>;
     server: any;
     route: {};
@@ -426,7 +427,7 @@ export var multipart: {
   createBody: (formData: any, { parse }?: {
     parse: any;
   }) => any;
-  upload(options: any): (rev: any, next: any) => Promise<void>;
+  upload(options: any): (rev: any, next: any) => Promise<any>;
 };
 export function wrapMiddleware(
   ...middlewares: any[]

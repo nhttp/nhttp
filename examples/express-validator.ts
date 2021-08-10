@@ -1,6 +1,10 @@
-import { Handler, NHttp, wrapMiddleware } from "../mod.ts";
+import {
+  Handler,
+  NHttp,
+  UnprocessableEntityError,
+  wrapMiddleware,
+} from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
-import { UnprocessableEntityError } from "../error.ts";
 
 const validator: Handler[] = [
   wrapMiddleware([
@@ -13,14 +17,14 @@ const validator: Handler[] = [
     if (!errors.isEmpty()) {
       throw new UnprocessableEntityError(errors.array());
     }
-    next();
+    return next();
   },
 ];
 
 const app = new NHttp();
 
 app.post("/user", validator, ({ response, body }) => {
-  response.send(body);
+  return response.send(body);
 });
 
 app.listen(3000);

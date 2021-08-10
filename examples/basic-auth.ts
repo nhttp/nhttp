@@ -1,5 +1,4 @@
-import { UnauthorizedError } from "../error.ts";
-import { Handler, NHttp } from "../mod.ts";
+import { Handler, NHttp, UnauthorizedError } from "../mod.ts";
 
 // username: admin
 // password: admin
@@ -30,12 +29,12 @@ const authenticate: Handler = (rev, next) => {
   } else {
     rev.locals = { user: cookie.session };
   }
-  next();
+  return next();
 };
 
 app.get("/home", authenticate, ({ response, locals }) => {
   // deno-fmt-ignore
-  response.type('text/html').send(`
+  return response.type('text/html').send(`
         <h1>Hello, ${locals.user}</h1>
         <br/>
         <a href="/logout">Logout</a>
@@ -44,7 +43,7 @@ app.get("/home", authenticate, ({ response, locals }) => {
 
 app.get("/logout", ({ response }) => {
   response.clearCookie("session");
-  response.status(401).send("Logged out");
+  return response.status(401).send("Logged out");
 });
 
 app.listen(3000);

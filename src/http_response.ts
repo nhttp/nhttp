@@ -39,22 +39,22 @@ export class HttpResponse {
   /**
   * send response body
   * @example
-  * response.send("hello");
+  * return response.send("hello");
   */
-  send!: (body?: BodyInit | TObject | null) => Promise<void>;
+  send!: (body?: BodyInit | TObject | null) => Promise<void> | Response;
   /**
   * shorthand for send json body
   * @example
-  * response.json({ name: "john" });
+  * return response.json({ name: "john" });
   */
-  json!: (body: TObject | null) => Promise<void>;
+  json!: (body: TObject | null) => Promise<void> | Response;
   /**
   * redirect url
   * @example
-  * response.redirect("/home");
-  * response.redirect("/home", 301);
+  * return response.redirect("/home");
+  * return response.redirect("/home", 301);
   */
-  redirect!: (url: string, status?: number) => Promise<void>;
+  redirect!: (url: string, status?: number) => Response | Promise<void>;
   /**
   * cookie
   * @example
@@ -87,7 +87,7 @@ export class JsonResponse extends Response {
 
 export function response(
   res: HttpResponse,
-  respondWith: (r: Response | Promise<Response>) => Promise<void>,
+  respondWith: (r: Response | Promise<Response>) => Promise<void> | Response,
   opts: ResponseInit,
 ) {
   res.header = function (key, value) {

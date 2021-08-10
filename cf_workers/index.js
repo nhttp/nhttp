@@ -515,7 +515,7 @@ function getReqCookies(req, decode, i = 0) {
   return ret;
 }
 
-// error.ts
+// src/error.ts
 var NHttpError = class extends Error {
   constructor(message, status = 500, name) {
     super(message);
@@ -900,7 +900,7 @@ var Multipart = class {
           __privateGet(this, _cleanUp).call(this, rev.body);
         }
       }
-      next();
+      return next();
     };
   }
 };
@@ -975,7 +975,7 @@ var withBody = async (rev, next, parse, parseMultipart, opts) => {
       }
     }
   }
-  next();
+  return next();
 };
 
 // src/http_response.ts
@@ -1148,12 +1148,12 @@ var NHttp = class extends Router {
         if (!ret) {
           return;
         }
-        rev.response.send(ret);
+        return rev.response.send(ret);
       } catch (err) {
         if (isDepError) {
           return __privateGet(this, _onError).call(this, err, rev, next);
         }
-        next(err);
+        return next(err);
       }
     });
     __privateAdd(this, _parseUrl, (rev) => {
@@ -1190,7 +1190,7 @@ var NHttp = class extends Router {
     if (parseQuery2) {
       this.use((rev, next) => {
         rev.__parseQuery = parseQuery2;
-        next();
+        return next();
       });
     }
   }
@@ -1205,7 +1205,7 @@ var NHttp = class extends Router {
       try {
         ret = fn(err, rev, next);
       } catch (error) {
-        return __privateGet(this, _onError).call(this, error, rev, next);
+        return rev.response.status(500).send(error.stack);
       }
       if (ret) {
         if (typeof ret.then === "function") {
@@ -1241,7 +1241,7 @@ var NHttp = class extends Router {
           (rev, next) => {
             rev.url = rev.url.substring(arg.length) || "/";
             rev.path = rev.path ? rev.path.substring(arg.length) || "/" : "/";
-            next();
+            return next();
           },
         ].concat(findFns(args));
       }
@@ -1309,8 +1309,11 @@ var NHttp = class extends Router {
     );
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
+    if (!rev.respondWith) {
+      rev.respondWith = (r) => r;
+    }
     response(rev.response = {}, rev.respondWith, rev.responseInit = {});
-    withBody(
+    return withBody(
       rev,
       next,
       __privateGet(this, _parseQuery),
@@ -1328,6 +1331,9 @@ var NHttp = class extends Router {
       this.handle(_rev);
       await rw;
     };
+  }
+  handleRequest(request) {
+    return this.handle({ request });
   }
   async listen(opts, callback) {
     let isTls = false;

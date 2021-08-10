@@ -15,7 +15,7 @@ import {
   toPathx,
 } from "./utils.ts";
 import { withBody } from "./body.ts";
-import { getError, NotFoundError } from "./../error.ts";
+import { getError, NotFoundError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import { HttpResponse, response } from "./http_response.ts";
 
@@ -58,7 +58,7 @@ export class NHttp<
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
         rev.__parseQuery = parseQuery;
-        next();
+        return next();
       });
     }
   }
@@ -66,7 +66,7 @@ export class NHttp<
   * global error handling.
   * @example
   * app.onError((error, rev) => {
-  *     rev.response.send(error.message);
+  *     return rev.response.send(error.message);
   * })
   */
   onError(fn: TOnError<Rev>): void;
@@ -76,7 +76,7 @@ export class NHttp<
       err: any,
       rev: Rev,
       next: NextFunction,
-    ) => Promise<void>,
+    ) => Promise<void> | Response,
   ) {
     this.#onError = (err, rev, next) => {
       let status: number = err.status || err.statusCode || err.code || 500;
@@ -86,7 +86,7 @@ export class NHttp<
       try {
         ret = fn(err, rev, next);
       } catch (error) {
-        return this.#onError(error, rev, next);
+        return rev.response.status(500).send((error as Error).stack);
       }
       if (ret) {
         if (typeof (ret as Promise<void>).then === "function") {
@@ -105,7 +105,7 @@ export class NHttp<
   * global not found error handling.
   * @example
   * app.on404((rev) => {
-  *     rev.response.send(`route ${rev.url} not found`);
+  *     return rev.response.send(`route ${rev.url} not found`);
   * })
   */
   on404(fn: TOn404<Rev>): void;
@@ -157,7 +157,7 @@ export class NHttp<
           ((rev, next) => {
             rev.url = rev.url.substring(arg.length) || "/";
             rev.path = rev.path ? rev.path.substring(arg.length) || "/" : "/";
-            next();
+            return next();
           }) as Handler,
         ]).concat(findFns(args) as ConcatArray<Handler<RequestEvent>>);
       }
@@ -224,12 +224,15 @@ export class NHttp<
     rev.query = this.#parseQuery(rev._parsedUrl.query);
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
+    if (!rev.respondWith) {
+      rev.respondWith = (r: Response | Promise<Response>) => r as Response;
+    }
     response(
       rev.response = {} as HttpResponse,
       rev.respondWith,
       rev.responseInit = {},
     );
-    withBody(
+    return withBody(
       rev,
       next,
       this.#parseQuery,
@@ -238,7 +241,7 @@ export class NHttp<
     );
   }
   /**
-  * fetchEventHandler idealy for deploy
+  * fetchEventHandler idealy for deploy or cf_workers
   * @example
   * addEventListener("fetch", app.fetchEventHandler());
   */
@@ -254,6 +257,17 @@ export class NHttp<
       this.handle(_rev);
       await rw;
     };
+  }
+
+  /**
+  * handleRequest idealy for deploy or cf_workers
+  * @example
+  * addEventListener("fetch", (event) => {
+  *   event.respondWith(app.handleRequest(event.request))
+  * });
+  */
+  handleRequest(request: Request) {
+    return this.handle({ request } as Rev);
   }
   /**
    * listen the server
@@ -396,12 +410,12 @@ export class NHttp<
     try {
       const ret = await handler;
       if (!ret) return;
-      rev.response.send(ret);
+      return rev.response.send(ret);
     } catch (err) {
       if (isDepError) {
         return this.#onError(err, rev, next);
       }
-      next(err);
+      return next(err);
     }
   };
   #parseUrl = (rev: RequestEvent) => {

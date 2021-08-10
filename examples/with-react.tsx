@@ -17,7 +17,7 @@ app.use((rev, next) => {
   // deno-lint-ignore no-explicit-any
   rev.jsx = (element: any, opts = {} as any) => {
     // deno-fmt-ignore
-    rev.response.type("text/html").send(
+    return rev.response.type("text/html").send(
             `<html>
                 <head>
                     <title>${opts?.title || "No Title"}</title>
@@ -28,7 +28,7 @@ app.use((rev, next) => {
             </html>`,
     );
   };
-  next();
+  return next();
 });
 
 app.get("/hello", ({ jsx }) => {

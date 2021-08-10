@@ -3,7 +3,7 @@ import { TObject } from "./types.ts";
 
 export class RequestEvent {
   readonly request!: Request;
-  respondWith!: (r: Response | Promise<Response>) => Promise<void>;
+  respondWith!: (r: Response | Promise<Response>) => Promise<void> | Response;
   body!: TObject;
   file!: TObject;
   responseInit!: ResponseInit;

@@ -4,10 +4,10 @@
   "entry": "./mod.ts",
   "description": "Fast native http framework for Deno.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "files": [
     "./mod.ts",
-    "./error.ts",
+    "./src/error.ts",
     "./src/body.ts",
     "./src/nhttp.ts",
     "./src/http_response.ts",
