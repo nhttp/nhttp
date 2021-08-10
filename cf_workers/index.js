@@ -1332,8 +1332,8 @@ var NHttp = class extends Router {
       await rw;
     };
   }
-  handleRequest(request) {
-    return this.handle({ request });
+  handleRequest(request, object = {}) {
+    return this.handle(__spreadValues({ request }, object));
   }
   async listen(opts, callback) {
     let isTls = false;

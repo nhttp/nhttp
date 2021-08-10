@@ -258,7 +258,6 @@ export class NHttp<
       await rw;
     };
   }
-
   /**
   * handleRequest idealy for deploy or cf_workers
   * @example
@@ -266,8 +265,8 @@ export class NHttp<
   *   event.respondWith(app.handleRequest(event.request))
   * });
   */
-  handleRequest(request: Request) {
-    return this.handle({ request } as Rev);
+  handleRequest(request: Request, object: TObject = {}) {
+    return this.handle({ request, ...object } as Rev);
   }
   /**
    * listen the server

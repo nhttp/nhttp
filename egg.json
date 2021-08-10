@@ -4,7 +4,7 @@
   "entry": "./mod.ts",
   "description": "Fast native http framework for Deno.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "files": [
     "./mod.ts",
     "./src/error.ts",
