@@ -1,7 +1,7 @@
-import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
 
-export type NextFunction = (err?: Error) => void;
+// deno-lint-ignore no-explicit-any
+export type NextFunction = (err?: Error) => any;
 // deno-lint-ignore no-explicit-any
 export type TObject = { [k: string]: any };
 export type RetHandler =
@@ -25,13 +25,6 @@ export type TBodyLimit = {
   urlencoded?: number | string;
   raw?: number | string;
   multipart?: number | string;
-};
-
-export type TWrapMiddleware = {
-  /**
-   * mutate RequestEvent or HttpResponse before wrap middleware
-   */
-  beforeWrap: (rev: RequestEvent, res: HttpResponse) => void;
 };
 
 export type TSizeList = {

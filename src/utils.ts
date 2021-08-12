@@ -1,13 +1,6 @@
 import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
-import {
-  Cookie,
-  Handler,
-  NextFunction,
-  TObject,
-  TSizeList,
-  TWrapMiddleware,
-} from "./types.ts";
+import { Cookie, Handler, NextFunction, TObject, TSizeList } from "./types.ts";
 
 // deno-lint-ignore no-control-regex
 const SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
@@ -164,23 +157,8 @@ export function parseQuery(query: unknown | string) {
  *    helmet(),
  * ]));
  */
-function fnWrapMiddleware(
-  { beforeWrap }: TWrapMiddleware,
-): Handler;
-function fnWrapMiddleware(
-  // deno-lint-ignore no-explicit-any
-  middlewares: any,
-  { beforeWrap }: TWrapMiddleware,
-): Handler;
-function fnWrapMiddleware(
-  // deno-lint-ignore no-explicit-any
-  middlewares: any,
-  { beforeWrap }: TWrapMiddleware,
-): Handler;
 // deno-lint-ignore no-explicit-any
-function fnWrapMiddleware(...middlewares: any): Handler;
-// deno-lint-ignore no-explicit-any
-function fnWrapMiddleware(...middlewares: any): Handler {
+export function wrapMiddleware(...middlewares: any): any {
   const midds = middlewares;
   const opts = midds.length && midds[midds.length - 1];
   const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
@@ -189,37 +167,41 @@ function fnWrapMiddleware(...middlewares: any): Handler {
     res: HttpResponse,
     next: NextFunction,
   ) => Promise<void> | void)[];
-  return (rev, next) => {
-    const res = rev.response;
-    if (rev.__isWrapMiddleware === void 0) {
-      rev.headers = rev.request.headers;
-      rev.method = rev.request.method;
-      res.setHeader = res.set = res.header;
-      res.getHeader = res.get = (a: string) => res.header(a);
-      res.hasHeader = (a: string) => res.header(a) !== null;
-      res.removeHeader = (a: string) => res.header().delete(a);
-      res.end = res.send;
-      // deno-lint-ignore no-explicit-any
-      res.writeHead = (a: number, ...b: any) => {
-        res.status(a);
-        for (let i = 0; i < b.length; i++) {
-          if (typeof b[i] === "object") res.header(b[i]);
-        }
-      };
-      rev.respond = ({ body, status, headers }: TObject) =>
-        rev.respondWith(
-          new Response(body as BodyInit, { status, headers } as TObject),
-        );
-      rev.__isWrapMiddleware = true;
-    }
-    if (beforeWrap) beforeWrap(rev, res);
-    if (!fns.length) return next();
-    let i = 0;
-    fns[i++](rev, res, next);
-  };
+  let handlers: Handler[] = [];
+  let j = 0;
+  const len = fns.length;
+  while (j < len) {
+    const fn = fns[j];
+    handlers = handlers.concat((rev, next) => {
+      const res = rev.response;
+      if (!rev.__isWrapMiddleware) {
+        rev.headers = rev.request.headers;
+        rev.method = rev.request.method;
+        res.setHeader = res.set = res.header;
+        res.getHeader = res.get = (a: string) => res.header(a);
+        res.hasHeader = (a: string) => res.header(a) !== null;
+        res.removeHeader = (a: string) => res.header().delete(a);
+        res.end = res.send;
+        // deno-lint-ignore no-explicit-any
+        res.writeHead = (a: number, ...b: any) => {
+          res.status(a);
+          for (let i = 0; i < b.length; i++) {
+            if (typeof b[i] === "object") res.header(b[i]);
+          }
+        };
+        rev.respond = ({ body, status, headers }: TObject) =>
+          rev.respondWith(
+            new Response(body as BodyInit, { status, headers } as TObject),
+          );
+        rev.__isWrapMiddleware = true;
+      }
+      if (beforeWrap) beforeWrap(rev, res);
+      return fn(rev, res, next);
+    });
+    j++;
+  }
+  return handlers;
 }
-
-export const wrapMiddleware = fnWrapMiddleware;
 
 export function serializeCookie(
   name: string,

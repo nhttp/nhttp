@@ -193,7 +193,8 @@ export class NHttp<
     }
     return this;
   }
-  handle(rev: Rev, i = 0) {
+  handle(rev: Rev, isRw?: boolean) {
+    let i = 0;
     this.#parseUrl(rev);
     const obj = this.findRoute(
       rev.request.method,
@@ -224,7 +225,7 @@ export class NHttp<
     rev.query = this.#parseQuery(rev._parsedUrl.query);
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
-    if (!rev.respondWith) {
+    if (isRw) {
       rev.respondWith = (r: Response | Promise<Response>) => r as Response;
     }
     response(
@@ -259,14 +260,14 @@ export class NHttp<
     };
   }
   /**
-  * handleRequest idealy for deploy or cf_workers
+  * handleEvent idealy for deploy or cf_workers
   * @example
   * addEventListener("fetch", (event) => {
-  *   event.respondWith(app.handleRequest(event.request))
+  *   event.respondWith(app.handleEvent(event))
   * });
   */
-  handleRequest(request: Request, object: TObject = {}) {
-    return this.handle({ request, ...object } as Rev);
+  handleEvent(event: FetchEvent) {
+    return this.handle(event, true);
   }
   /**
    * listen the server

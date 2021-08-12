@@ -386,44 +386,47 @@ function parseQuery(query) {
   }
   return myParse(Array.from(query.entries()));
 }
-function fnWrapMiddleware(...middlewares) {
+function wrapMiddleware(...middlewares) {
   const midds = middlewares;
   const opts = midds.length && midds[midds.length - 1];
   const beforeWrap = typeof opts === "object" && opts.beforeWrap;
   const fns = findFns(midds);
-  return (rev, next) => {
-    const res = rev.response;
-    if (rev.__isWrapMiddleware === void 0) {
-      rev.headers = rev.request.headers;
-      rev.method = rev.request.method;
-      res.setHeader = res.set = res.header;
-      res.getHeader = res.get = (a) => res.header(a);
-      res.hasHeader = (a) => res.header(a) !== null;
-      res.removeHeader = (a) => res.header().delete(a);
-      res.end = res.send;
-      res.writeHead = (a, ...b) => {
-        res.status(a);
-        for (let i2 = 0; i2 < b.length; i2++) {
-          if (typeof b[i2] === "object") {
-            res.header(b[i2]);
+  let handlers = [];
+  let j = 0;
+  const len = fns.length;
+  while (j < len) {
+    const fn = fns[j];
+    handlers = handlers.concat((rev, next) => {
+      const res = rev.response;
+      if (!rev.__isWrapMiddleware) {
+        rev.headers = rev.request.headers;
+        rev.method = rev.request.method;
+        res.setHeader = res.set = res.header;
+        res.getHeader = res.get = (a) => res.header(a);
+        res.hasHeader = (a) => res.header(a) !== null;
+        res.removeHeader = (a) => res.header().delete(a);
+        res.end = res.send;
+        res.writeHead = (a, ...b) => {
+          res.status(a);
+          for (let i = 0; i < b.length; i++) {
+            if (typeof b[i] === "object") {
+              res.header(b[i]);
+            }
           }
-        }
-      };
-      rev.respond = ({ body, status, headers }) =>
-        rev.respondWith(new Response(body, { status, headers }));
-      rev.__isWrapMiddleware = true;
-    }
-    if (beforeWrap) {
-      beforeWrap(rev, res);
-    }
-    if (!fns.length) {
-      return next();
-    }
-    let i = 0;
-    fns[i++](rev, res, next);
-  };
+        };
+        rev.respond = ({ body, status, headers }) =>
+          rev.respondWith(new Response(body, { status, headers }));
+        rev.__isWrapMiddleware = true;
+      }
+      if (beforeWrap) {
+        beforeWrap(rev, res);
+      }
+      return fn(rev, res, next);
+    });
+    j++;
+  }
+  return handlers;
 }
-var wrapMiddleware = fnWrapMiddleware;
 function serializeCookie(name, value, cookie = {}) {
   if (!SERIALIZE_COOKIE_REGEXP.test(name)) {
     throw new TypeError("name is invalid");
@@ -1277,7 +1280,8 @@ var NHttp = class extends Router {
     }
     return this;
   }
-  handle(rev, i = 0) {
+  handle(rev, isRw) {
+    let i = 0;
     __privateGet(this, _parseUrl).call(this, rev);
     const obj = this.findRoute(
       rev.request.method,
@@ -1309,7 +1313,7 @@ var NHttp = class extends Router {
     );
     rev.search = rev._parsedUrl.search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
-    if (!rev.respondWith) {
+    if (isRw) {
       rev.respondWith = (r) => r;
     }
     response(rev.response = {}, rev.respondWith, rev.responseInit = {});
@@ -1332,8 +1336,8 @@ var NHttp = class extends Router {
       await rw;
     };
   }
-  handleRequest(request, object = {}) {
-    return this.handle(__spreadValues({ request }, object));
+  handleEvent(event) {
+    return this.handle(event, true);
   }
   async listen(opts, callback) {
     let isTls = false;
