@@ -184,10 +184,10 @@ export class NHttp<
   }
   on(method: string, path: string, ...handlers: Handlers<Rev>): this {
     const fns = findFns(handlers);
-    const obj = toPathx(path, method === "ANY");
-    if (obj !== void 0) {
+    const { wild, pathx } = toPathx(path, method === "ANY");
+    if (pathx) {
       this.route[method] = this.route[method] || [];
-      (this.route[method] as TObject[]).push({ ...obj, handlers: fns });
+      (this.route[method] as TObject[]).push({ wild, pathx, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
     }

@@ -183,7 +183,7 @@ export var NHttp: {
     connect: any;
     findRoute(method: any, url: any, notFound: any): {
       params: {
-        wild: any;
+        wild: string[];
       };
       handlers: any;
     };
@@ -331,7 +331,7 @@ export var Router: {
     on(method: any, path: any, ...handlers: any[]): any;
     findRoute(method: any, url: any, notFound: any): {
       params: {
-        wild: any;
+        wild: string[];
       };
       handlers: any;
     };

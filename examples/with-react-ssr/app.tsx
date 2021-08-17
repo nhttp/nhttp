@@ -21,27 +21,29 @@ export const App = ({ isServer, Component, initData }: any) => {
       <Navbar />
       <Switch>
         {routes.map((el, x) => {
-          return <Route
-            {...el}
-            key={x}
-            component={
-              // deno-lint-ignore no-explicit-any
-              (props: any) => {
-                let _initData;
+          return (
+            <Route
+              {...el}
+              key={x}
+              component={
                 // deno-lint-ignore no-explicit-any
-                if ((window as any).__INITIAL_DATA__) {
-                  _initData = initData;
+                (props: any) => {
+                  let _initData;
                   // deno-lint-ignore no-explicit-any
-                  delete (window as any).__INITIAL_DATA__;
+                  if ((window as any).__INITIAL_DATA__) {
+                    _initData = initData;
+                    // deno-lint-ignore no-explicit-any
+                    delete (window as any).__INITIAL_DATA__;
+                  }
+                  if (el.seo) {
+                    // @ts-ignore: document as any
+                    document.title = el.seo.title;
+                  }
+                  return <el.component {...props} initData={_initData} />;
                 }
-                if (el.seo) {
-                  // @ts-ignore: document as any
-                  document.title = el.seo.title;
-                }
-                return <el.component {...props} initData={_initData} />;
               }
-            }
-          />;
+            />
+          );
         })}
       </Switch>
     </React.Suspense>

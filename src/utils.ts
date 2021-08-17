@@ -40,52 +40,24 @@ export function toBytes(arg: string | number) {
   return Math.floor(sizeList[unt] as number * val);
 }
 
-export function toPathx(path: string | RegExp, isAny: boolean) {
-  if (path instanceof RegExp) return { params: null, pathx: path };
-  const trgx = /\?|\*|\./;
-  if (!trgx.test(path) && isAny === false) {
-    const len = (path.match(/\/:/gi) || []).length;
-    if (len === 0) return;
+export function toPathx(path: string, isAny: boolean) {
+  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
+    return {};
   }
-  let params: TObject[] | string | string[] | ConcatArray<string> | null = [],
-    pattern = "";
-  const strReg = "/([^/]+?)", strRegQ = "(?:/([^/]+?))?";
-  if (trgx.test(path)) {
-    const arr = path.split("/");
-    let obj: string | TObject[], el: string, i = 0;
-    arr[0] || arr.shift();
-    for (; i < arr.length; i++) {
-      obj = arr[i];
-      el = obj[0];
-      if (el === "*") {
-        (params as string[]).push("wild");
-        pattern += "/(.*)";
-      } else if (el === ":") {
-        const isQuest = obj.indexOf("?") !== -1,
-          isExt = obj.indexOf(".") !== -1;
-        if (isQuest && !isExt) pattern += strRegQ;
-        else pattern += strReg;
-        if (isExt) {
-          const _ext = obj.substring(obj.indexOf("."));
-          let _pattern = pattern + (isQuest ? "?" : "") + "\\" + _ext;
-          _pattern = _pattern.replaceAll(
-            strReg + "\\" + _ext,
-            "/([\\w-]+" + _ext + ")",
-          );
-          pattern = _pattern;
-        }
-      } else pattern += "/" + obj;
-    }
-  } else pattern = path.replace(/\/:[a-z_-]+/gi, strReg);
-  const pathx = new RegExp(`^${pattern}/?$`, "i"),
-    matches = path.match(/\:([a-z_-]+)/gi);
-  if (!params.length) {
-    params = matches && matches.map((e: string) => e.substring(1));
-  } else {
-    const newArr = matches ? matches.map((e: string) => e.substring(1)) : [];
-    params = newArr.concat(params as ConcatArray<string>);
+  let wild = false;
+  path = path
+    .replace(/\/$/, "")
+    .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3");
+  if (/\*|\./.test(path)) {
+    path = path
+      .replace(/(\/?)\*/g, (_, p) => {
+        wild = true;
+        return `(${p}.*)?`;
+      })
+      .replace(/\.(?=[\w(])/, "\\.");
   }
-  return { params, pathx };
+  const pathx = new RegExp(`^${path}/*$`);
+  return { pathx, wild };
 }
 
 function needPatch(data: TObject | TObject[], keys: number[], value: string) {

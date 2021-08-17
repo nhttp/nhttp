@@ -95,7 +95,7 @@ export default class Router<
   }
   findRoute(method: string, url: string, notFound: Handler<Rev>) {
     let handlers: Handler[] = [];
-    const params: TObject = {};
+    let params: TObject = {};
     if (this.route[method + url]) {
       const obj = this.route[method + url];
       if (obj.m) {
@@ -134,10 +134,9 @@ export default class Router<
       }
     }
     let i = 0;
-    let j = 0;
     let obj: TObject = {};
     let routes = this.route[method] || [];
-    let matches = [] as string[];
+    let match: TObject;
     let _404 = true;
     if (this.route["ANY"]) {
       routes = routes.concat(this.route["ANY"]);
@@ -147,19 +146,14 @@ export default class Router<
       obj = routes[i];
       if (obj.pathx && obj.pathx.test(url)) {
         _404 = false;
-        if (obj.params) {
-          matches = obj.pathx.exec(url) as string[];
-          matches.shift();
-          while (j < obj.params.length) {
-            const str = matches[j];
-            params[obj.params[j] as unknown as string] = str
-              ? unescape(str)
-              : null;
-            j++;
-          }
-          if (params["wild"]) {
-            params["wild"] = (params["wild"] as string).split("/");
-          }
+        url = unescape(url);
+        match = obj.pathx.exec(url);
+        if (match.groups) {
+          params = match.groups || {};
+        }
+        if (obj.wild && typeof match[1] === "string") {
+          params["wild"] = match[1].split("/");
+          params["wild"].shift();
         }
         break;
       }

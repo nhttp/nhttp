@@ -253,10 +253,14 @@ export const withBody = async (
       }
     } else if (acceptContentType(headers, "multipart/form-data")) {
       if (opts?.multipart !== 0) {
-        const formData = await rev.request.formData();
-        rev.body = await multipart.createBody(formData, {
-          parse: parseMultipart,
-        });
+        try {
+          const formData = await rev.request.formData();
+          rev.body = await multipart.createBody(formData, {
+            parse: parseMultipart,
+          });
+        } catch (error) {
+          return next(error);
+        }
       }
     }
   }

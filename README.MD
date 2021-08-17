@@ -3,7 +3,7 @@
 ## NHttp
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@0.8.5%2Fmod.ts)](https://deno.land/x/nhttp)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.0.0%2Fmod.ts)](https://deno.land/x/nhttp)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
@@ -52,19 +52,19 @@ https://nhttp.deno.dev/docs/usage/cloudflare-workers
 ### deno.land
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.8.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.0.0/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@0.8.5/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@1.0.0/mod.ts";
 ```
 
 ## Usage
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@0.8.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.0.0/mod.ts";
 
 const app = new NHttp();
 
@@ -96,10 +96,8 @@ app.listen(3000, () => {
 
 ## Run
 
-> Note: Deno native http is unstable. so just add --unstable flag.
-
 ```bash
-deno run --allow-net --allow-read --unstable yourfile.ts
+deno run --allow-net yourfile.ts
 ```
 
 ## Full Documentation NHttp

@@ -156,7 +156,7 @@ var Router = class {
   }
   findRoute(method, url, notFound) {
     let handlers = [];
-    const params = {};
+    let params = {};
     if (this.route[method + url]) {
       const obj2 = this.route[method + url];
       if (obj2.m) {
@@ -197,10 +197,9 @@ var Router = class {
       }
     }
     let i = 0;
-    let j = 0;
     let obj = {};
     let routes = this.route[method] || [];
-    let matches = [];
+    let match;
     let _404 = true;
     if (this.route["ANY"]) {
       routes = routes.concat(this.route["ANY"]);
@@ -210,17 +209,14 @@ var Router = class {
       obj = routes[i];
       if (obj.pathx && obj.pathx.test(url)) {
         _404 = false;
-        if (obj.params) {
-          matches = obj.pathx.exec(url);
-          matches.shift();
-          while (j < obj.params.length) {
-            const str = matches[j];
-            params[obj.params[j]] = str ? unescape(str) : null;
-            j++;
-          }
-          if (params["wild"]) {
-            params["wild"] = params["wild"].split("/");
-          }
+        url = unescape(url);
+        match = obj.pathx.exec(url);
+        if (match.groups) {
+          params = match.groups || {};
+        }
+        if (obj.wild && typeof match[1] === "string") {
+          params["wild"] = match[1].split("/");
+          params["wild"].shift();
         }
         break;
       }
@@ -279,61 +275,22 @@ function toBytes(arg) {
   return Math.floor(sizeList[unt] * val);
 }
 function toPathx(path, isAny) {
-  if (path instanceof RegExp) {
-    return { params: null, pathx: path };
+  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
+    return {};
   }
-  const trgx = /\?|\*|\./;
-  if (!trgx.test(path) && isAny === false) {
-    const len = (path.match(/\/:/gi) || []).length;
-    if (len === 0) {
-      return;
-    }
+  let wild = false;
+  path = path.replace(/\/$/, "").replace(
+    /:(\w+)(\?)?(\.)?/g,
+    "$2(?<$1>[^/]+)$2$3",
+  );
+  if (/\*|\./.test(path)) {
+    path = path.replace(/(\/?)\*/g, (_, p) => {
+      wild = true;
+      return `(${p}.*)?`;
+    }).replace(/\.(?=[\w(])/, "\\.");
   }
-  let params = [], pattern = "";
-  const strReg = "/([^/]+?)", strRegQ = "(?:/([^/]+?))?";
-  if (trgx.test(path)) {
-    const arr = path.split("/");
-    let obj, el, i = 0;
-    arr[0] || arr.shift();
-    for (; i < arr.length; i++) {
-      obj = arr[i];
-      el = obj[0];
-      if (el === "*") {
-        params.push("wild");
-        pattern += "/(.*)";
-      } else if (el === ":") {
-        const isQuest = obj.indexOf("?") !== -1,
-          isExt = obj.indexOf(".") !== -1;
-        if (isQuest && !isExt) {
-          pattern += strRegQ;
-        } else {
-          pattern += strReg;
-        }
-        if (isExt) {
-          const _ext = obj.substring(obj.indexOf("."));
-          let _pattern = pattern + (isQuest ? "?" : "") + "\\" + _ext;
-          _pattern = _pattern.replaceAll(
-            strReg + "\\" + _ext,
-            "/([\\w-]+" + _ext + ")",
-          );
-          pattern = _pattern;
-        }
-      } else {
-        pattern += "/" + obj;
-      }
-    }
-  } else {
-    pattern = path.replace(/\/:[a-z_-]+/gi, strReg);
-  }
-  const pathx = new RegExp(`^${pattern}/?$`, "i"),
-    matches = path.match(/\:([a-z_-]+)/gi);
-  if (!params.length) {
-    params = matches && matches.map((e) => e.substring(1));
-  } else {
-    const newArr = matches ? matches.map((e) => e.substring(1)) : [];
-    params = newArr.concat(params);
-  }
-  return { params, pathx };
+  const pathx = new RegExp(`^${path}/*$`);
+  return { pathx, wild };
 }
 function needPatch(data, keys, value) {
   if (keys.length === 0) {
@@ -971,10 +928,14 @@ var withBody = async (rev, next, parse, parseMultipart, opts) => {
       }
     } else if (acceptContentType(headers, "multipart/form-data")) {
       if ((opts == null ? void 0 : opts.multipart) !== 0) {
-        const formData = await rev.request.formData();
-        rev.body = await multipart.createBody(formData, {
-          parse: parseMultipart,
-        });
+        try {
+          const formData = await rev.request.formData();
+          rev.body = await multipart.createBody(formData, {
+            parse: parseMultipart,
+          });
+        } catch (error) {
+          return next(error);
+        }
       }
     }
   }
@@ -1269,12 +1230,10 @@ var NHttp = class extends Router {
   }
   on(method, path, ...handlers) {
     const fns = findFns(handlers);
-    const obj = toPathx(path, method === "ANY");
-    if (obj !== void 0) {
+    const { wild, pathx } = toPathx(path, method === "ANY");
+    if (pathx) {
       this.route[method] = this.route[method] || [];
-      this.route[method].push(
-        __spreadProps(__spreadValues({}, obj), { handlers: fns }),
-      );
+      this.route[method].push({ wild, pathx, handlers: fns });
     } else {
       this.route[method + path] = { handlers: fns };
     }
