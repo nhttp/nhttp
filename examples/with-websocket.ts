@@ -42,12 +42,12 @@ const wsHandler: Handler = ({ request }, next) => {
   if (request.headers.get("upgrade") != "websocket") {
     return next();
   }
-  const { websocket, response } = Deno.upgradeWebSocket(request);
+  const { socket, response } = Deno.upgradeWebSocket(request);
   const channel = new BroadcastChannel("chat");
-  websocket.onmessage = (e) => channel.postMessage(e.data);
-  websocket.onclose = () => channel.close();
-  websocket.onerror = () => channel.close();
-  channel.onmessage = (e) => websocket.send(e.data);
+  socket.onmessage = (e) => channel.postMessage(e.data);
+  socket.onclose = () => channel.close();
+  socket.onerror = () => channel.close();
+  channel.onmessage = (e) => socket.send(e.data);
   return response;
 };
 const htmlHandler: Handler = ({ response }) => {
