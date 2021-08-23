@@ -72,23 +72,6 @@ app.get("/", ({ response }) => {
   return response.send("Hello");
 });
 
-app.get("/json", ({ response }) => {
-  return response.json({ name: "nhttp" });
-});
-
-// Return directly
-app.get("/hello", () => {
-  return "Hello World";
-});
-
-app.get("/hello/:name", ({ params }) => {
-  return { name: params.name };
-});
-
-app.get("/nhttp", () => {
-  return new Response("nhttp");
-});
-
 app.listen(3000, () => {
   console.log("> Running on port 3000");
 });
@@ -99,6 +82,55 @@ app.listen(3000, () => {
 ```bash
 deno run --allow-net yourfile.ts
 ```
+
+## Middleware Example
+
+`app.use(...handlers)` or `app.use([fn1, fn2])`
+
+```ts
+import { NHttp } from "https://deno.land/x/nhttp@1.1.0/mod.ts";
+
+new NHttp()
+  .use((rev, next) => {
+    rev.foo = "foo";
+    return next();
+  })
+  .get("/", ({ foo }) => {
+    return foo;
+  })
+  .listen(3000);
+```
+
+## Router Example
+
+`app.use(router | router[])` or `app.use(basePath, router | router[])`
+
+```ts
+import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.0/mod.ts";
+
+//user router example with base
+const user = new Router({ base: "/user" }); // base optional
+user.get("/", ...handlers);
+user.get("/:id", ...handlers);
+user.post("/", ...handlers);
+user.put("/:id", ...handlers);
+user.delete("/:id", ...handlers);
+
+//item router example without base
+const item = new Router();
+item.get("/item", ...handlers);
+item.get("/item/:id", ...handlers);
+item.post("/item", ...handlers);
+item.put("/item/:id", ...handlers);
+item.delete("/item/:id", ...handlers);
+
+new NHttp()
+  // register router
+  .use("/api/v1", [user, item])
+  .listen(3000);
+```
+
+now, you can access with http://localhost:3000/api/v1/user
 
 ## Full Documentation NHttp
 
