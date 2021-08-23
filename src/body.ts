@@ -1,4 +1,4 @@
-import { BadRequestError } from "./error.ts";
+import { HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Handler,
@@ -26,10 +26,10 @@ type TMultipartHandler = {
 };
 
 class Multipart {
-  createBody = (
+  public createBody(
     formData: FormData,
     { parse }: TMultipartHandler = {},
-  ) => {
+  ) {
     return parse
       ? parse(Object.fromEntries(
         Array.from(formData.keys()).map((key) => [
@@ -40,9 +40,8 @@ class Multipart {
         ]),
       ))
       : parseQuery(formData);
-  };
-
-  #cleanUp = (body: TObject) => {
+  }
+  private cleanUp(body: TObject) {
     for (const key in body) {
       if (Array.isArray(body[key])) {
         const arr = body[key] as Array<unknown>;
@@ -57,15 +56,16 @@ class Multipart {
         delete body[key];
       }
     }
-  };
-
-  #validate = (files: File[], opts: TMultipartUpload) => {
+  }
+  private validate(files: File[], opts: TMultipartUpload) {
     let j = 0;
     const len = files.length;
     if (opts?.maxCount) {
       if (len > opts.maxCount) {
-        throw new BadRequestError(
+        throw new HttpError(
+          400,
           `${opts.name} no more than ${opts.maxCount} file`,
+          "BadRequestError",
         );
       }
     }
@@ -74,23 +74,26 @@ class Multipart {
       const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
       if (opts?.accept) {
         if (!opts.accept.includes(ext)) {
-          throw new BadRequestError(
+          throw new HttpError(
+            400,
             `${opts.name} only accept ${opts.accept}`,
+            "BadRequestError",
           );
         }
       }
       if (opts?.maxSize) {
         if (file.size > toBytes(opts.maxSize)) {
-          throw new BadRequestError(
+          throw new HttpError(
+            400,
             `${opts.name} to large, maxSize = ${opts.maxSize}`,
+            "BadRequestError",
           );
         }
       }
       j++;
     }
-  };
-
-  #upload = async (files: File[], opts: TMultipartUpload) => {
+  }
+  private async privUpload(files: File[], opts: TMultipartUpload) {
     const cwd = Deno.cwd();
     let i = 0;
     const len = files.length;
@@ -114,8 +117,7 @@ class Multipart {
       );
       i++;
     }
-  };
-
+  }
   /**
    * upload handler multipart/form-data
    * @example
@@ -145,15 +147,17 @@ class Multipart {
           while (j < len) {
             const obj = options[j] as TMultipartUpload;
             if (obj.required && rev.body[obj.name] === void 0) {
-              throw new BadRequestError(
+              throw new HttpError(
+                400,
                 `Field ${obj.name} is required`,
+                "BadRequestError",
               );
             }
             if (rev.body[obj.name]) {
               rev.file[obj.name] = rev.body[obj.name];
               const objFile = rev.file[obj.name];
               const files = Array.isArray(objFile) ? objFile : [objFile];
-              this.#validate(files, obj);
+              this.validate(files, obj);
             }
             j++;
           }
@@ -163,51 +167,53 @@ class Multipart {
               rev.file[obj.name] = rev.body[obj.name];
               const objFile = rev.file[obj.name];
               const files = Array.isArray(objFile) ? objFile : [objFile];
-              await this.#upload(files, obj);
+              await this.privUpload(files, obj);
               delete rev.body[obj.name];
             }
             i++;
           }
-          this.#cleanUp(rev.body);
+          this.cleanUp(rev.body);
         } else if (typeof options === "object") {
           const obj = options as TMultipartUpload;
           if (obj.required && rev.body[obj.name] === void 0) {
-            throw new BadRequestError(
+            throw new HttpError(
+              400,
               `Field ${obj.name} is required`,
+              "BadRequestError",
             );
           }
           if (rev.body[obj.name]) {
             rev.file[obj.name] = rev.body[obj.name];
             const objFile = rev.file[obj.name];
             const files = Array.isArray(objFile) ? objFile : [objFile];
-            this.#validate(files, obj);
-            await this.#upload(files, obj);
+            this.validate(files, obj);
+            await this.privUpload(files, obj);
             delete rev.body[obj.name];
           }
-          this.#cleanUp(rev.body);
+          this.cleanUp(rev.body);
         }
       }
       return next();
     };
   }
 }
-
 async function verifyBody(request: Request, limit?: number | string) {
   const arrBuff = await request.arrayBuffer();
   if (limit && (arrBuff.byteLength > toBytes(limit))) {
-    throw new BadRequestError(`Body is too large. max limit ${limit}`);
+    throw new HttpError(
+      400,
+      `Body is too large. max limit ${limit}`,
+      "BadRequestError",
+    );
   }
   const body = decoder.decode(arrBuff);
   return body;
 }
-
 export const multipart = new Multipart();
-
 function acceptContentType(headers: Headers, cType: string) {
   const type = headers.get("content-type");
   return type === cType || type?.startsWith(cType);
 }
-
 export const withBody = async (
   rev: RequestEvent,
   next: NextFunction,

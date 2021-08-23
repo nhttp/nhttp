@@ -1,4 +1,4 @@
-import { Handler, NHttp } from "../mod.ts";
+import { Handler, HttpError, NHttp } from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `
@@ -40,7 +40,7 @@ const html = `
 
 const wsHandler: Handler = ({ request }, next) => {
   if (request.headers.get("upgrade") != "websocket") {
-    return next();
+    return next(new HttpError(400, "Bad Websocket"));
   }
   const { socket, response } = Deno.upgradeWebSocket(request);
   const channel = new BroadcastChannel("chat");

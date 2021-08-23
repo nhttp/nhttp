@@ -123,6 +123,7 @@ export function response(
     return this;
   };
   res.send = function (body) {
+    if (typeof body === "string") return respondWith(new Response(body, opts));
     if (typeof body === "object") {
       if (body instanceof Response) {
         return respondWith(body);

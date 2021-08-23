@@ -1,94 +1,14 @@
 // deno-lint-ignore-file
-export var BadGatewayError: {
-  new (message: any): {
+export var HttpError: {
+  new (status: any, message: any, name: any): {
     message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var BadRequestError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var ConflictError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var ExpectationFailedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var FailedDependencyError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var ForbiddenError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var GatewayTimeoutError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var GoneError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var HTTPVersionNotSupportedError: {
-  new (message: any): {
-    message: any;
-    status: number;
+    status: any;
     name: any;
     stack?: string;
   };
 };
 export var HttpResponse: {
   new (): {};
-};
-export var InsufficientStorageError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var InternalServerError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
 };
 export var JsonResponse: {
   new (json: any, opts?: {}): {
@@ -112,65 +32,39 @@ export var JsonResponse: {
   error(): Response;
   redirect(url: string, status?: number): Response;
 };
-export var LengthRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var LockedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var LoopDetectedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var MethodNotAllowedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var MisdirectedRequestError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
 export var NHttp: {
   new ({ parseQuery: parseQuery2, bodyLimit, env }?: {
     parseQuery: any;
     bodyLimit: any;
     env: any;
   }): {
+    parseQuery: any;
+    multipartParseQuery: any;
+    bodyLimit: any;
+    env: any;
     fetchEventHandler(): (event: any) => Promise<void>;
-    onError(fn: any): void;
-    on404(fn: any): void;
+    onError(fn: any): any;
+    _onError(err: any, rev: any, _: any): any;
+    on404(fn: any): any;
+    _on404(rev: any, _: any): any;
     use(...args: any[]): any;
     midds: any[];
+    pmidds: any;
     on(method: any, path: any, ...handlers: any[]): any;
-    handle(rev: any, isRw: any): Promise<any>;
-    handleEvent(event: any): Promise<any>;
+    handle(rev: any, isRw: any): any;
+    handleEvent(event: any): any;
     listen(opts: any, callback: any): Promise<void>;
     server: any;
+    handleConn(conn: any): Promise<void>;
+    withPromise(
+      handler: any,
+      rev: any,
+      next: any,
+      isDepError: any,
+    ): Promise<any>;
     route: {};
     c_routes: any[];
-    pmidds: {};
+    base: string;
     get: any;
     post: any;
     put: any;
@@ -181,143 +75,27 @@ export var NHttp: {
     options: any;
     trace: any;
     connect: any;
-    findRoute(method: any, url: any, notFound: any): {
-      params: {
-        wild: string[];
-      };
-      handlers: any;
+    single(mtd: any, url: any): {
+      params: {};
+      fns: any;
     };
-  };
-};
-export var NHttpError: {
-  new (message: any, status: number, name: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var NetworkAuthenticationRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var NotAcceptableError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var NotExtendedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var NotFoundError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var NotImplementedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var PaymentRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var PreconditionFailedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var PreconditionRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var ProxyAuthRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var RequestEntityTooLargeError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
+    find(method: any, url: any, fn404: any): {
+      params: {};
+      fns: any;
+    };
   };
 };
 export var RequestEvent: {
   new (): {};
 };
-export var RequestHeaderFieldsTooLargeError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var RequestTimeoutError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var RequestURITooLongError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var RequestedRangeNotSatisfiableError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
 export var Router: {
-  new (): {
+  new ({ base: base2 }?: {
+    base?: string;
+  }): {
     route: {};
     c_routes: any[];
     midds: any[];
-    pmidds: {};
+    base: string;
     get: any;
     post: any;
     put: any;
@@ -328,93 +106,15 @@ export var Router: {
     options: any;
     trace: any;
     connect: any;
-    on(method: any, path: any, ...handlers: any[]): any;
-    findRoute(method: any, url: any, notFound: any): {
-      params: {
-        wild: string[];
-      };
-      handlers: any;
+    single(mtd: any, url: any): {
+      params: {};
+      fns: any;
     };
-  };
-};
-export var ServiceUnavailableError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var TeapotError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var TooEarlyError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var TooManyRequestsError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var UnauthorizedError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var UnavailableForLegalReasonsError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var UnprocessableEntityError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var UnsupportedMediaTypeError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var UpgradeRequiredError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
-  };
-};
-export var VariantAlsoNegotiatesError: {
-  new (message: any): {
-    message: any;
-    status: number;
-    name: any;
-    stack?: string;
+    on(method: any, path: any, ...handlers: any[]): any;
+    find(method: any, url: any, fn404: any): {
+      params: {};
+      fns: any;
+    };
   };
 };
 export function getError(err: any, isStack: any): {
@@ -424,9 +124,12 @@ export function getError(err: any, isStack: any): {
   stack: any;
 };
 export var multipart: {
-  createBody: (formData: any, { parse }?: {
+  createBody(formData: any, { parse }?: {
     parse: any;
-  }) => any;
+  }): any;
+  cleanUp(body: any): void;
+  validate(files: any, opts: any): void;
+  privUpload(files: any, opts: any): Promise<void>;
   upload(options: any): (rev: any, next: any) => Promise<any>;
 };
 export function wrapMiddleware(...middlewares: any[]): any[];

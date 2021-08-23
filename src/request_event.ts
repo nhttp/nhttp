@@ -21,14 +21,6 @@ export class RequestEvent {
   * const objectWithDecode = rev.getCookies(true);
   */
   getCookies!: (decode?: boolean) => Record<string, string>;
-  _parsedUrl!: {
-    _raw: string;
-    href: string;
-    path: string;
-    pathname: string;
-    query: string | null;
-    search: string | null;
-  };
   // deno-lint-ignore no-explicit-any
   [k: string]: any
 }

@@ -38,107 +38,38 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
   }
 };
-var __accessCheck = (obj, member, msg) => {
-  if (!member.has(obj)) {
-    throw TypeError("Cannot " + msg);
-  }
-};
-var __privateGet = (obj, member, getter) => {
-  __accessCheck(obj, member, "read from private field");
-  return getter ? getter.call(obj) : member.get(obj);
-};
-var __privateAdd = (obj, member, value) => {
-  if (member.has(obj)) {
-    throw TypeError("Cannot add the same private member more than once");
-  }
-  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-};
-var __privateSet = (obj, member, value, setter) => {
-  __accessCheck(obj, member, "write to private field");
-  setter ? setter.call(obj, value) : member.set(obj, value);
-  return value;
-};
 
 // mod.ts
 __export(exports, {
-  BadGatewayError: () => BadGatewayError,
-  BadRequestError: () => BadRequestError,
-  ConflictError: () => ConflictError,
-  ExpectationFailedError: () => ExpectationFailedError,
-  FailedDependencyError: () => FailedDependencyError,
-  ForbiddenError: () => ForbiddenError,
-  GatewayTimeoutError: () => GatewayTimeoutError,
-  GoneError: () => GoneError,
-  HTTPVersionNotSupportedError: () => HTTPVersionNotSupportedError,
+  HttpError: () => HttpError,
   HttpResponse: () => HttpResponse,
-  InsufficientStorageError: () => InsufficientStorageError,
-  InternalServerError: () => InternalServerError,
   JsonResponse: () => JsonResponse,
-  LengthRequiredError: () => LengthRequiredError,
-  LockedError: () => LockedError,
-  LoopDetectedError: () => LoopDetectedError,
-  MethodNotAllowedError: () => MethodNotAllowedError,
-  MisdirectedRequestError: () => MisdirectedRequestError,
   NHttp: () => NHttp,
-  NHttpError: () => NHttpError,
-  NetworkAuthenticationRequiredError: () => NetworkAuthenticationRequiredError,
-  NotAcceptableError: () => NotAcceptableError,
-  NotExtendedError: () => NotExtendedError,
-  NotFoundError: () => NotFoundError,
-  NotImplementedError: () => NotImplementedError,
-  PaymentRequiredError: () => PaymentRequiredError,
-  PreconditionFailedError: () => PreconditionFailedError,
-  PreconditionRequiredError: () => PreconditionRequiredError,
-  ProxyAuthRequiredError: () => ProxyAuthRequiredError,
-  RequestEntityTooLargeError: () => RequestEntityTooLargeError,
   RequestEvent: () => RequestEvent,
-  RequestHeaderFieldsTooLargeError: () => RequestHeaderFieldsTooLargeError,
-  RequestTimeoutError: () => RequestTimeoutError,
-  RequestURITooLongError: () => RequestURITooLongError,
-  RequestedRangeNotSatisfiableError: () => RequestedRangeNotSatisfiableError,
   Router: () => Router,
-  ServiceUnavailableError: () => ServiceUnavailableError,
-  TeapotError: () => TeapotError,
-  TooEarlyError: () => TooEarlyError,
-  TooManyRequestsError: () => TooManyRequestsError,
-  UnauthorizedError: () => UnauthorizedError,
-  UnavailableForLegalReasonsError: () => UnavailableForLegalReasonsError,
-  UnprocessableEntityError: () => UnprocessableEntityError,
-  UnsupportedMediaTypeError: () => UnsupportedMediaTypeError,
-  UpgradeRequiredError: () => UpgradeRequiredError,
-  VariantAlsoNegotiatesError: () => VariantAlsoNegotiatesError,
   getError: () => getError,
   multipart: () => multipart,
   wrapMiddleware: () => wrapMiddleware,
 });
 
 // src/router.ts
-function findBase(pathname) {
-  const iof = pathname.indexOf("/", 1);
+function base(url) {
+  const iof = url.indexOf("/", 1);
   if (iof !== -1) {
-    return pathname.substring(0, iof);
+    return url.substring(0, iof);
   }
-  return pathname;
+  return url;
 }
-var _addMidd;
 var Router = class {
-  constructor() {
+  constructor({ base: base2 = "" } = {}) {
     this.route = {};
     this.c_routes = [];
     this.midds = [];
-    this.pmidds = {};
-    __privateAdd(this, _addMidd, (midds, notFound, fns, url, midAsset) => {
-      if (midAsset !== void 0) {
-        const pfx = findBase(url || "/");
-        if (midAsset[pfx]) {
-          fns = midAsset[pfx].concat(fns);
-        }
-      }
-      if (midds.length) {
-        fns = midds.concat(fns);
-      }
-      return fns = fns.concat([notFound]);
-    });
+    this.base = "";
+    this.base = base2;
+    if (this.base === "/") {
+      this.base = "";
+    }
     this.get = this.on.bind(this, "GET");
     this.post = this.on.bind(this, "POST");
     this.put = this.on.bind(this, "PUT");
@@ -150,67 +81,46 @@ var Router = class {
     this.trace = this.on.bind(this, "TRACE");
     this.connect = this.on.bind(this, "CONNECT");
   }
+  single(mtd, url) {
+    let { fns, m } = this.route[mtd + url];
+    if (m) {
+      return { params: {}, fns };
+    }
+    fns = this.midds.concat(fns);
+    this.route[mtd + url] = { m: true, fns };
+    return { params: {}, fns };
+  }
   on(method, path, ...handlers) {
-    this.c_routes.push({ method, path, handlers });
+    if (path === "/" && this.base !== "") {
+      path = "";
+    }
+    this.c_routes.push({ method, path: this.base + path, fns: handlers });
     return this;
   }
-  findRoute(method, url, notFound) {
-    let handlers = [];
-    let params = {};
+  find(method, url, fn404) {
     if (this.route[method + url]) {
-      const obj2 = this.route[method + url];
-      if (obj2.m) {
-        handlers = obj2.handlers;
-      } else {
-        handlers = __privateGet(this, _addMidd).call(
-          this,
-          this.midds,
-          notFound,
-          obj2.handlers,
-        );
-        this.route[method + url] = {
-          m: true,
-          handlers,
-        };
-      }
-      return { params, handlers };
+      return this.single(method, url);
     }
     if (url !== "/" && url[url.length - 1] === "/") {
       const _url = url.slice(0, -1);
       if (this.route[method + _url]) {
-        const obj2 = this.route[method + _url];
-        if (obj2.m) {
-          handlers = obj2.handlers;
-        } else {
-          handlers = __privateGet(this, _addMidd).call(
-            this,
-            this.midds,
-            notFound,
-            obj2.handlers,
-          );
-          this.route[method + _url] = {
-            m: true,
-            handlers,
-          };
-        }
-        return { params, handlers };
+        return this.single(method, _url);
       }
     }
-    let i = 0;
-    let obj = {};
-    let routes = this.route[method] || [];
+    let fns = [], params = {};
+    let i = 0, obj = {};
+    let arr = this.route[method] || [];
     let match;
-    let _404 = true;
     if (this.route["ANY"]) {
-      routes = routes.concat(this.route["ANY"]);
+      arr = arr.concat(this.route["ANY"]);
     }
-    const len = routes.length;
+    const len = arr.length;
     while (i < len) {
-      obj = routes[i];
+      obj = arr[i];
       if (obj.pathx && obj.pathx.test(url)) {
-        _404 = false;
         url = unescape(url);
         match = obj.pathx.exec(url);
+        fns = obj.fns;
         if (match.groups) {
           params = match.groups || {};
         }
@@ -222,18 +132,16 @@ var Router = class {
       }
       i++;
     }
-    handlers = __privateGet(this, _addMidd).call(
-      this,
-      this.midds,
-      notFound,
-      _404 ? [] : obj.handlers || [],
-      url,
-      this.pmidds,
-    );
-    return { params, handlers };
+    if (this.pmidds) {
+      const p = base(url || "/");
+      if (this.pmidds[p]) {
+        fns = this.pmidds[p].concat(fns);
+      }
+    }
+    fns = this.midds.concat(fns, [fn404]);
+    return { params, fns };
   }
 };
-_addMidd = new WeakMap();
 
 // src/utils.ts
 var SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
@@ -282,13 +190,10 @@ function toPathx(path, isAny) {
   path = path.replace(/\/$/, "").replace(
     /:(\w+)(\?)?(\.)?/g,
     "$2(?<$1>[^/]+)$2$3",
-  );
-  if (/\*|\./.test(path)) {
-    path = path.replace(/(\/?)\*/g, (_, p) => {
-      wild = true;
-      return `(${p}.*)?`;
-    }).replace(/\.(?=[\w(])/, "\\.");
-  }
+  ).replace(/(\/?)\*/g, (_, p) => {
+    wild = true;
+    return `(${p}.*)?`;
+  }).replace(/\.(?=[\w(])/, "\\.");
   const pathx = new RegExp(`^${path}/*$`);
   return { pathx, wild };
 }
@@ -476,212 +381,12 @@ function getReqCookies(req, decode, i = 0) {
 }
 
 // src/error.ts
-var NHttpError = class extends Error {
-  constructor(message, status = 500, name) {
+var HttpError = class extends Error {
+  constructor(status, message, name) {
     super(message);
-    this.message = message;
-    this.status = status;
+    this.message = message || "Http Error";
+    this.status = status || 500;
     this.name = name || "HttpError";
-  }
-};
-var BadRequestError = class extends NHttpError {
-  constructor(message) {
-    super(message, 400, "BadRequestError");
-  }
-};
-var UnauthorizedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 401, "UnauthorizedError");
-  }
-};
-var PaymentRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 402, "PaymentRequiredError");
-  }
-};
-var ForbiddenError = class extends NHttpError {
-  constructor(message) {
-    super(message, 403, "ForbiddenError");
-  }
-};
-var NotFoundError = class extends NHttpError {
-  constructor(message) {
-    super(message, 404, "NotFoundError");
-  }
-};
-var MethodNotAllowedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 405, "MethodNotAllowedError");
-  }
-};
-var NotAcceptableError = class extends NHttpError {
-  constructor(message) {
-    super(message, 406, "NotAcceptableError");
-  }
-};
-var ProxyAuthRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 407, "ProxyAuthRequiredError");
-  }
-};
-var RequestTimeoutError = class extends NHttpError {
-  constructor(message) {
-    super(message, 408, "RequestTimeoutError");
-  }
-};
-var ConflictError = class extends NHttpError {
-  constructor(message) {
-    super(message, 409, "ConflictError");
-  }
-};
-var GoneError = class extends NHttpError {
-  constructor(message) {
-    super(message, 410, "GoneError");
-  }
-};
-var LengthRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 411, "LengthRequiredError");
-  }
-};
-var PreconditionFailedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 412, "PreconditionFailedError");
-  }
-};
-var RequestEntityTooLargeError = class extends NHttpError {
-  constructor(message) {
-    super(message, 413, "RequestEntityTooLargeError");
-  }
-};
-var RequestURITooLongError = class extends NHttpError {
-  constructor(message) {
-    super(message, 414, "RequestURITooLongError");
-  }
-};
-var UnsupportedMediaTypeError = class extends NHttpError {
-  constructor(message) {
-    super(message, 415, "UnsupportedMediaTypeError");
-  }
-};
-var RequestedRangeNotSatisfiableError = class extends NHttpError {
-  constructor(message) {
-    super(message, 416, "RequestedRangeNotSatisfiableError");
-  }
-};
-var ExpectationFailedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 417, "ExpectationFailedError");
-  }
-};
-var TeapotError = class extends NHttpError {
-  constructor(message) {
-    super(message, 418, "TeapotError");
-  }
-};
-var MisdirectedRequestError = class extends NHttpError {
-  constructor(message) {
-    super(message, 421, "MisdirectedRequestError");
-  }
-};
-var UnprocessableEntityError = class extends NHttpError {
-  constructor(message) {
-    super(message, 422, "UnprocessableEntityError");
-  }
-};
-var LockedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 423, "LockedError");
-  }
-};
-var FailedDependencyError = class extends NHttpError {
-  constructor(message) {
-    super(message, 424, "FailedDependencyError");
-  }
-};
-var TooEarlyError = class extends NHttpError {
-  constructor(message) {
-    super(message, 425, "TooEarlyError");
-  }
-};
-var UpgradeRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 426, "UpgradeRequiredError");
-  }
-};
-var PreconditionRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 428, "PreconditionRequiredError");
-  }
-};
-var TooManyRequestsError = class extends NHttpError {
-  constructor(message) {
-    super(message, 429, "TooManyRequestsError");
-  }
-};
-var RequestHeaderFieldsTooLargeError = class extends NHttpError {
-  constructor(message) {
-    super(message, 431, "RequestHeaderFieldsTooLargeError");
-  }
-};
-var UnavailableForLegalReasonsError = class extends NHttpError {
-  constructor(message) {
-    super(message, 451, "UnavailableForLegalReasonsError");
-  }
-};
-var InternalServerError = class extends NHttpError {
-  constructor(message) {
-    super(message, 500, "InternalServerError");
-  }
-};
-var NotImplementedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 501, "NotImplementedError");
-  }
-};
-var BadGatewayError = class extends NHttpError {
-  constructor(message) {
-    super(message, 502, "BadGatewayError");
-  }
-};
-var ServiceUnavailableError = class extends NHttpError {
-  constructor(message) {
-    super(message, 503, "ServiceUnavailableError");
-  }
-};
-var GatewayTimeoutError = class extends NHttpError {
-  constructor(message) {
-    super(message, 504, "GatewayTimeoutError");
-  }
-};
-var HTTPVersionNotSupportedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 505, "HTTPVersionNotSupportedError");
-  }
-};
-var VariantAlsoNegotiatesError = class extends NHttpError {
-  constructor(message) {
-    super(message, 506, "VariantAlsoNegotiatesError");
-  }
-};
-var InsufficientStorageError = class extends NHttpError {
-  constructor(message) {
-    super(message, 507, "InsufficientStorageError");
-  }
-};
-var LoopDetectedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 508, "LoopDetectedError");
-  }
-};
-var NotExtendedError = class extends NHttpError {
-  constructor(message) {
-    super(message, 510, "NotExtendedError");
-  }
-};
-var NetworkAuthenticationRequiredError = class extends NHttpError {
-  constructor(message) {
-    super(message, 511, "NetworkAuthenticationRequiredError");
   }
 };
 function getError(err, isStack) {
@@ -707,93 +412,96 @@ function getError(err, isStack) {
 
 // src/body.ts
 var decoder2 = new TextDecoder();
-var _cleanUp, _validate, _upload;
 var Multipart = class {
-  constructor() {
-    this.createBody = (formData, { parse } = {}) => {
-      return parse
-        ? parse(Object.fromEntries(
-          Array.from(formData.keys()).map((key) => [
-            key,
-            formData.getAll(key).length > 1
-              ? formData.getAll(key)
-              : formData.get(key),
-          ]),
-        ))
-        : parseQuery(formData);
-    };
-    __privateAdd(this, _cleanUp, (body) => {
-      for (const key in body) {
-        if (Array.isArray(body[key])) {
-          const arr = body[key];
-          for (let i = 0; i < arr.length; i++) {
-            const el = arr[i];
-            if (el instanceof File) {
-              delete body[key];
-              break;
-            }
+  createBody(formData, { parse } = {}) {
+    return parse
+      ? parse(Object.fromEntries(
+        Array.from(formData.keys()).map((key) => [
+          key,
+          formData.getAll(key).length > 1
+            ? formData.getAll(key)
+            : formData.get(key),
+        ]),
+      ))
+      : parseQuery(formData);
+  }
+  cleanUp(body) {
+    for (const key in body) {
+      if (Array.isArray(body[key])) {
+        const arr = body[key];
+        for (let i = 0; i < arr.length; i++) {
+          const el = arr[i];
+          if (el instanceof File) {
+            delete body[key];
+            break;
           }
-        } else if (body[key] instanceof File) {
-          delete body[key];
         }
+      } else if (body[key] instanceof File) {
+        delete body[key];
       }
-    });
-    __privateAdd(this, _validate, (files, opts) => {
-      let j = 0;
-      const len = files.length;
-      if (opts == null ? void 0 : opts.maxCount) {
-        if (len > opts.maxCount) {
-          throw new BadRequestError(
-            `${opts.name} no more than ${opts.maxCount} file`,
+    }
+  }
+  validate(files, opts) {
+    let j = 0;
+    const len = files.length;
+    if (opts == null ? void 0 : opts.maxCount) {
+      if (len > opts.maxCount) {
+        throw new HttpError(
+          400,
+          `${opts.name} no more than ${opts.maxCount} file`,
+          "BadRequestError",
+        );
+      }
+    }
+    while (j < len) {
+      const file = files[j];
+      const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
+      if (opts == null ? void 0 : opts.accept) {
+        if (!opts.accept.includes(ext)) {
+          throw new HttpError(
+            400,
+            `${opts.name} only accept ${opts.accept}`,
+            "BadRequestError",
           );
         }
       }
-      while (j < len) {
-        const file = files[j];
-        const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
-        if (opts == null ? void 0 : opts.accept) {
-          if (!opts.accept.includes(ext)) {
-            throw new BadRequestError(
-              `${opts.name} only accept ${opts.accept}`,
-            );
-          }
+      if (opts == null ? void 0 : opts.maxSize) {
+        if (file.size > toBytes(opts.maxSize)) {
+          throw new HttpError(
+            400,
+            `${opts.name} to large, maxSize = ${opts.maxSize}`,
+            "BadRequestError",
+          );
         }
-        if (opts == null ? void 0 : opts.maxSize) {
-          if (file.size > toBytes(opts.maxSize)) {
-            throw new BadRequestError(
-              `${opts.name} to large, maxSize = ${opts.maxSize}`,
-            );
-          }
-        }
-        j++;
       }
-    });
-    __privateAdd(this, _upload, async (files, opts) => {
-      const cwd = Deno.cwd();
-      let i = 0;
-      const len = files.length;
-      while (i < len) {
-        const file = files[i];
-        const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
-        if (opts == null ? void 0 : opts.callback) {
-          opts.callback(file);
-        }
-        let dest = opts.dest || "";
-        if (dest.lastIndexOf("/") === -1) {
-          dest += "/";
-        }
-        file.filename = file.filename ||
-          Date.now() + file.lastModified.toString() + "_" +
-            file.name.substring(0, 16).replace(/\./g, "") + "." + ext;
-        file.path = file.path || (dest !== "/" ? dest : "") + file.filename;
-        const arrBuff = await file.arrayBuffer();
-        await Deno.writeFile(
-          cwd + "/" + dest + file.filename,
-          new Uint8Array(arrBuff),
-        );
-        i++;
+      j++;
+    }
+  }
+  async privUpload(files, opts) {
+    const cwd = Deno.cwd();
+    let i = 0;
+    const len = files.length;
+    while (i < len) {
+      const file = files[i];
+      const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
+      if (opts == null ? void 0 : opts.callback) {
+        opts.callback(file);
       }
-    });
+      let dest = opts.dest || "";
+      if (dest.lastIndexOf("/") === -1) {
+        dest += "/";
+      }
+      file.filename = file.filename ||
+        Date.now() + file.lastModified.toString() + "_" +
+          file.name.substring(0, 16).replace(/\./g, "") + "." + ext;
+      file.path = file.path || (dest !== "/" ? dest : "") + file.filename;
+      const arrBuff = await file.arrayBuffer();
+      await Deno.writeFile(
+        cwd + "/" + dest + file.filename,
+        new Uint8Array(arrBuff),
+      );
+      i++;
+    }
   }
   upload(options) {
     return async (rev, next) => {
@@ -822,13 +530,17 @@ var Multipart = class {
           while (j < len) {
             const obj = options[j];
             if (obj.required && rev.body[obj.name] === void 0) {
-              throw new BadRequestError(`Field ${obj.name} is required`);
+              throw new HttpError(
+                400,
+                `Field ${obj.name} is required`,
+                "BadRequestError",
+              );
             }
             if (rev.body[obj.name]) {
               rev.file[obj.name] = rev.body[obj.name];
               const objFile = rev.file[obj.name];
               const files = Array.isArray(objFile) ? objFile : [objFile];
-              __privateGet(this, _validate).call(this, files, obj);
+              this.validate(files, obj);
             }
             j++;
           }
@@ -838,39 +550,44 @@ var Multipart = class {
               rev.file[obj.name] = rev.body[obj.name];
               const objFile = rev.file[obj.name];
               const files = Array.isArray(objFile) ? objFile : [objFile];
-              await __privateGet(this, _upload).call(this, files, obj);
+              await this.privUpload(files, obj);
               delete rev.body[obj.name];
             }
             i++;
           }
-          __privateGet(this, _cleanUp).call(this, rev.body);
+          this.cleanUp(rev.body);
         } else if (typeof options === "object") {
           const obj = options;
           if (obj.required && rev.body[obj.name] === void 0) {
-            throw new BadRequestError(`Field ${obj.name} is required`);
+            throw new HttpError(
+              400,
+              `Field ${obj.name} is required`,
+              "BadRequestError",
+            );
           }
           if (rev.body[obj.name]) {
             rev.file[obj.name] = rev.body[obj.name];
             const objFile = rev.file[obj.name];
             const files = Array.isArray(objFile) ? objFile : [objFile];
-            __privateGet(this, _validate).call(this, files, obj);
-            await __privateGet(this, _upload).call(this, files, obj);
+            this.validate(files, obj);
+            await this.privUpload(files, obj);
             delete rev.body[obj.name];
           }
-          __privateGet(this, _cleanUp).call(this, rev.body);
+          this.cleanUp(rev.body);
         }
       }
       return next();
     };
   }
 };
-_cleanUp = new WeakMap();
-_validate = new WeakMap();
-_upload = new WeakMap();
 async function verifyBody(request, limit) {
   const arrBuff = await request.arrayBuffer();
   if (limit && arrBuff.byteLength > toBytes(limit)) {
-    throw new BadRequestError(`Body is too large. max limit ${limit}`);
+    throw new HttpError(
+      400,
+      `Body is too large. max limit ${limit}`,
+      "BadRequestError",
+    );
   }
   const body = decoder2.decode(arrBuff);
   return body;
@@ -987,6 +704,9 @@ function response(res, respondWith, opts) {
     return this;
   };
   res.send = function (body) {
+    if (typeof body === "string") {
+      return respondWith(new Response(body, opts));
+    }
     if (typeof body === "object") {
       if (body instanceof Response) {
         return respondWith(body);
@@ -1037,119 +757,17 @@ function response(res, respondWith, opts) {
 }
 
 // src/nhttp.ts
-var _parseQuery,
-  _multipartParseQuery,
-  _bodyLimit,
-  _env,
-  _onError,
-  _on404,
-  _addRoutes,
-  _handleConn,
-  _findUrl,
-  _withPromise,
-  _parseUrl;
+var defError = (err, rev, env) => {
+  const obj = getError(err, env === "development");
+  return rev.response.status(obj.status).json(obj);
+};
 var NHttp = class extends Router {
   constructor({ parseQuery: parseQuery2, bodyLimit, env } = {}) {
     super();
-    __privateAdd(this, _parseQuery, void 0);
-    __privateAdd(this, _multipartParseQuery, void 0);
-    __privateAdd(this, _bodyLimit, void 0);
-    __privateAdd(this, _env, void 0);
-    __privateAdd(this, _onError, (err, rev, _) => {
-      const obj = getError(err, __privateGet(this, _env) === "development");
-      return rev.response.status(obj.status).json(obj);
-    });
-    __privateAdd(this, _on404, (rev, _) => {
-      const obj = getError(
-        new NotFoundError(`Route ${rev.request.method}${rev.url} not found`),
-      );
-      return rev.response.status(obj.status).json(obj);
-    });
-    __privateAdd(this, _addRoutes, (arg, args, routes) => {
-      let prefix = "";
-      let i = 0;
-      const midds = findFns(args);
-      const len = routes.length;
-      if (typeof arg === "string" && arg.length > 1 && arg.charAt(0) === "/") {
-        prefix = arg;
-      }
-      while (i < len) {
-        const el = routes[i];
-        el.handlers = midds.concat(el.handlers);
-        this.on(el.method, prefix + el.path, ...el.handlers);
-        i++;
-      }
-    });
-    __privateAdd(this, _handleConn, async (conn) => {
-      try {
-        const httpConn = Deno.serveHttp(conn);
-        for await (const requestEvent of httpConn) {
-          let resp;
-          const promise = new Promise((ok) => resp = ok);
-          const rw = requestEvent.respondWith(promise);
-          const _rev = requestEvent;
-          _rev.respondWith = resp;
-          this.handle(_rev);
-          await rw;
-        }
-      } catch (_e) {
-      }
-    });
-    __privateAdd(this, _findUrl, (str) => {
-      const idx = [];
-      let i = -1;
-      while ((i = str.indexOf("/", i + 1)) != -1) {
-        idx.push(i);
-        if (idx.length === 3) {
-          break;
-        }
-      }
-      return str.substring(idx[2]);
-    });
-    __privateAdd(this, _withPromise, async (handler, rev, next, isDepError) => {
-      try {
-        const ret = await handler;
-        if (!ret) {
-          return;
-        }
-        return rev.response.send(ret);
-      } catch (err) {
-        if (isDepError) {
-          return __privateGet(this, _onError).call(this, err, rev, next);
-        }
-        return next(err);
-      }
-    });
-    __privateAdd(this, _parseUrl, (rev) => {
-      const str = rev.url = __privateGet(this, _findUrl).call(
-        this,
-        rev.request.url,
-      );
-      const url = rev._parsedUrl || {};
-      if (url._raw === str) {
-        return;
-      }
-      let pathname = str, query = null, search = null, i = 0;
-      const len = str.length;
-      while (i < len) {
-        if (str.charCodeAt(i) === 63) {
-          pathname = str.substring(0, i);
-          query = str.substring(i + 1);
-          search = str.substring(i);
-          break;
-        }
-        i++;
-      }
-      url.path = url._raw = url.href = str;
-      url.pathname = pathname;
-      url.query = query;
-      url.search = search;
-      rev._parsedUrl = url;
-    });
-    __privateSet(this, _parseQuery, parseQuery2 || parseQuery);
-    __privateSet(this, _multipartParseQuery, parseQuery2);
-    __privateSet(this, _bodyLimit, bodyLimit);
-    __privateSet(this, _env, env || "development");
+    this.parseQuery = parseQuery2 || parseQuery;
+    this.multipartParseQuery = parseQuery2;
+    this.bodyLimit = bodyLimit;
+    this.env = env || "development";
     this.fetchEventHandler = this.fetchEventHandler.bind(this);
     if (parseQuery2) {
       this.use((rev, next) => {
@@ -1159,70 +777,52 @@ var NHttp = class extends Router {
     }
   }
   onError(fn) {
-    __privateSet(this, _onError, (err, rev, next) => {
+    this._onError = (err, rev, next) => {
       let status = err.status || err.statusCode || err.code || 500;
       if (typeof status !== "number") {
         status = 500;
       }
       rev.response.status(status);
-      let ret;
-      try {
-        ret = fn(err, rev, next);
-      } catch (error) {
-        return rev.response.status(500).send(error.stack);
-      }
-      if (ret) {
-        if (typeof ret.then === "function") {
-          return __privateGet(this, _withPromise).call(
-            this,
-            ret,
-            rev,
-            next,
-            true,
-          );
-        }
-        return rev.response.send(ret);
-      }
-    });
+      return fn(err, rev, next);
+    };
+    return this;
   }
   on404(fn) {
-    __privateSet(this, _on404, (rev, next) => {
+    this._on404 = (rev, next) => {
       rev.response.status(404);
       return fn(rev, next);
-    });
+    };
+    return this;
   }
   use(...args) {
-    const arg = args[0];
-    const larg = args[args.length - 1];
-    const len = args.length;
-    if (len === 1 && typeof arg === "function") {
-      this.midds.push(arg);
-    } else if (typeof arg === "string" && typeof larg === "function") {
-      if (arg === "/" || arg === "") {
-        this.midds = this.midds.concat(findFns(args));
-      } else {
-        this.pmidds[arg] = [
-          (rev, next) => {
-            rev.url = rev.url.substring(arg.length) || "/";
-            rev.path = rev.path ? rev.path.substring(arg.length) || "/" : "/";
-            return next();
-          },
-        ].concat(findFns(args));
-      }
-    } else if (typeof larg === "object" && larg.c_routes) {
-      __privateGet(this, _addRoutes).call(this, arg, args, larg.c_routes);
-    } else if (Array.isArray(larg)) {
-      let i = 0;
-      const len2 = larg.length;
-      while (i < len2) {
-        const el = larg[i];
-        if (typeof el === "object" && el.c_routes) {
-          __privateGet(this, _addRoutes).call(this, arg, args, el.c_routes);
-        } else if (typeof el === "function") {
-          this.midds.push(el);
+    let str = typeof args[0] === "string" ? args[0] : "";
+    let last = args[args.length - 1];
+    if (str === "/") {
+      str = "";
+    }
+    if (args.length === 1 && typeof args[0] === "function") {
+      this.midds = this.midds.concat(args[0]);
+    } else if (
+      typeof last === "object" && (last.c_routes || last[0].c_routes)
+    ) {
+      const wares = findFns(args);
+      last = Array.isArray(last) ? last : [last];
+      let i = 0, j = 0;
+      for (; i < last.length; i++) {
+        for (; j < last[i].c_routes.length; j++) {
+          const { method, path, fns } = last[i].c_routes[j];
+          this.on(method, str + path, ...wares.concat(fns));
         }
-        i++;
       }
+    } else if (str !== "") {
+      this.pmidds = this.pmidds || {};
+      this.pmidds[str] = [
+        (rev, next) => {
+          rev.url = rev.url.substring(str.length) || "/";
+          rev.path = rev.path.substring(str.length) || "/";
+          return next();
+        },
+      ].concat(findFns(args));
     } else {
       this.midds = this.midds.concat(findFns(args));
     }
@@ -1233,55 +833,66 @@ var NHttp = class extends Router {
     const { wild, pathx } = toPathx(path, method === "ANY");
     if (pathx) {
       this.route[method] = this.route[method] || [];
-      this.route[method].push({ wild, pathx, handlers: fns });
+      this.route[method].push({ wild, pathx, fns });
     } else {
-      this.route[method + path] = { handlers: fns };
+      this.route[method + path] = { fns };
     }
     return this;
   }
   handle(rev, isRw) {
-    let i = 0;
-    __privateGet(this, _parseUrl).call(this, rev);
-    const obj = this.findRoute(
-      rev.request.method,
-      rev._parsedUrl.pathname,
-      __privateGet(this, _on404),
-    );
-    const next = (err) => {
-      if (err) {
-        return __privateGet(this, _onError).call(this, err, rev, next);
+    let i = 0, j = 0, k = -1, l = 0;
+    const { method, url } = rev.request;
+    let path = "", query = null, search = null, len;
+    while ((k = url.indexOf("/", k + 1)) != -1) {
+      l += 1;
+      if (l === 3) {
+        path = rev.url = url.substring(k);
+        len = rev.url.length;
+        while (j < len) {
+          if (rev.url.charCodeAt(j) === 63) {
+            path = rev.url.substring(0, j);
+            query = rev.url.substring(j + 1);
+            search = rev.url.substring(j);
+            break;
+          }
+          j++;
+        }
+        break;
       }
+    }
+    const { fns, params } = this.find(method, path, this._on404);
+    const next = (err) => {
       let ret;
       try {
-        ret = obj.handlers[i++](rev, next);
-      } catch (error) {
-        return next(error);
+        ret = err ? this._onError(err, rev, next) : fns[i++](rev, next);
+      } catch (e) {
+        return err ? defError(e, rev, this.env) : next(e);
       }
       if (ret) {
         if (typeof ret.then === "function") {
-          return __privateGet(this, _withPromise).call(this, ret, rev, next);
+          return this.withPromise(ret, rev, next);
         }
         return rev.response.send(ret);
       }
     };
-    rev.params = obj.params;
-    rev.path = rev._parsedUrl.pathname;
-    rev.query = __privateGet(this, _parseQuery).call(
-      this,
-      rev._parsedUrl.query,
-    );
-    rev.search = rev._parsedUrl.search;
+    rev.params = params;
+    rev.path = path;
+    rev.query = this.parseQuery(query);
+    rev.search = search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
     if (isRw) {
       rev.respondWith = (r) => r;
     }
     response(rev.response = {}, rev.respondWith, rev.responseInit = {});
+    if (method == "GET" || method == "HEAD") {
+      return next();
+    }
     return withBody(
       rev,
       next,
-      __privateGet(this, _parseQuery),
-      __privateGet(this, _multipartParseQuery),
-      __privateGet(this, _bodyLimit),
+      this.parseQuery,
+      this.multipartParseQuery,
+      this.bodyLimit,
     );
   }
   fetchEventHandler() {
@@ -1320,7 +931,7 @@ var NHttp = class extends Router {
         try {
           const conn = await this.server.accept();
           if (conn) {
-            __privateGet(this, _handleConn).call(this, conn);
+            this.handleConn(conn);
           } else {
             break;
           }
@@ -1339,70 +950,61 @@ var NHttp = class extends Router {
       }
     }
   }
+  _onError(err, rev, _) {
+    return defError(err, rev, this.env);
+  }
+  _on404(rev, _) {
+    const obj = getError(
+      new HttpError(
+        404,
+        `Route ${rev.request.method}${rev.url} not found`,
+        "NotFoundError",
+      ),
+    );
+    return rev.response.status(obj.status).json(obj);
+  }
+  async handleConn(conn) {
+    try {
+      const httpConn = Deno.serveHttp(conn);
+      for await (const requestEvent of httpConn) {
+        let resp;
+        const promise = new Promise((ok) => resp = ok);
+        const rw = requestEvent.respondWith(promise);
+        const _rev = requestEvent;
+        _rev.respondWith = resp;
+        this.handle(_rev);
+        await rw;
+      }
+    } catch (_e) {
+    }
+  }
+  async withPromise(handler, rev, next, isDepError) {
+    try {
+      const ret = await handler;
+      if (!ret) {
+        return;
+      }
+      return rev.response.send(ret);
+    } catch (err) {
+      if (isDepError) {
+        return this._onError(err, rev, next);
+      }
+      return next(err);
+    }
+  }
 };
-_parseQuery = new WeakMap();
-_multipartParseQuery = new WeakMap();
-_bodyLimit = new WeakMap();
-_env = new WeakMap();
-_onError = new WeakMap();
-_on404 = new WeakMap();
-_addRoutes = new WeakMap();
-_handleConn = new WeakMap();
-_findUrl = new WeakMap();
-_withPromise = new WeakMap();
-_parseUrl = new WeakMap();
 
 // src/request_event.ts
 var RequestEvent = class {
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  BadGatewayError,
-  BadRequestError,
-  ConflictError,
-  ExpectationFailedError,
-  FailedDependencyError,
-  ForbiddenError,
-  GatewayTimeoutError,
-  GoneError,
-  HTTPVersionNotSupportedError,
+  HttpError,
   HttpResponse,
-  InsufficientStorageError,
-  InternalServerError,
   JsonResponse,
-  LengthRequiredError,
-  LockedError,
-  LoopDetectedError,
-  MethodNotAllowedError,
-  MisdirectedRequestError,
   NHttp,
-  NHttpError,
-  NetworkAuthenticationRequiredError,
-  NotAcceptableError,
-  NotExtendedError,
-  NotFoundError,
-  NotImplementedError,
-  PaymentRequiredError,
-  PreconditionFailedError,
-  PreconditionRequiredError,
-  ProxyAuthRequiredError,
-  RequestEntityTooLargeError,
   RequestEvent,
-  RequestHeaderFieldsTooLargeError,
-  RequestTimeoutError,
-  RequestURITooLongError,
-  RequestedRangeNotSatisfiableError,
   Router,
-  ServiceUnavailableError,
-  TeapotError,
-  TooEarlyError,
-  TooManyRequestsError,
-  UnauthorizedError,
-  UnavailableForLegalReasonsError,
-  UnprocessableEntityError,
-  UnsupportedMediaTypeError,
-  UpgradeRequiredError,
-  VariantAlsoNegotiatesError,
   getError,
   multipart,
   wrapMiddleware,

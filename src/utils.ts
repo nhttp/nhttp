@@ -47,19 +47,15 @@ export function toPathx(path: string, isAny: boolean) {
   let wild = false;
   path = path
     .replace(/\/$/, "")
-    .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3");
-  if (/\*|\./.test(path)) {
-    path = path
-      .replace(/(\/?)\*/g, (_, p) => {
-        wild = true;
-        return `(${p}.*)?`;
-      })
-      .replace(/\.(?=[\w(])/, "\\.");
-  }
+    .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3")
+    .replace(/(\/?)\*/g, (_, p) => {
+      wild = true;
+      return `(${p}.*)?`;
+    })
+    .replace(/\.(?=[\w(])/, "\\.");
   const pathx = new RegExp(`^${path}/*$`);
   return { pathx, wild };
 }
-
 function needPatch(data: TObject | TObject[], keys: number[], value: string) {
   if (keys.length === 0) {
     return value;
