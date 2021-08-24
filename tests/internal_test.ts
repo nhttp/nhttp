@@ -1,7 +1,9 @@
-import Router from "../src/router.ts";
-import { Handler, TObject } from "../src/types.ts";
-import { assert, expect } from "./deps.ts";
-import { NHttp } from "./../src/nhttp.ts";
+import { assert, expect } from "./assert.ts";
+import { Handler, NHttp, Router } from "./../mod.ts";
+
+// deno-lint-ignore no-explicit-any
+type TObject = { [k: string]: any };
+
 const { test } = Deno;
 
 // dummy middleware
