@@ -159,7 +159,7 @@ https://nhttp.herudi.workers.dev
 - [x] Examples
 - [x] Doc
 - [x] Deno lint
-- [ ] Unit Test
+- [x] Unit Test
 
 ## License
 
