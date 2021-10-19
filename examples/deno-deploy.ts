@@ -6,4 +6,4 @@ app.get("/", () => {
   return "Hello deploy";
 });
 
-addEventListener("fetch", app.fetchEventHandler());
+app.listen(8080);
