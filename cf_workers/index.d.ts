@@ -42,7 +42,6 @@ export var NHttp: {
     multipartParseQuery: any;
     bodyLimit: any;
     env: any;
-    fetchEventHandler(): (event: any) => Promise<void>;
     onError(fn: any): any;
     _onError(err: any, rev: any, _: any): any;
     on404(fn: any): any;

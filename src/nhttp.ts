@@ -52,7 +52,6 @@ export class NHttp<
     this.multipartParseQuery = parseQuery;
     this.bodyLimit = bodyLimit;
     this.env = env || "development";
-    this.fetchEventHandler = this.fetchEventHandler.bind(this);
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
         rev.__parseQuery = parseQuery;
@@ -61,12 +60,12 @@ export class NHttp<
     }
   }
   /**
-  * global error handling.
-  * @example
-  * app.onError((error, rev) => {
-  *     return rev.response.send(error.message);
-  * })
-  */
+   * global error handling.
+   * @example
+   * app.onError((error, rev) => {
+   *     return rev.response.send(error.message);
+   * })
+   */
   onError(
     fn: (
       // deno-lint-ignore no-explicit-any
@@ -84,12 +83,12 @@ export class NHttp<
     return this;
   }
   /**
-  * global not found error handling.
-  * @example
-  * app.on404((rev) => {
-  *     return rev.response.send(`route ${rev.url} not found`);
-  * })
-  */
+   * global not found error handling.
+   * @example
+   * app.on404((rev) => {
+   *     return rev.response.send(`route ${rev.url} not found`);
+   * })
+   */
   on404(
     fn: (
       rev: Rev,
@@ -103,11 +102,11 @@ export class NHttp<
     return this;
   }
   /**
-  * add router or middlware.
-  * @example
-  * app.use(...middlewares);
-  * app.use('/api/v1', routers);
-  */
+   * add router or middlware.
+   * @example
+   * app.use(...middlewares);
+   * app.use('/api/v1', routers);
+   */
   use(...middlewares: Handlers<Rev>): this;
   use(prefix: string, ...middlewares: Handlers<Rev>): this;
   use(prefix: string, router: Router<Rev> | Router<Rev>[]): this;
@@ -143,13 +142,13 @@ export class NHttp<
       }
     } else if (str !== "") {
       this.pmidds = this.pmidds || {};
-      this.pmidds[str] = ([
+      this.pmidds[str] = [
         ((rev, next) => {
           rev.url = rev.url.substring(str.length) || "/";
           rev.path = rev.path.substring(str.length) || "/";
           return next();
         }) as Handler,
-      ]).concat(findFns(args) as Handler[]);
+      ].concat(findFns(args) as Handler[]);
     } else {
       this.midds = this.midds.concat(findFns(args) as Handler[]);
     }
@@ -227,30 +226,12 @@ export class NHttp<
     );
   }
   /**
-  * fetchEventHandler idealy for deploy or cf_workers
-  * @example
-  * addEventListener("fetch", app.fetchEventHandler());
-  */
-  fetchEventHandler() {
-    return async (event: FetchEvent) => {
-      let resp: (res: Response) => void;
-      const promise = new Promise<Response>((ok) => (resp = ok));
-      const rw = (event as Rev).respondWith(promise);
-      const _rev = event as Rev;
-      _rev.respondWith = resp! as (
-        r: Response | Promise<Response>,
-      ) => Promise<void>;
-      this.handle(_rev);
-      await rw;
-    };
-  }
-  /**
-  * handleEvent idealy for deploy or cf_workers
-  * @example
-  * addEventListener("fetch", (event) => {
-  *   event.respondWith(app.handleEvent(event))
-  * });
-  */
+   * handleEvent idealy for or cf_workers
+   * @example
+   * addEventListener("fetch", (event) => {
+   *   event.respondWith(app.handleEvent(event))
+   * });
+   */
   handleEvent(event: FetchEvent) {
     return this.handle(event, true);
   }
@@ -346,6 +327,7 @@ export class NHttp<
         const promise = new Promise<Response>((ok) => (resp = ok));
         const rw = requestEvent.respondWith(promise);
         const _rev = requestEvent as Rev;
+        _rev.conn = conn;
         _rev.respondWith = resp! as (
           r: Response | Promise<Response>,
         ) => Promise<void>;

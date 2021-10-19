@@ -5,7 +5,7 @@
   "unstable": false,
   "description": "Fast native http framework for Deno.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "files": [
     "./mod.ts",
     "./src/error.ts",

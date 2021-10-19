@@ -12,14 +12,15 @@ export class RequestEvent {
   originalUrl!: string;
   params!: TObject;
   path!: string;
+  conn!: Deno.Conn;
   query!: TObject;
   search!: string | null;
   /**
-  * get cookies from request
-  * @example
-  * const object = rev.getCookies();
-  * const objectWithDecode = rev.getCookies(true);
-  */
+   * get cookies from request
+   * @example
+   * const object = rev.getCookies();
+   * const objectWithDecode = rev.getCookies(true);
+   */
   getCookies!: (decode?: boolean) => Record<string, string>;
   // deno-lint-ignore no-explicit-any
   [k: string]: any

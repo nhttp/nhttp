@@ -9,11 +9,11 @@ function base(url: string) {
 
 type TRouter = { base?: string };
 /**
-   * Router
-   * @example
-   * const router = new Router();
-   * const router = new Router({ base: '/items' });
-   */
+ * Router
+ * @example
+ * const router = new Router();
+ * const router = new Router({ base: '/items' });
+ */
 export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {

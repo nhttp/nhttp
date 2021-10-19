@@ -768,7 +768,6 @@ var NHttp = class extends Router {
     this.multipartParseQuery = parseQuery2;
     this.bodyLimit = bodyLimit;
     this.env = env || "development";
-    this.fetchEventHandler = this.fetchEventHandler.bind(this);
     if (parseQuery2) {
       this.use((rev, next) => {
         rev.__parseQuery = parseQuery2;
@@ -895,17 +894,6 @@ var NHttp = class extends Router {
       this.bodyLimit,
     );
   }
-  fetchEventHandler() {
-    return async (event) => {
-      let resp;
-      const promise = new Promise((ok) => resp = ok);
-      const rw = event.respondWith(promise);
-      const _rev = event;
-      _rev.respondWith = resp;
-      this.handle(_rev);
-      await rw;
-    };
-  }
   handleEvent(event) {
     return this.handle(event, true);
   }
@@ -971,6 +959,7 @@ var NHttp = class extends Router {
         const promise = new Promise((ok) => resp = ok);
         const rw = requestEvent.respondWith(promise);
         const _rev = requestEvent;
+        _rev.conn = conn;
         _rev.respondWith = resp;
         this.handle(_rev);
         await rw;

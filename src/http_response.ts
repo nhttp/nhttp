@@ -5,73 +5,73 @@ const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
 
 export class HttpResponse {
   /**
-  * set header or get header
-  * @example
-  * // set headers
-  * response.header("content-type", "text/css");
-  * response.header({"content-type": "text/css"});
-  * // get headers
-  * response.header("content-type");
-  * // get all headers
-  * response.header();
-  * // delete headers
-  * response.header().delete("content-type");
-  */
+   * set header or get header
+   * @example
+   * // set headers
+   * response.header("content-type", "text/css");
+   * response.header({"content-type": "text/css"});
+   * // get headers
+   * response.header("content-type");
+   * // get all headers
+   * response.header();
+   * // delete headers
+   * response.header().delete("content-type");
+   */
   header!: (
     key?: TObject | string,
     value?: string | number | string[] | number[],
   ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
   /**
-  * set status or get status
-  * @example
-  * // set status
-  * response.status(200);
-  * // get status
-  * response.status();
-  */
+   * set status or get status
+   * @example
+   * // set status
+   * response.status(200);
+   * // get status
+   * response.status();
+   */
   status!: (code?: number) => HttpResponse | (HttpResponse & number);
   /**
-  * shorthand for content-type headers
-  * @example
-  * response.type("text/html");
-  */
+   * shorthand for content-type headers
+   * @example
+   * response.type("text/html");
+   */
   type!: (contentType: string) => HttpResponse;
   /**
-  * send response body
-  * @example
-  * return response.send("hello");
-  */
+   * send response body
+   * @example
+   * return response.send("hello");
+   */
   send!: (body?: BodyInit | TObject | null) => Promise<void> | Response;
   /**
-  * shorthand for send json body
-  * @example
-  * return response.json({ name: "john" });
-  */
+   * shorthand for send json body
+   * @example
+   * return response.json({ name: "john" });
+   */
   json!: (body: TObject | null) => Promise<void> | Response;
   /**
-  * redirect url
-  * @example
-  * return response.redirect("/home");
-  * return response.redirect("/home", 301);
-  */
+   * redirect url
+   * @example
+   * return response.redirect("/home");
+   * return response.redirect("/home", 301);
+   */
   redirect!: (url: string, status?: number) => Response | Promise<void>;
   /**
-  * cookie
-  * @example
-  * response.cookie("key", "value" , {
-  *    httpOnly: true
-  * });
-  */
+   * cookie
+   * @example
+   * response.cookie("key", "value" , {
+   *    httpOnly: true
+   * });
+   */
   cookie!: (
     name: string,
     value: string | string[] | number | number[] | TObject | undefined,
     options?: Cookie,
   ) => HttpResponse;
   /**
-  * clear cookie
-  * @example
-  * response.clearCookie("name");
-  */
+   * clear cookie
+   * @example
+   * response.clearCookie("name");
+   */
   clearCookie!: (name: string, options?: Cookie) => void;
   // deno-lint-ignore no-explicit-any
   [k: string]: any
