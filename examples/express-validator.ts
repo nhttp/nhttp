@@ -1,9 +1,4 @@
-import {
-  Handler,
-  NHttp,
-  HttpError,
-  wrapMiddleware,
-} from "../mod.ts";
+import { Handler, HttpError, NHttp, wrapMiddleware } from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const validator: Handler[] = [
