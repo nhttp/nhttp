@@ -1,7 +1,7 @@
 import {
   Handler,
   NHttp,
-  UnprocessableEntityError,
+  HttpError,
   wrapMiddleware,
 } from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
@@ -15,7 +15,7 @@ const validator: Handler[] = [
   (rev, next) => {
     const errors = validationResult(rev);
     if (!errors.isEmpty()) {
-      throw new UnprocessableEntityError(errors.array());
+      throw new HttpError(422, errors.array());
     }
     return next();
   },
