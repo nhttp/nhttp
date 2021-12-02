@@ -1,4 +1,4 @@
-import { Handler, NHttp, UnauthorizedError } from "../mod.ts";
+import { Handler, HttpError, NHttp } from "../mod.ts";
 
 // username: admin
 // password: admin
@@ -25,7 +25,7 @@ const authenticate: Handler = (rev, next) => {
       return next();
     }
     rev.response.header("WWW-Authenticate", "Basic");
-    return next(new UnauthorizedError("Unauthorized Error"));
+    return next(new HttpError(401, "Unauthorized Error"));
   } else {
     rev.locals = { user: cookie.session };
   }
