@@ -112,13 +112,12 @@ var Router = class {
     let arr = this.route[method] || [];
     let match;
     if (this.route["ANY"]) {
-      arr = arr.concat(this.route["ANY"]);
+      arr = this.route["ANY"].concat(arr);
     }
     const len = arr.length;
     while (i < len) {
       obj = arr[i];
       if (obj.pathx && obj.pathx.test(url)) {
-        url = unescape(url);
         match = obj.pathx.exec(url);
         fns = obj.fns;
         if (match.groups) {
@@ -220,7 +219,7 @@ function needPatch(data, keys, value) {
 }
 function myParse(arr) {
   const obj = arr.reduce((red, [field, value]) => {
-    if (red.hasOwnProperty(field)) {
+    if (red[field]) {
       if (Array.isArray(red[field])) {
         red[field] = [...red[field], value];
       } else {
@@ -243,7 +242,7 @@ function parseQuery(query) {
     return {};
   }
   if (typeof query === "string") {
-    const data = new URLSearchParams("?" + query);
+    const data = new URLSearchParams(query);
     return myParse(Array.from(data.entries()));
   }
   return myParse(Array.from(query.entries()));

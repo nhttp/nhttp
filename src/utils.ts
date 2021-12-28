@@ -78,24 +78,23 @@ function needPatch(data: TObject | TObject[], keys: number[], value: string) {
   return data;
 }
 
-// deno-lint-ignore no-explicit-any
-export function myParse(arr: any[]) {
-  // deno-lint-ignore no-explicit-any
-  const obj = arr.reduce((red: any, [field, value]: any) => {
-    if (red.hasOwnProperty(field)) {
+export function myParse(arr: [string, string | TObject][]) {
+  const obj = arr.reduce((red: TObject, [field, value]) => {
+    if (red[field]) {
       if (Array.isArray(red[field])) {
         red[field] = [...red[field], value];
       } else {
         red[field] = [red[field], value];
       }
     } else {
-      let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      // deno-lint-ignore no-explicit-any
+      let [_, prefix, keys]: any = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
       if (keys) {
         keys = Array.from(
           keys.matchAll(/\[([^\]]*)\]/g),
           (m: Array<number>) => m[1],
         );
-        value = needPatch(red[prefix], keys, value);
+        value = needPatch(red[prefix], keys, value as string);
       }
       red[prefix] = value;
     }
@@ -107,7 +106,7 @@ export function myParse(arr: any[]) {
 export function parseQuery(query: unknown | string) {
   if (query === null) return {};
   if (typeof query === "string") {
-    const data = new URLSearchParams("?" + query);
+    const data = new URLSearchParams(query);
     return myParse(Array.from(data.entries()));
   }
   return myParse(Array.from((query as FormData).entries()));

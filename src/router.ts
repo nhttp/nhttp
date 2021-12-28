@@ -107,12 +107,11 @@ export default class Router<
     let i = 0, obj: TObject = {};
     let arr = this.route[method] || [];
     let match: TObject;
-    if (this.route["ANY"]) arr = arr.concat(this.route["ANY"]);
+    if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
     const len = arr.length;
     while (i < len) {
       obj = arr[i];
       if (obj.pathx && obj.pathx.test(url)) {
-        url = unescape(url);
         match = obj.pathx.exec(url);
         fns = obj.fns;
         if (match.groups) params = match.groups || {};
