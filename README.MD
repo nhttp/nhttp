@@ -21,7 +21,7 @@ Fast http framework for [Deno](https://deno.land/),
 - HTTP/2 support.
 - Middleware support.
 - Router support.
-- Includes body parser (jsonBody, urlencodedBody, rawBody, multipartBody).
+- Includes body parser (json, urlencoded, raw, multipart).
 - Return directly on handlers.
 - No third party modules and no std/lib by default.
 - Easy deploy to [Deno Deploy](https://deno.com/deploy) and
@@ -33,7 +33,7 @@ Fast http framework for [Deno](https://deno.land/),
 
 Here the simple benchmark.
 
-`autocannon -c 100 http://localhost:3000/hello`
+`autocannon -c 100 http://localhost:8080/hello`
 
 | Name     | Req/sec | Throughput |
 | -------- | ------- | ---------- |
@@ -68,14 +68,21 @@ import { NHttp } from "https://deno.land/x/nhttp@1.1.2/mod.ts";
 
 const app = new NHttp();
 
-app.get("/", ({ response }) => {
-  return response.send("Hello");
+app.get("/", (rev) => {
+  return "Hello World";
+  // return { name: "john" };
+  // return new Response("Hello World");
+  // return rev.response.send("Hello World");
 });
 
-app.listen(3000, () => {
-  console.log("> Running on port 3000");
+app.listen(8080, () => {
+  console.log("> Running on port 8080");
 });
 ```
+
+METHOD => `get | post | put | patch | delete | any | head | options`.
+
+app[METHOD](path: string, ...handlers)
 
 ## Run
 
@@ -98,7 +105,7 @@ new NHttp()
   .get("/", ({ foo }) => {
     return foo;
   })
-  .listen(3000);
+  .listen(8080);
 ```
 
 ## Router Example
@@ -127,10 +134,10 @@ item.delete("/item/:id", ...handlers);
 new NHttp()
   // register router
   .use("/api/v1", [user, item])
-  .listen(3000);
+  .listen(8080);
 ```
 
-now, you can access with http://localhost:3000/api/v1/user
+now, you can access with http://localhost:8080/api/v1/user
 
 ## Full Documentation NHttp
 
