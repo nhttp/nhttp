@@ -599,6 +599,9 @@ function response(res, respondWith, opts) {
       return this;
     }
     if (typeof key === "object") {
+      if (key instanceof Headers) {
+        key = Object.fromEntries(key.entries());
+      }
       for (const k in key)
         opts.headers[k] = key[k];
       return this;
