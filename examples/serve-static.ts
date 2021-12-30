@@ -1,5 +1,5 @@
 import { NHttp } from "../mod.ts";
-import staticFiles from "https://deno.land/x/static_files@1.1.2/mod.ts";
+import staticFiles from "https://deno.land/x/static_files@1.1.4/mod.ts";
 
 const app = new NHttp();
 

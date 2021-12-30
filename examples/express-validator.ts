@@ -1,8 +1,8 @@
-import { Handler, HttpError, NHttp, wrapMiddleware } from "../mod.ts";
+import { expressMiddleware, Handler, HttpError, NHttp } from "../mod.ts";
 import { body, validationResult } from "https://esm.sh/express-validator";
 
 const validator: Handler[] = [
-  wrapMiddleware([
+  expressMiddleware([
     body("username").isString(),
     body("password").isLength({ min: 6 }),
     body("email").isEmail(),

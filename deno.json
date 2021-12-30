@@ -1,0 +1,12 @@
+{
+  "lint": {
+    "files": {
+      "exclude": ["mod.js", "dev.ts", "cf_workers/"]
+    }
+  },
+  "fmt": {
+    "files": {
+      "exclude": ["mod.js", "dev.ts", "cf_workers/"]
+    }
+  }
+}

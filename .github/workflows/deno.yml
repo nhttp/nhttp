@@ -21,14 +21,14 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.13.1
+          deno-version: 1.17.0
 
       - name: Verify formatting
         if: matrix.os != 'windows-latest'
-        run: deno fmt --check
+        run: deno fmt --config deno.json
 
       - name: Run linter
-        run: deno lint
+        run: deno lint --config deno.json
 
       - name: Run Test
         run: deno test tests

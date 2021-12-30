@@ -2,6 +2,7 @@ import { Cookie, TObject } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
+const encoder = new TextEncoder();
 
 export class HttpResponse {
   /**
@@ -19,7 +20,7 @@ export class HttpResponse {
    */
   header!: (
     key?: TObject | string,
-    value?: string | number | string[] | number[],
+    value?: string,
   ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
   /**
    * set status or get status
@@ -78,10 +79,13 @@ export class HttpResponse {
 }
 
 export class JsonResponse extends Response {
-  constructor(json: TObject | null, opts: ResponseInit = {}) {
-    opts.headers = (opts.headers || new Headers()) as Headers;
-    opts.headers.set("content-type", JSON_TYPE_CHARSET);
-    super(JSON.stringify(json), opts);
+  constructor(body: TObject | null, resInit: ResponseInit = {}) {
+    if (resInit.headers) {
+      if (resInit.headers instanceof Headers) {
+        resInit.headers.set("content-type", JSON_TYPE_CHARSET);
+      } else (resInit.headers as TObject)["content-type"] = JSON_TYPE_CHARSET;
+    } else resInit.headers = { "content-type": JSON_TYPE_CHARSET };
+    super(JSON.stringify(body), resInit);
   }
 }
 
@@ -91,25 +95,22 @@ export function response(
   opts: ResponseInit,
 ) {
   res.header = function (key, value) {
-    opts.headers = (opts.headers || new Headers()) as Headers;
-    if (typeof key === "string" && typeof value === "string") {
-      opts.headers.set(key as string, value);
+    if (opts.headers) {
+      if (opts.headers instanceof Headers) {
+        opts.headers = Object.fromEntries(opts.headers.entries());
+      }
+    }
+    opts.headers = opts.headers || {} as TObject;
+    if (typeof key === "string") {
+      if (!value) return opts.headers[key] as HttpResponse & string;
+      opts.headers[key] = value;
       return this;
     }
     if (typeof key === "object") {
-      if (key instanceof Headers) {
-        opts.headers = key;
-      } else {
-        for (const k in key) {
-          opts.headers.set(k, key[k] as string);
-        }
-      }
+      for (const k in key) opts.headers[k] = key[k];
       return this;
     }
-    if (typeof key === "string") {
-      return opts.headers.get(key) as HttpResponse & string;
-    }
-    return opts.headers as HttpResponse & Headers;
+    return (opts.headers = new Headers(opts.headers)) as HttpResponse & Headers;
   };
   res.status = function (code) {
     if (code) {
@@ -123,7 +124,9 @@ export function response(
     return this;
   };
   res.send = function (body) {
-    if (typeof body === "string") return respondWith(new Response(body, opts));
+    if (typeof body === "string") {
+      return respondWith(new Response(encoder.encode(body), opts));
+    }
     if (typeof body === "object") {
       if (body instanceof Response) {
         return respondWith(body);
@@ -137,9 +140,7 @@ export function response(
       ) {
         return respondWith(new Response(body as BodyInit, opts));
       }
-      body = JSON.stringify(body);
-      opts.headers = (opts.headers || new Headers()) as Headers;
-      opts.headers.set("Content-Type", JSON_TYPE_CHARSET);
+      return respondWith(new JsonResponse(body, opts));
     }
     return respondWith(new Response(body, opts));
   };

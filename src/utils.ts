@@ -119,13 +119,13 @@ export function parseQuery(query: unknown | string) {
  * import cors from "https://esm.sh/cors?no-check";
  * import helmet from "https://esm.sh/helmet?no-check";
  * ...
- * app.use(wrapMiddleware([
+ * app.use(expressMiddleware([
  *    cors(),
  *    helmet(),
  * ]));
  */
 // deno-lint-ignore no-explicit-any
-export function wrapMiddleware(...middlewares: any): any {
+export function expressMiddleware(...middlewares: any): any {
   const midds = middlewares;
   const opts = midds.length && midds[midds.length - 1];
   const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
