@@ -3,13 +3,13 @@
 ## NHttp
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.1.4%2Fmod.ts)](https://deno.land/x/nhttp)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.1.5%2Fmod.ts)](https://deno.land/x/nhttp)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
 [![nest.land](https://nest.land/badge.svg)](https://nest.land/package/nhttp)
 
-Fast http framework for [Deno](https://deno.land/),
+An Simple http framework for [Deno](https://deno.land/),
 [Deno Deploy](https://deno.com/deploy) and
 [Cloudflare Workers](https://workers.cloudflare.com).
 
@@ -18,6 +18,7 @@ Fast http framework for [Deno](https://deno.land/),
 
 ## Features
 
+- Fast.
 - HTTP/2 support.
 - Middleware support.
 - Router support.
@@ -52,27 +53,29 @@ https://nhttp.deno.dev/docs/usage/cloudflare-workers
 ### deno.land
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.4/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@1.1.4/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@1.1.5/mod.ts";
 ```
 
 ## Usage
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.4/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 
 const app = new NHttp();
 
 app.get("/", (rev) => {
-  return "Hello World";
+  return rev.response.send("Hello World");
+
+  // or
+  // return "Hello World";
   // return { name: "john" };
   // return new Response("Hello World");
-  // return rev.response.send("Hello World");
 });
 
 app.listen(8080, () => {
@@ -82,7 +85,9 @@ app.listen(8080, () => {
 
 METHOD => `get | post | put | patch | delete | any | head | options`.
 
-app[METHOD](path: string, ...handlers)
+app[METHOD](path: string, (rev: RequestEvent) => { // code });
+
+// or app[METHOD](path: string, ...handlers);
 
 ## Run
 
@@ -90,12 +95,26 @@ app[METHOD](path: string, ...handlers)
 deno run --allow-net yourfile.ts
 ```
 
+## Custom Server
+
+```ts
+import { serve } from "https://deno.land/std@0.119.0/http/server.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
+const app = new NHttp();
+app.get("/", ({ response }) => {
+  return response.send("Hello Custom");
+});
+
+serve((request, conn) => app.handleEvent({ request, conn }));
+```
+
 ## Middleware Example
 
 `app.use(...handlers)` or `app.use([fn1, fn2])`
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.4/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 
 new NHttp()
   .use((rev, next) => {
@@ -113,23 +132,15 @@ new NHttp()
 `app.use(router | router[])` or `app.use(basePath, router | router[])`
 
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.4/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 
 //user router example with base
 const user = new Router({ base: "/user" }); // base optional
 user.get("/", ...handlers);
-user.get("/:id", ...handlers);
-user.post("/", ...handlers);
-user.put("/:id", ...handlers);
-user.delete("/:id", ...handlers);
 
 //item router example without base
 const item = new Router();
 item.get("/item", ...handlers);
-item.get("/item/:id", ...handlers);
-item.post("/item", ...handlers);
-item.put("/item/:id", ...handlers);
-item.delete("/item/:id", ...handlers);
 
 new NHttp()
   // register router
@@ -138,6 +149,46 @@ new NHttp()
 ```
 
 now, you can access with http://localhost:8080/api/v1/user
+
+## Usage With Class
+
+```ts
+import {
+  NHttp,
+  RequestEvent,
+  Router,
+} from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
+class UserRouter extends Router {
+  constructor() {
+    super({ base: "/user" });
+    this.get("/", this.findAll);
+    this.get("/:id", this.findById);
+  }
+
+  private findAll(rev: RequestEvent) {
+    return "Hello User";
+  }
+
+  private findById(rev: RequestEvent) {
+    return rev.params.id;
+  }
+}
+
+class Application extends NHttp {
+  constructor() {
+    super();
+    this.use("/api/v1", [
+      new UserRouter(),
+      // other router
+    ]);
+  }
+}
+
+new Application().listen(8080);
+```
+
+visit http://localhost:8080/api/v1/user
 
 ## Full Documentation NHttp
 

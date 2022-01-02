@@ -166,19 +166,20 @@ export class NHttp<
     return this;
   }
   handle(rev: Rev, isRw?: boolean) {
-    let i = 0, j = 0, k = -1, l = 0;
+    let i = 0, k = -1, l = 0, j = 0, len;
     const { method, url } = rev.request;
-    let path = "", query = null, search = null, len;
+    rev.search = null;
+    rev.query = {};
     while ((k = url.indexOf("/", k + 1)) != -1) {
       l += 1;
       if (l === 3) {
-        path = rev.url = url.substring(k);
+        rev.url = rev.path = url.substring(k);
         len = rev.url.length;
         while (j < len) {
           if (rev.url.charCodeAt(j) === 0x3f) {
-            path = rev.url.substring(0, j);
-            query = rev.url.substring(j + 1);
-            search = rev.url.substring(j);
+            rev.path = rev.url.substring(0, j);
+            rev.query = this.parseQuery(rev.url.substring(j + 1));
+            rev.search = rev.url.substring(j);
             break;
           }
           j++;
@@ -186,7 +187,7 @@ export class NHttp<
         break;
       }
     }
-    const { fns, params } = this.find(method, path, this._on404);
+    const { fns, params } = this.find(method, rev.path, this._on404);
     const next: NextFunction = (err?: Error) => {
       let ret;
       try {
@@ -206,9 +207,6 @@ export class NHttp<
       }
     };
     rev.params = params;
-    rev.path = path;
-    rev.query = this.parseQuery(query);
-    rev.search = search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
     if (isRw) rev.respondWith = (r) => r as Response;
     response(
@@ -216,7 +214,8 @@ export class NHttp<
       rev.respondWith,
       rev.responseInit = {},
     );
-    if (method == "GET" || method == "HEAD") return next();
+    if (method === "GET") return next();
+    if (method === "HEAD") return next();
     return withBody(
       rev,
       next,
@@ -226,7 +225,7 @@ export class NHttp<
     );
   }
   /**
-   * handleEvent idealy for or cf_workers
+   * handleEvent
    * @example
    * addEventListener("fetch", (event) => {
    *   event.respondWith(app.handleEvent(event))
@@ -322,16 +321,15 @@ export class NHttp<
   private async handleConn(conn: Deno.Conn) {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const requestEvent of httpConn) {
+      for await (const rev of httpConn) {
         let resp: (res: Response) => void;
         const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = requestEvent.respondWith(promise);
-        const _rev = requestEvent as Rev;
-        _rev.conn = conn;
-        _rev.respondWith = resp! as (
+        const rw = rev.respondWith(promise);
+        (rev as Rev).conn = conn;
+        rev.respondWith = resp! as (
           r: Response | Promise<Response>,
         ) => Promise<void>;
-        this.handle(_rev);
+        this.handle(rev as Rev);
         await rw;
       }
     } catch (_e) { /* noop */ }

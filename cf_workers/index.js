@@ -736,19 +736,20 @@ var NHttp = class extends Router {
     return this;
   }
   handle(rev, isRw) {
-    let i = 0, j = 0, k = -1, l = 0;
+    let i = 0, k = -1, l = 0, j = 0, len;
     const { method, url } = rev.request;
-    let path = "", query = null, search = null, len;
+    rev.search = null;
+    rev.query = {};
     while ((k = url.indexOf("/", k + 1)) != -1) {
       l += 1;
       if (l === 3) {
-        path = rev.url = url.substring(k);
+        rev.url = rev.path = url.substring(k);
         len = rev.url.length;
         while (j < len) {
           if (rev.url.charCodeAt(j) === 63) {
-            path = rev.url.substring(0, j);
-            query = rev.url.substring(j + 1);
-            search = rev.url.substring(j);
+            rev.path = rev.url.substring(0, j);
+            rev.query = this.parseQuery(rev.url.substring(j + 1));
+            rev.search = rev.url.substring(j);
             break;
           }
           j++;
@@ -756,7 +757,7 @@ var NHttp = class extends Router {
         break;
       }
     }
-    const { fns, params } = this.find(method, path, this._on404);
+    const { fns, params } = this.find(method, rev.path, this._on404);
     const next = (err) => {
       let ret;
       try {
@@ -772,14 +773,13 @@ var NHttp = class extends Router {
       }
     };
     rev.params = params;
-    rev.path = path;
-    rev.query = this.parseQuery(query);
-    rev.search = search;
     rev.getCookies = (n) => getReqCookies(rev.request, n);
     if (isRw)
       rev.respondWith = (r) => r;
     response(rev.response = {}, rev.respondWith, rev.responseInit = {});
-    if (method == "GET" || method == "HEAD")
+    if (method === "GET")
+      return next();
+    if (method === "HEAD")
       return next();
     return withBody(rev, next, this.parseQuery, this.multipartParseQuery, this.bodyLimit);
   }
@@ -831,14 +831,13 @@ var NHttp = class extends Router {
   async handleConn(conn) {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const requestEvent of httpConn) {
+      for await (const rev of httpConn) {
         let resp;
         const promise = new Promise((ok) => resp = ok);
-        const rw = requestEvent.respondWith(promise);
-        const _rev = requestEvent;
-        _rev.conn = conn;
-        _rev.respondWith = resp;
-        this.handle(_rev);
+        const rw = rev.respondWith(promise);
+        rev.conn = conn;
+        rev.respondWith = resp;
+        this.handle(rev);
         await rw;
       }
     } catch (_e) {
