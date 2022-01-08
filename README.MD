@@ -30,21 +30,6 @@ An Simple http framework for [Deno](https://deno.land/),
 
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
-## Benchmark
-
-Here the simple benchmark.
-
-`autocannon -c 100 http://localhost:8080/hello`
-
-| Name     | Req/sec | Throughput |
-| -------- | ------- | ---------- |
-| Native   | 21433   | 2.5 MB     |
-| NHttp    | 21127   | 2.5 MB     |
-| std/http | 14569   | 626 KB     |
-
-> Note: maybe not relevant if compared with std/http or other Deno framework
-> using std/http. nhttp uses native deno http.
-
 for cloudflare workers visit =>
 https://nhttp.deno.dev/docs/usage/cloudflare-workers
 
@@ -150,38 +135,46 @@ new NHttp()
 
 now, you can access with http://localhost:8080/api/v1/user
 
-## Usage With Class
+## Usage With Controller
 
 ```ts
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
 import {
-  NHttp,
-  RequestEvent,
-  Router,
-} from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+  addControllers,
+  BaseController,
+  Controller,
+  Get,
+  Post,
+  Status,
+} from "https://deno.land/x/nhttp_controller@0.6.0/mod.ts";
 
-class UserRouter extends Router {
-  constructor() {
-    super({ base: "/user" });
-    this.get("/", this.findAll);
-    this.get("/:id", this.findById);
+@Controller("/user")
+class UserController extends BaseController {
+  @Get()
+  findAll() {
+    return { name: "john" };
   }
 
-  private findAll(rev: RequestEvent) {
-    return "Hello User";
+  @Get("/:id")
+  findById() {
+    const { params } = this.requestEvent;
+    return params;
   }
 
-  private findById(rev: RequestEvent) {
-    return rev.params.id;
+  @Status(201)
+  @Post()
+  save() {
+    const { body } = this.requestEvent;
+    return body;
   }
 }
 
 class Application extends NHttp {
   constructor() {
     super();
-    this.use("/api/v1", [
-      new UserRouter(),
-      // other router
-    ]);
+    const controllers = addControllers([UserController]);
+    this.use("/api/v1", controllers);
   }
 }
 
