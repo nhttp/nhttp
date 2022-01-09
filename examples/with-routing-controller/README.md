@@ -1,7 +1,7 @@
 ## Run
 
 ```bash
-denon run --allow-net --unstable server.ts
+denon run --allow-net server.ts
 ```
 
 ## Api

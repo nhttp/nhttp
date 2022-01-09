@@ -13,7 +13,7 @@ class UserController extends BaseController {
 
   @Get("/:id")
   findById() {
-    const { params } = this.rev;
+    const { params } = this.requestEvent;
     return this.service.findById(params.id);
   }
 }
