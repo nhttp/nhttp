@@ -1,6 +1,6 @@
 import { RequestEvent } from "./request_event.ts";
 import { Handler, Handlers, TObject } from "./types.ts";
-import { decURI } from "./utils.ts";
+import { concatRegexp, decURI } from "./utils.ts";
 
 function base(url: string) {
   const iof = url.indexOf("/", 1);
@@ -94,8 +94,13 @@ export default class Router<
    * app.on("GET", "/", ...handlers);
    */
   on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>) {
-    if (path === "/" && this.base !== "") path = "";
-    this.c_routes.push({ method, path: this.base + path, fns: handlers });
+    let _path: string | RegExp;
+    if (path instanceof RegExp) _path = concatRegexp(this.base, path);
+    else {
+      if (path === "/" && this.base !== "") path = "";
+      _path = this.base + path;
+    }
+    this.c_routes.push({ method, path: _path, fns: handlers });
     return this;
   }
   find(method: string, url: string, fn404: Handler<Rev>) {

@@ -9,6 +9,7 @@ import {
 } from "./types.ts";
 import Router from "./router.ts";
 import {
+  concatRegexp,
   findFns,
   getReqCookies,
   parseQuery as parseQueryOri,
@@ -137,7 +138,14 @@ export class NHttp<
       for (; i < last.length; i++) {
         for (; j < last[i].c_routes.length; j++) {
           const { method, path, fns } = last[i].c_routes[j];
-          this.on(method, str + path, ...wares.concat(fns));
+          let _path: string | RegExp;
+          if (path instanceof RegExp) _path = concatRegexp(str, path);
+          else {
+            let mPath = path;
+            if (mPath === "/" && str !== "") mPath = "";
+            _path = str + mPath;
+          }
+          this.on(method, _path, ...wares.concat(fns));
         }
       }
     } else if (str !== "") {
@@ -154,7 +162,7 @@ export class NHttp<
     }
     return this;
   }
-  on(method: string, path: string, ...handlers: Handlers<Rev>): this {
+  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>): this {
     const fns = findFns(handlers);
     const { wild, pathx } = toPathx(path, method === "ANY");
     if (pathx) {

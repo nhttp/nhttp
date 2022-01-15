@@ -152,6 +152,14 @@ function parseQuery(query) {
   }
   return myParse(Array.from(query.entries()));
 }
+function concatRegexp(prefix, path) {
+  if (prefix === "")
+    return path;
+  prefix = new RegExp(prefix);
+  let flags = prefix.flags + path.flags;
+  flags = Array.from(new Set(flags.split(""))).join();
+  return new RegExp(prefix.source + path.source, flags);
+}
 function expressMiddleware(...middlewares) {
   const midds = middlewares;
   const opts = midds.length && midds[midds.length - 1];
@@ -314,9 +322,15 @@ var Router = class {
     return { params: {}, fns };
   }
   on(method, path, ...handlers) {
-    if (path === "/" && this.base !== "")
-      path = "";
-    this.c_routes.push({ method, path: this.base + path, fns: handlers });
+    let _path;
+    if (path instanceof RegExp)
+      _path = concatRegexp(this.base, path);
+    else {
+      if (path === "/" && this.base !== "")
+        path = "";
+      _path = this.base + path;
+    }
+    this.c_routes.push({ method, path: _path, fns: handlers });
     return this;
   }
   find(method, url, fn404) {
@@ -724,7 +738,17 @@ var NHttp = class extends Router {
       for (; i < last.length; i++) {
         for (; j < last[i].c_routes.length; j++) {
           const { method, path, fns } = last[i].c_routes[j];
-          this.on(method, str + path, ...wares.concat(fns));
+          let _path;
+          if (path instanceof RegExp)
+            _path = concatRegexp(str, path);
+          else {
+            let mPath = path;
+            if (mPath === "/" && str !== "")
+              mPath = "";
+            _path = str + mPath;
+          }
+          ;
+          this.on(method, _path, ...wares.concat(fns));
         }
       }
     } else if (str !== "") {

@@ -129,6 +129,14 @@ export function parseQuery(query: unknown | string) {
   return myParse(Array.from((query as FormData).entries()));
 }
 
+export function concatRegexp(prefix: string | RegExp, path: RegExp) {
+  if (prefix === "") return path;
+  prefix = new RegExp(prefix);
+  let flags = prefix.flags + path.flags;
+  flags = Array.from(new Set(flags.split(""))).join();
+  return new RegExp(prefix.source + path.source, flags);
+}
+
 /**
  * Wrapper middleware for framework express like (req, res, next)
  * @example
