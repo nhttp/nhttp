@@ -147,7 +147,7 @@ app.post("/", ({ response }) => {
   response.status(201);
 
   // get status
-  const status = response.status(201);
+  const status = response.status();
   console.log("The current status is " + status);
 
   return "Hello status 201";
@@ -175,6 +175,8 @@ app.listen(8080);
 ## Upload
 
 Simple multipart upload.
+
+> requires --allow-read --allow-write
 
 ```ts
 import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
