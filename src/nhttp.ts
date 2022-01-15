@@ -246,7 +246,6 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-
   async listen(
     opts:
       | number

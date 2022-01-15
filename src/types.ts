@@ -50,4 +50,4 @@ export type Cookie = {
 };
 
 // deno-lint-ignore no-explicit-any
-export type TQueryFunc = (data: string | unknown, ...args: any) => TObject;
+export type TQueryFunc = any;

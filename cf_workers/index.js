@@ -37,93 +37,17 @@ __export(exports, {
   multipart: () => multipart
 });
 
-// src/router.ts
-function base(url) {
-  const iof = url.indexOf("/", 1);
-  if (iof !== -1)
-    return url.substring(0, iof);
-  return url;
-}
-var Router = class {
-  constructor({ base: base2 = "" } = {}) {
-    this.route = {};
-    this.c_routes = [];
-    this.midds = [];
-    this.base = "";
-    this.base = base2;
-    if (this.base === "/")
-      this.base = "";
-    this.get = this.on.bind(this, "GET");
-    this.post = this.on.bind(this, "POST");
-    this.put = this.on.bind(this, "PUT");
-    this.patch = this.on.bind(this, "PATCH");
-    this.delete = this.on.bind(this, "DELETE");
-    this.any = this.on.bind(this, "ANY");
-    this.head = this.on.bind(this, "HEAD");
-    this.options = this.on.bind(this, "OPTIONS");
-    this.trace = this.on.bind(this, "TRACE");
-    this.connect = this.on.bind(this, "CONNECT");
-  }
-  single(mtd, url) {
-    let { fns, m } = this.route[mtd + url];
-    if (m)
-      return { params: {}, fns };
-    fns = this.midds.concat(fns);
-    this.route[mtd + url] = { m: true, fns };
-    return { params: {}, fns };
-  }
-  on(method, path, ...handlers) {
-    if (path === "/" && this.base !== "")
-      path = "";
-    this.c_routes.push({ method, path: this.base + path, fns: handlers });
-    return this;
-  }
-  find(method, url, fn404) {
-    if (this.route[method + url]) {
-      return this.single(method, url);
-    }
-    if (url !== "/" && url[url.length - 1] === "/") {
-      const _url = url.slice(0, -1);
-      if (this.route[method + _url]) {
-        return this.single(method, _url);
-      }
-    }
-    let fns = [], params = {};
-    let i = 0, obj = {};
-    let arr = this.route[method] || [];
-    let match;
-    if (this.route["ANY"])
-      arr = this.route["ANY"].concat(arr);
-    const len = arr.length;
-    while (i < len) {
-      obj = arr[i];
-      if (obj.pathx && obj.pathx.test(url)) {
-        match = obj.pathx.exec(url);
-        fns = obj.fns;
-        if (match.groups)
-          params = match.groups || {};
-        if (obj.wild && typeof match[1] === "string") {
-          params["wild"] = match[1].split("/");
-          params["wild"].shift();
-        }
-        break;
-      }
-      i++;
-    }
-    if (this.pmidds) {
-      const p = base(url || "/");
-      if (this.pmidds[p])
-        fns = this.pmidds[p].concat(fns);
-    }
-    fns = this.midds.concat(fns, [fn404]);
-    return { params, fns };
-  }
-};
-
 // src/utils.ts
 var SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 var encoder = new TextEncoder();
 var decoder = new TextDecoder();
+var decURI = (str) => {
+  try {
+    return decodeURI(str);
+  } catch (_e) {
+    return str;
+  }
+};
 function findFns(arr) {
   let ret = [], i = 0;
   const len = arr.length;
@@ -158,6 +82,8 @@ function toBytes(arg) {
   return Math.floor(sizeList[unt] * val);
 }
 function toPathx(path, isAny) {
+  if (path instanceof RegExp)
+    return { pathx: path, wild: true };
   if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
     return {};
   }
@@ -214,8 +140,15 @@ function parseQuery(query) {
   if (query === null)
     return {};
   if (typeof query === "string") {
-    const data = new URLSearchParams(query);
-    return myParse(Array.from(data.entries()));
+    let i = 0;
+    const arr = query.split("&");
+    const data = [], len = arr.length;
+    while (i < len) {
+      const el = arr[i].split("=");
+      data.push([decURI(el[0]), decURI(el[1] || "")]);
+      i++;
+    }
+    return myParse(data);
   }
   return myParse(Array.from(query.entries()));
 }
@@ -344,6 +277,90 @@ function getReqCookies(req, decode, i = 0) {
   }
   return ret;
 }
+
+// src/router.ts
+function base(url) {
+  const iof = url.indexOf("/", 1);
+  if (iof !== -1)
+    return url.substring(0, iof);
+  return url;
+}
+var Router = class {
+  constructor({ base: base2 = "" } = {}) {
+    this.route = {};
+    this.c_routes = [];
+    this.midds = [];
+    this.base = "";
+    this.base = base2;
+    if (this.base === "/")
+      this.base = "";
+    this.get = this.on.bind(this, "GET");
+    this.post = this.on.bind(this, "POST");
+    this.put = this.on.bind(this, "PUT");
+    this.patch = this.on.bind(this, "PATCH");
+    this.delete = this.on.bind(this, "DELETE");
+    this.any = this.on.bind(this, "ANY");
+    this.head = this.on.bind(this, "HEAD");
+    this.options = this.on.bind(this, "OPTIONS");
+    this.trace = this.on.bind(this, "TRACE");
+    this.connect = this.on.bind(this, "CONNECT");
+  }
+  single(mtd, url) {
+    let { fns, m } = this.route[mtd + url];
+    if (m)
+      return { params: {}, fns };
+    fns = this.midds.concat(fns);
+    this.route[mtd + url] = { m: true, fns };
+    return { params: {}, fns };
+  }
+  on(method, path, ...handlers) {
+    if (path === "/" && this.base !== "")
+      path = "";
+    this.c_routes.push({ method, path: this.base + path, fns: handlers });
+    return this;
+  }
+  find(method, url, fn404) {
+    if (this.route[method + url]) {
+      return this.single(method, url);
+    }
+    if (url !== "/" && url[url.length - 1] === "/") {
+      const _url = url.slice(0, -1);
+      if (this.route[method + _url]) {
+        return this.single(method, _url);
+      }
+    }
+    let fns = [], params = {};
+    let i = 0, obj = {};
+    let arr = this.route[method] || [];
+    let match;
+    if (this.route["ANY"])
+      arr = this.route["ANY"].concat(arr);
+    const len = arr.length;
+    while (i < len) {
+      obj = arr[i];
+      if (obj.pathx && obj.pathx.test(url)) {
+        url = decURI(url);
+        match = obj.pathx.exec(url);
+        fns = obj.fns;
+        if (match.groups)
+          params = match.groups || {};
+        if (obj.wild && typeof match[1] === "string") {
+          params["wild"] = match[1].split("/");
+          params["wild"].shift();
+        }
+        break;
+      }
+      i++;
+    }
+    if (this.pmidds) {
+      const p = base(url || "/");
+      if (this.pmidds[p])
+        fns = this.pmidds[p].concat(fns);
+    }
+    fns = this.midds.concat(fns, [fn404]);
+    return { params, fns };
+  }
+};
 
 // src/error.ts
 var HttpError = class extends Error {

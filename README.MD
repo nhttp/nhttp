@@ -3,7 +3,7 @@
 ## NHttp
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
-[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.1.5%2Fmod.ts)](https://deno.land/x/nhttp)
+[![deno.land](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.1.6%2Fmod.ts)](https://deno.land/x/nhttp)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 ![deps badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
 ![cache badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts)
@@ -38,19 +38,19 @@ https://nhttp.deno.dev/docs/usage/cloudflare-workers
 ### deno.land
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import { NHttp } from "https://x.nest.land/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://x.nest.land/nhttp@1.1.6/mod.ts";
 ```
 
 ## Usage
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const app = new NHttp();
 
@@ -70,9 +70,9 @@ app.listen(8080, () => {
 
 METHOD => `get | post | put | patch | delete | any | head | options`.
 
-app[METHOD](path: string, (rev: RequestEvent) => { // code });
+app[METHOD](path: string | RegExp, (rev: RequestEvent) => { // code });
 
-// or app[METHOD](path: string, ...handlers);
+// or app[METHOD](path: string | RegExp, ...handlers);
 
 ## Run
 
@@ -80,13 +80,61 @@ app[METHOD](path: string, (rev: RequestEvent) => { // code });
 deno run --allow-net yourfile.ts
 ```
 
+## Route Paths
+
+```ts
+...
+
+// normal path
+app.get("/", () => {...});
+
+// with parameter
+app.get("/users/:userId/books/:bookId", (rev) => {
+  return rev.params;
+});
+
+// with query. /users?name=john&foo[bar]=baz
+app.get("/users", (rev) => {
+  return rev.query;
+});
+
+// with optional parameter. match for /books and /books/bookname 
+app.get("/books/:name?", (rev) => {
+  return rev.params;
+});
+
+// with extension. match for .png and .jpg only
+app.get("/image/:filename.(png|jpg)", (rev) => {
+  return rev.params;
+});
+
+// exact/wild. /users/123
+app.any("*", (rev) => {
+  return rev.params;
+  // => { wild: ["users", "123"] }
+});
+
+// RegExp. match for path includes hello.
+app.get(/hello/, (rev) => {
+  return rev.path;
+});
+
+// RegExp. match for path endsWith ball. ex: /dragonball and /football
+app.get(/.*ball$/, (rev) => {
+  return rev.path;
+});
+
+...
+```
+
 ## Custom Server
 
 ```ts
 import { serve } from "https://deno.land/std@0.119.0/http/server.ts";
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const app = new NHttp();
+
 app.get("/", ({ response }) => {
   return response.send("Hello Custom");
 });
@@ -99,7 +147,7 @@ serve((request, conn) => app.handleEvent({ request, conn }));
 `app.use(...handlers)` or `app.use([fn1, fn2])`
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const app = new NHttp();
 
@@ -115,12 +163,12 @@ app.get("/", (rev) => {
 app.listen(8080);
 ```
 
-## Header and status
+## Header
 
 Example cors in middleware
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const app = new NHttp();
 
@@ -141,7 +189,17 @@ app.get("/", () => {
   return "Hello world with cors";
 });
 
-// post using status 201
+app.listen(8080);
+```
+
+## Status Code
+
+```ts
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
+
+const app = new NHttp();
+
+// post with status 201
 app.post("/", ({ response }) => {
   // set status
   response.status(201);
@@ -150,7 +208,7 @@ app.post("/", ({ response }) => {
   const status = response.status();
   console.log("The current status is " + status);
 
-  return "Hello status 201";
+  return "Hello from status " + status;
 });
 
 app.listen(8080);
@@ -161,7 +219,7 @@ app.listen(8080);
 Support json, urlencoded, multipart, raw.
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const app = new NHttp();
 
@@ -179,7 +237,7 @@ Simple multipart upload.
 > requires --allow-read --allow-write
 
 ```ts
-import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 const upload = multipart.upload({
   // required field name
@@ -208,7 +266,7 @@ app.listen(8080);
 `app.use(router | router[])` or `app.use(basePath, router | router[])`
 
 ```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 //user router example with base
 const user = new Router({ base: "/user" }); // base optional
@@ -229,7 +287,7 @@ now, you can access with http://localhost:8080/api/v1/user
 ## Usage With Controller
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.6/mod.ts";
 
 import {
   addControllers,
@@ -238,7 +296,7 @@ import {
   Get,
   Post,
   Status,
-} from "https://deno.land/x/nhttp_controller@0.6.0/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.7.0/mod.ts";
 
 @Controller("/user")
 class UserController extends BaseController {

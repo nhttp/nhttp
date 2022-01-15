@@ -1,5 +1,6 @@
 import { RequestEvent } from "./request_event.ts";
 import { Handler, Handlers, TObject } from "./types.ts";
+import { decURI } from "./utils.ts";
 
 function base(url: string) {
   const iof = url.indexOf("/", 1);
@@ -8,6 +9,10 @@ function base(url: string) {
 }
 
 type TRouter = { base?: string };
+type MethodHandler<
+  Rev extends RequestEvent = RequestEvent,
+  T = TObject,
+> = (path: string | RegExp, ...handlers: Handlers<Rev>) => T;
 /**
  * Router
  * @example
@@ -26,41 +31,41 @@ export default class Router<
    * @example
    * app.get("/", ...handlers);
    */
-  get: (path: string, ...handlers: Handlers<Rev>) => this;
+  get: MethodHandler<Rev, this>;
   /**
    * method POST (app or router)
    * @example
    * app.post("/", ...handlers);
    */
-  post: (path: string, ...handlers: Handlers<Rev>) => this;
+  post: MethodHandler<Rev, this>;
   /**
    * method PUT (app or router)
    * @example
    * app.put("/", ...handlers);
    */
-  put: (path: string, ...handlers: Handlers<Rev>) => this;
+  put: MethodHandler<Rev, this>;
   /**
    * method PATCH (app or router)
    * @example
    * app.patch("/", ...handlers);
    */
-  patch: (path: string, ...handlers: Handlers<Rev>) => this;
+  patch: MethodHandler<Rev, this>;
   /**
    * method DELETE (app or router)
    * @example
    * app.delete("/", ...handlers);
    */
-  delete: (path: string, ...handlers: Handlers<Rev>) => this;
+  delete: MethodHandler<Rev, this>;
   /**
    * method ANY (allow all method directly) (app or router)
    * @example
    * app.any("/", ...handlers);
    */
-  any: (path: string, ...handlers: Handlers<Rev>) => this;
-  head: (path: string, ...handlers: Handlers<Rev>) => this;
-  options: (path: string, ...handlers: Handlers<Rev>) => this;
-  trace: (path: string, ...handlers: Handlers<Rev>) => this;
-  connect: (path: string, ...handlers: Handlers<Rev>) => this;
+  any: MethodHandler<Rev, this>;
+  head: MethodHandler<Rev, this>;
+  options: MethodHandler<Rev, this>;
+  trace: MethodHandler<Rev, this>;
+  connect: MethodHandler<Rev, this>;
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
@@ -88,7 +93,7 @@ export default class Router<
    * @example
    * app.on("GET", "/", ...handlers);
    */
-  on(method: string, path: string, ...handlers: Handlers<Rev>) {
+  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>) {
     if (path === "/" && this.base !== "") path = "";
     this.c_routes.push({ method, path: this.base + path, fns: handlers });
     return this;
@@ -112,6 +117,7 @@ export default class Router<
     while (i < len) {
       obj = arr[i];
       if (obj.pathx && obj.pathx.test(url)) {
+        url = decURI(url);
         match = obj.pathx.exec(url);
         fns = obj.fns;
         if (match.groups) params = match.groups || {};

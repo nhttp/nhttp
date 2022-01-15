@@ -5,7 +5,7 @@
   "unstable": false,
   "description": "An simple http framework for Deno, Deno Deploy and Cloudflare Workers.",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "files": [
     "deno.json",
     "./mod.js",

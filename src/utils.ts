@@ -7,6 +7,15 @@ const SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+type EArr = [string, string | TObject];
+
+export const decURI = (str: string) => {
+  try {
+    return decodeURI(str);
+  } catch (_e) {
+    return str;
+  }
+};
 
 export function findFns(arr: TObject[]): Array<unknown> {
   let ret: Array<unknown>[] = [], i = 0;
@@ -40,7 +49,8 @@ export function toBytes(arg: string | number) {
   return Math.floor(sizeList[unt] as number * val);
 }
 
-export function toPathx(path: string, isAny: boolean) {
+export function toPathx(path: string | RegExp, isAny: boolean) {
+  if (path instanceof RegExp) return { pathx: path, wild: true };
   if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
     return {};
   }
@@ -78,7 +88,7 @@ function needPatch(data: TObject | TObject[], keys: number[], value: string) {
   return data;
 }
 
-export function myParse(arr: [string, string | TObject][]) {
+export function myParse(arr: EArr[]) {
   const obj = arr.reduce((red: TObject, [field, value]) => {
     if (red[field]) {
       if (Array.isArray(red[field])) {
@@ -106,8 +116,15 @@ export function myParse(arr: [string, string | TObject][]) {
 export function parseQuery(query: unknown | string) {
   if (query === null) return {};
   if (typeof query === "string") {
-    const data = new URLSearchParams(query);
-    return myParse(Array.from(data.entries()));
+    let i = 0;
+    const arr = query.split("&") as EArr;
+    const data = [] as EArr[], len = arr.length;
+    while (i < len) {
+      const el = arr[i].split("=");
+      data.push([decURI(el[0]), decURI(el[1] || "")]);
+      i++;
+    }
+    return myParse(data);
   }
   return myParse(Array.from((query as FormData).entries()));
 }
