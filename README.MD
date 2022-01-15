@@ -18,7 +18,7 @@ An Simple http framework for [Deno](https://deno.land/),
 
 ## Features
 
-- Fast.
+- Fast. see [benchmarks](https://github.com/herudi/deno_benchmarks#output).
 - HTTP/2 support.
 - Middleware support.
 - Router support.
@@ -101,15 +101,104 @@ serve((request, conn) => app.handleEvent({ request, conn }));
 ```ts
 import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 
-new NHttp()
-  .use((rev, next) => {
-    rev.foo = "foo";
-    return next();
-  })
-  .get("/", ({ foo }) => {
-    return foo;
-  })
-  .listen(8080);
+const app = new NHttp();
+
+app.use((rev, next) => {
+  rev.foo = "foo";
+  return next();
+});
+
+app.get("/", (rev) => {
+  return rev.foo;
+});
+
+app.listen(8080);
+```
+
+## Header and status
+
+Example cors in middleware
+
+```ts
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
+const app = new NHttp();
+
+app.use(({ response, request }, next) => {
+  // example header
+  response.header({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+  });
+  if (request.method === "OPTIONS") {
+    return response.send();
+  }
+  return next();
+});
+
+app.get("/", () => {
+  return "Hello world with cors";
+});
+
+// post using status 201
+app.post("/", ({ response }) => {
+  // set status
+  response.status(201);
+
+  // get status
+  const status = response.status(201);
+  console.log("The current status is " + status);
+
+  return "Hello status 201";
+});
+
+app.listen(8080);
+```
+
+## Body
+
+Support json, urlencoded, multipart, raw.
+
+```ts
+import { NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
+const app = new NHttp();
+
+app.post("/save", ({ body }) => {
+  return body;
+});
+
+app.listen(8080);
+```
+
+## Upload
+
+Simple multipart upload.
+
+```ts
+import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+
+const upload = multipart.upload({
+  // required field name
+  name: "image",
+  dest: "public/images/",
+
+  // optionals
+  accept: "png|jpg",
+  maxSize: "2 mb",
+  required: true,
+});
+
+const app = new NHttp();
+
+app.post("/upload", upload, ({ body, file }) => {
+  console.log(file.image);
+  console.log(body);
+  return "Success upload";
+});
+
+app.listen(8080);
 ```
 
 ## Router Example
