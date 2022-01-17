@@ -1,17 +1,13 @@
 import { NHttp } from "../mod.ts";
-import { contentType } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
 
 const app = new NHttp();
 
-app.get("/download", ({ response }) => {
-  const pathfile = Deno.cwd() + "/public/test.css";
-  const filename = pathfile.substring(pathfile.lastIndexOf("/") + 1);
-  const extension = pathfile.substring(pathfile.lastIndexOf(".") + 1);
+app.get("/download", async ({ response }) => {
   response.header({
-    "content-type": contentType(extension) || "application/octet-stream",
-    "content-disposition": "attachment; filename=" + filename,
+    "content-type": "text/css",
+    "content-disposition": "attachment; filename=myfile.css",
   });
-  return Deno.readFile(pathfile);
+  return await Deno.readFile("./public/test.css");
 });
 
 app.listen(3000, () => {

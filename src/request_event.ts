@@ -9,7 +9,6 @@ export class RequestEvent {
   responseInit!: ResponseInit;
   response!: HttpResponse;
   url!: string;
-  originalUrl!: string;
   params!: TObject;
   path!: string;
   conn!: Deno.Conn;

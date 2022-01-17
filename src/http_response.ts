@@ -102,6 +102,7 @@ export function response(
     }
     opts.headers = opts.headers || {} as TObject;
     if (typeof key === "string") {
+      key = key.toLowerCase();
       if (!value) return opts.headers[key] as HttpResponse & string;
       opts.headers[key] = value;
       return this;
@@ -110,7 +111,7 @@ export function response(
       if (key instanceof Headers) {
         key = Object.fromEntries(key.entries());
       }
-      for (const k in key) opts.headers[k] = key[k];
+      for (const k in key) opts.headers[k.toLowerCase()] = key[k];
       return this;
     }
     return (opts.headers = new Headers(opts.headers)) as HttpResponse & Headers;
@@ -123,7 +124,7 @@ export function response(
     return (opts.status || 200) as HttpResponse & number;
   };
   res.type = function (value) {
-    this.header("Content-Type", value);
+    this.header("content-type", value);
     return this;
   };
   res.send = function (body) {

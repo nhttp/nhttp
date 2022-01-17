@@ -624,6 +624,7 @@ function response(res, respondWith, opts) {
     }
     opts.headers = opts.headers || {};
     if (typeof key === "string") {
+      key = key.toLowerCase();
       if (!value)
         return opts.headers[key];
       opts.headers[key] = value;
@@ -634,7 +635,7 @@ function response(res, respondWith, opts) {
         key = Object.fromEntries(key.entries());
       }
       for (const k in key)
-        opts.headers[k] = key[k];
+        opts.headers[k.toLowerCase()] = key[k];
       return this;
     }
     return opts.headers = new Headers(opts.headers);
@@ -647,7 +648,7 @@ function response(res, respondWith, opts) {
     return opts.status || 200;
   };
   res.type = function(value) {
-    this.header("Content-Type", value);
+    this.header("content-type", value);
     return this;
   };
   res.send = function(body) {
@@ -747,7 +748,6 @@ var NHttp = class extends Router {
               mPath = "";
             _path = str + mPath;
           }
-          ;
           this.on(method, _path, ...wares.concat(fns));
         }
       }
