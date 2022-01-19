@@ -1,4 +1,7 @@
-import { assert, expect } from "./assert.ts";
+import {
+  assert,
+  assertEquals as expect,
+} from "https://deno.land/std@0.105.0/testing/asserts.ts";
 import { Handler, NHttp, Router } from "./../mod.ts";
 
 // deno-lint-ignore no-explicit-any

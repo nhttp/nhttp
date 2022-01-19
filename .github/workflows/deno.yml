@@ -31,4 +31,4 @@ jobs:
         run: deno lint --config deno.json
 
       - name: Run Test
-        run: deno test tests
+        run: deno test --allow-net tests
