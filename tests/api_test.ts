@@ -18,8 +18,14 @@ app.get("/users/:usersId/books/:bookId", ({ params }) => params);
 // test params extension
 app.get("/image/:name.(jpg|png)", ({ params }) => params);
 
-// with regexp
+// test regexp
 app.get(/\/hello/, () => "Hello Regexp");
+
+// test post and status 201
+app.post("/post", ({ response, body }) => {
+  response.status(201);
+  return body;
+});
 
 // add request from superdeno to requestEvent.
 const handle = (request: Request) => app.handleEvent({ request });
@@ -72,4 +78,51 @@ Deno.test("it should route support RegExp", async () => {
   await superdeno(handle)
     .get("/hello-world")
     .expect(200);
+});
+Deno.test("it should route POST via content-type application/json", async () => {
+  await superdeno(handle)
+    .post("/post")
+    .set("Content-Type", "application/json")
+    .set("Accept", "application/json")
+    .send({
+      name: {
+        firstName: "John",
+        lastName: "Doe",
+      },
+    })
+    .expect(201)
+    .expect({
+      name: {
+        firstName: "John",
+        lastName: "Doe",
+      },
+    });
+});
+Deno.test("it should route POST via content-type application/x-www-form-urlencoded", async () => {
+  await superdeno(handle)
+    .post("/post")
+    .set("Content-Type", "application/x-www-form-urlencoded")
+    .set("Accept", "application/x-www-form-urlencoded")
+    .send("name[firstName]=John&name[lastName]=Doe")
+    .expect(201)
+    .expect({
+      name: {
+        firstName: "John",
+        lastName: "Doe",
+      },
+    });
+});
+Deno.test("it should route POST via content-type multipart/form-data", async () => {
+  await superdeno(handle)
+    .post("/post")
+    .set("Accept", "multipart/form-data")
+    .field("name[firstName]", "John")
+    .field("name[lastName]", "Doe")
+    .expect(201)
+    .expect({
+      name: {
+        firstName: "John",
+        lastName: "Doe",
+      },
+    });
 });
