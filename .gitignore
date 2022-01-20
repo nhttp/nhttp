@@ -2,3 +2,5 @@ dev.ts
 note.txt
 /public
 .vscode
+*.lcov
+cov_profile

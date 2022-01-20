@@ -31,4 +31,13 @@ jobs:
         run: deno lint --config deno.json
 
       - name: Run Test
-        run: deno test --allow-net tests
+        run: deno test --coverage=cov_profile --allow-net tests
+
+      - name: Create cov report
+        run: deno coverage cov_profile --lcov > cov_profile.lcov
+        
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./cov_profile.lcov
