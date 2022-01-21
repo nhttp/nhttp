@@ -1,4 +1,4 @@
-name: Deno
+name: ci
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.17.0
+          deno-version: 1.18.0
 
       - name: Verify formatting
         run: deno fmt --config deno.json
@@ -30,7 +30,6 @@ jobs:
         run: deno lint --config deno.json
 
       - name: Run Test
-        if: matrix.os != 'windows-latest' 
         run: deno test --coverage=cov_profile --allow-net --allow-read --allow-write tests
 
       - name: Create cov report
@@ -41,4 +40,4 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v2
         with:
-          path-to-lcov: ./cov_profile.lcov
+          path-to-lcov: cov_profile.lcov

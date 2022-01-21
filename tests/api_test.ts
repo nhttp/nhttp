@@ -41,6 +41,8 @@ app.get("/res", ({ response }) => {
   response.cookie("key", "value");
   response.cookie("key1", { "no": "1" });
   response.clearCookie("key");
+  const status = response.status();
+  response.status(status as number);
   return "<h1>hello</h1>";
 });
 
@@ -50,8 +52,13 @@ app.get("/async", async () => {
   return "Hello";
 });
 
-// send json
+// send object
 app.get("/json", () => ({ name: "john" }));
+app.get("/form", () => {
+  const form = new FormData();
+  form.append("name", "john");
+  return form;
+});
 app.get("/json2", () =>
   new JsonResponse({ name: "john" }, {
     headers: new Headers({
@@ -72,6 +79,11 @@ app.get("/image/:name.(jpg|png)", ({ params }) => params);
 app.get("/noop500", ({ noop }) => {
   noop();
   return "noop";
+});
+
+// redirect
+app.get("/redirect", ({ response }) => {
+  return response.redirect("/hello-world");
 });
 
 // test regexp
@@ -130,6 +142,11 @@ Deno.test("it should GET/json response { name: 'john' }", async () => {
     .expect(200)
     .expect("Content-Type", /^application/)
     .expect({ name: "john" });
+});
+Deno.test("it should GET/form", async () => {
+  await superdeno(handle)
+    .get("/form")
+    .expect(200);
 });
 Deno.test("it should GET/json2 response { name: 'john' }", async () => {
   await superdeno(handle)
@@ -191,6 +208,11 @@ Deno.test("it should route GET/noop500 error", async () => {
   await superdeno(handle)
     .get("/noop500")
     .expect(500);
+});
+Deno.test("it should route GET/redirect", async () => {
+  await superdeno(handle)
+    .get("/redirect")
+    .expect(302);
 });
 Deno.test("it should route POST via content-type application/json", async () => {
   await superdeno(handle)
