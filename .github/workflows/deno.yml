@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest]
+        os: [macOS-latest, windows-latest, ubuntu-latest]
       fail-fast: true
     steps:
       - name: Setup repo
@@ -30,13 +30,15 @@ jobs:
         run: deno lint --config deno.json
 
       - name: Run Test
+        if: matrix.os != 'windows-latest' 
         run: deno test --coverage=cov_profile --allow-net --allow-read --allow-write tests
 
       - name: Create cov report
+        if: matrix.os == 'ubuntu-latest'
         run: deno coverage cov_profile --lcov > cov_profile.lcov
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
+      - name: Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./cov_profile.lcov
