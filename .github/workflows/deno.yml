@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macOS-latest, windows-latest, ubuntu-latest]
+        os: [macOS-latest, ubuntu-latest]
       fail-fast: true
     steps:
       - name: Setup repo
@@ -24,7 +24,6 @@ jobs:
           deno-version: 1.17.0
 
       - name: Verify formatting
-        if: matrix.os != 'windows-latest'
         run: deno fmt --config deno.json
 
       - name: Run linter
