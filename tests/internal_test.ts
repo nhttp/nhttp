@@ -2,6 +2,7 @@ import {
   assertEquals as expect,
 } from "https://deno.land/std@0.105.0/testing/asserts.ts";
 import {
+  middAssets,
   concatRegexp,
   getReqCookies,
   parseQuery,
@@ -45,25 +46,6 @@ test("getError object", () => {
   expect(typeof obj, "object");
   const obj2 = getError(new HttpError());
   expect(typeof obj2, "object");
-});
-
-test("query params", () => {
-  const obj = parseQuery("name=john&name=doe");
-  const obj2 = parseQuery("name[firstName]=john 1%%&name[lastName]=doe 2%%");
-  const obj3 = parseQuery("location[][lat]=123&location[][lat]=456");
-  expect(obj, { name: ["john", "doe"] });
-  expect(obj2, {
-    name: {
-      firstName: "john 1%%",
-      lastName: "doe 2%%",
-    },
-  });
-  expect(obj3, {
-    location: [
-      { lat: "123" },
-      { lat: "456" },
-    ],
-  });
 });
 
 test("cookie", () => {
@@ -216,9 +198,17 @@ const myUploadArray = await fetch(BASE + "/upload-array", {
   method: "POST",
   body: form4,
 });
+
+const form5 = new FormData();
+form5.append('hello', 'hello');
+const myUploadErroRequired = await fetch(BASE + "/upload", {
+  method: "POST",
+  body: form5,
+});
 test("it should listen app", () => {
   expect(myRes.status, 200);
   expect(myUploadArray.status, 201);
+  expect(myUploadErroRequired.status, 400);
   expect(myUploadErrorMaxCount.status, 400);
   expect(myUploadErrorAccept.status, 400);
   expect(myUpload.status, 201);

@@ -1,3 +1,5 @@
+import { TObject, TRet } from "./types.ts";
+
 /**
  * Genarete error message from class HttpError.
  * @example
@@ -5,8 +7,7 @@
  */
 export class HttpError extends Error {
   status: number;
-  // deno-lint-ignore no-explicit-any
-  constructor(status?: number, message?: any, name?: string) {
+  constructor(status?: number, message?: TRet, name?: string) {
     super(message);
     this.message = message || "Http Error";
     this.status = status || 500;
@@ -17,8 +18,7 @@ export class HttpError extends Error {
 /**
  * Give error object
  */
-// deno-lint-ignore no-explicit-any
-export function getError(err: any, isStack?: boolean) {
+export function getError(err: TObject, isStack?: boolean) {
   let status: number = err.status || err.statusCode || err.code || 500;
   if (typeof status !== "number") status = 500;
   let stack = void 0;

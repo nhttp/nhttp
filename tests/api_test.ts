@@ -5,283 +5,380 @@ import {
   JsonResponse,
   NextFunction,
   NHttp,
+  Router,
 } from "./../mod.ts";
 
 type EMidd = (
   req: TObject,
-  _: TObject,
+  res: TObject,
   next: NextFunction,
 ) => void | Promise<void>;
 
 const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
-const app = new NHttp({
-  env: "production",
-  bodyLimit: {
-    json: "2mb",
-    urlencoded: "2mb",
-    raw: "2mb",
-    multipart: "100mb",
-  },
-});
-const handle = (request: Request) => app.handleEvent({ request });
-const handleApp = (myapp: NHttp) =>
-  (request: Request) => myapp.handleEvent({ request });
+const handleApp = (app: NHttp) =>
+  (request: Request) => app.handleEvent({ request });
 
-// normal path
-app.use("/hello", () => "Hello");
-app.get("/", () => "Hello");
-
-// feature response
-app.get("/res", ({ response }) => {
-  response.type("text/html");
-  response.header("x-powered-by", "nhttp");
-  response.header({ "name": "john" });
-  response.header(new Headers({ "name1": "john" }));
-  response.cookie("key", "value");
-  response.cookie("key1", { "no": "1" });
-  response.clearCookie("key");
-  const status = response.status();
-  response.status(status as number);
-  return "<h1>hello</h1>";
-});
-
-// async
-app.get("/async", async () => {
-  await sleep(1000);
-  return "Hello";
-});
-
-// send object
-app.get("/json", () => ({ name: "john" }));
-app.get("/form", () => {
-  const form = new FormData();
-  form.append("name", "john");
-  return form;
-});
-app.get("/json2", () =>
-  new JsonResponse({ name: "john" }, {
+Deno.test("Route response", async (t) => {
+  const app = new NHttp();
+  app.use('/hello', () => 'hello');
+  app.get('/text', () => 'text');
+  app.get('/json', () => ({ name: 'john' }));
+  app.get('/json-response', () => new JsonResponse({ name: 'john' }, {
     headers: new Headers({
-      "x-powered-by": "nhttp",
-    }),
-  }));
-
-// test query
-app.get("/users", ({ query }) => query);
-
-// test params
-app.get("/users/:usersId/books/:bookId", ({ params }) => params);
-
-// test params extension
-app.get("/image/:name.(jpg|png)", ({ params }) => params);
-
-// test error
-app.get("/noop500", ({ noop }) => {
-  noop();
-  return "noop";
-});
-
-// redirect
-app.get("/redirect", ({ response }) => {
-  return response.redirect("/hello-world");
-});
-
-// test regexp
-app.get(/\/hello/, () => "Hello Regexp");
-
-// test post and status 201
-app.post("/post", ({ response, body }) => {
-  response.status(201);
-  return body;
-});
-
-app.on404(({ url }) => {
-  return {
-    status: 404,
-    message: `Route ${url} not found`,
-    name: "NotFoundError",
-  };
-});
-
-app.onError((err) => {
-  return {
-    status: err.status || 500,
-    message: err.message || "Something went wrong",
-    name: err.message || "InternalServerError",
-  };
-});
-
-Deno.test("it should USE hello response Hello", async () => {
-  await superdeno(handle)
-    .get("/hello")
-    .expect(200)
-    .expect("Hello");
-});
-Deno.test("it should GET/res feature response", async () => {
-  await superdeno(handle)
-    .get("/res")
-    .expect(200)
-    .expect("content-type", "text/html")
-    .expect("x-powered-by", "nhttp");
-});
-Deno.test("it should GET/ response Hello", async () => {
-  await superdeno(handle)
-    .get("/")
-    .expect(200)
-    .expect("Hello");
-});
-Deno.test("it should GET/async response Hello", async () => {
-  await superdeno(handle)
-    .get("/async")
-    .expect(200)
-    .expect("Hello");
-});
-Deno.test("it should GET/json response { name: 'john' }", async () => {
-  await superdeno(handle)
-    .get("/json")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect({ name: "john" });
-});
-Deno.test("it should GET/form", async () => {
-  await superdeno(handle)
-    .get("/form")
-    .expect(200);
-});
-Deno.test("it should GET/json2 response { name: 'john' }", async () => {
-  await superdeno(handle)
-    .get("/json2")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect("x-powered-by", "nhttp")
-    .expect({ name: "john" });
-});
-Deno.test("it should GET/json/ response { name: 'john' }", async () => {
-  await superdeno(handle)
-    .get("/json/")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect({ name: "john" });
-});
-Deno.test("it should GET/users?name[firstName]=John&name[lastName]=Doe. with query", async () => {
-  await superdeno(handle)
-    .get("/users?name[firstName]=John&name[lastName]=Doe")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    });
-});
-Deno.test("it should GET/users/:usersId/books/:bookId with params", async () => {
-  await superdeno(handle)
-    .get("/users/123/books/456")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect({ usersId: "123", bookId: "456" });
-});
-Deno.test("it should GET/image/:name.(jpg|png) with support params extension", async () => {
-  await superdeno(handle)
-    .get("/image/myfile.jpg")
-    .expect(200)
-    .expect("Content-Type", /^application/)
-    .expect({ name: "myfile" });
-});
-Deno.test("it should GET/image/:name.(jpg|png) not match extension", async () => {
-  await superdeno(handle)
-    .get("/image/myfile.gif")
-    .expect(404);
-});
-Deno.test("it should route support RegExp", async () => {
-  await superdeno(handle)
-    .get("/hello-world")
-    .expect(200);
-});
-Deno.test("it should route not found GET/noop404", async () => {
-  await superdeno(handle)
-    .get("/noop404")
-    .expect(404);
-});
-Deno.test("it should route GET/noop500 error", async () => {
-  await superdeno(handle)
-    .get("/noop500")
-    .expect(500);
-});
-Deno.test("it should route GET/redirect", async () => {
-  await superdeno(handle)
-    .get("/redirect")
-    .expect(302);
-});
-Deno.test("it should route POST via content-type application/json", async () => {
-  await superdeno(handle)
-    .post("/post")
-    .set("Content-Type", "application/json")
-    .set("Accept", "application/json")
-    .send({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
+      'x-powered-by': 'nhttp'
     })
-    .expect(201)
-    .expect({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    });
+  }));
+  app.get("/async", async () => {
+    await sleep(1000);
+    return "hello";
+  });
+  app.get("/form", () => {
+    const form = new FormData();
+    form.append("name", "john");
+    return form;
+  });
+  app.on("GET", "/with-on", () => "hello");
+  await t.step('use /hello', async () => {
+    await superdeno(handleApp(app))
+      .get("/hello")
+      .expect(200)
+      .expect('hello')
+  });
+  await t.step('get /text', async () => {
+    await superdeno(handleApp(app))
+      .get("/text")
+      .expect(200)
+      .expect('text')
+  })
+  await t.step('get /async', async () => {
+    await superdeno(handleApp(app))
+      .get("/async")
+      .expect(200)
+      .expect('hello')
+  })
+  await t.step('get /json', async () => {
+    await superdeno(handleApp(app))
+      .get("/json")
+      .expect(200)
+      .expect({ name: 'john' })
+  })
+  await t.step('get /json/', async () => {
+    await superdeno(handleApp(app))
+      .get("/json/")
+      .expect(200)
+      .expect({ name: 'john' })
+  })
+  await t.step('get /json-response', async () => {
+    await superdeno(handleApp(app))
+      .get("/json-response")
+      .expect(200)
+      .expect({ name: 'john' })
+  })
+  await t.step('get /form', async () => {
+    await superdeno(handleApp(app))
+      .get("/form")
+      .expect(200)
+  })
+  await t.step('get /with-on', async () => {
+    await superdeno(handleApp(app))
+      .get("/with-on")
+      .expect(200)
+      .expect('hello')
+  })
 });
-Deno.test("it should route POST via content-type application/x-www-form-urlencoded", async () => {
-  await superdeno(handle)
-    .post("/post")
-    .set("Content-Type", "application/x-www-form-urlencoded")
-    .set("Accept", "application/x-www-form-urlencoded")
-    .send("name[firstName]=John&name[lastName]=Doe")
-    .expect(201)
-    .expect({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    });
+
+Deno.test('Route params and query', async (t) => {
+  const app = new NHttp();
+  app.get("/users", ({ query }) => query);
+  app.get("/users/:id", ({ params }) => params);
+  app.get("/image/:filename.(png|jpg)", ({ params }) => params);
+  await t.step('Params users/:id', async () => {
+    await superdeno(handleApp(app))
+      .get("/users/123")
+      .expect(200)
+      .expect({ id: '123' })
+  })
+  await t.step('Params /image/:filename.(png|jpg)', async () => {
+    await superdeno(handleApp(app))
+      .get("/image/myfile.png")
+      .expect(200)
+      .expect({ filename: 'myfile' })
+  })
+  await t.step('Params /image/:filename.(png|jpg) not match', async () => {
+    await superdeno(handleApp(app))
+      .get("/image/myfile.gif")
+      .expect(404)
+  })
+  await t.step('Query /users?name=john', async () => {
+    await superdeno(handleApp(app))
+      .get("/users?name=john")
+      .expect(200)
+      .expect({ name: 'john' })
+  })
+  await t.step('Query /users?name=john&name=doe', async () => {
+    await superdeno(handleApp(app))
+      .get("/users?name=john&name=doe")
+      .expect(200)
+      .expect({ name: ['john', 'doe'] })
+  })
+  await t.step('Query /users?name[first_name]=john&name[last_name]=doe', async () => {
+    await superdeno(handleApp(app))
+      .get("/users?name[first_name]=john&name[last_name]=doe")
+      .expect(200)
+      .expect({
+        name: {
+          first_name: 'john',
+          last_name: 'doe',
+        }
+      })
+  })
+  await t.step('Query /users?location[][lat]=123&location[][lat]=456', async () => {
+    await superdeno(handleApp(app))
+      .get("/users?location[][lat]=123&location[][lat]=456")
+      .expect(200)
+      .expect({
+        location: [
+          { lat: '123' },
+          { lat: '456' },
+        ]
+      })
+  })
 });
-Deno.test("it should route POST via content-type multipart/form-data", async () => {
-  await superdeno(handle)
-    .post("/post")
-    .set("Accept", "multipart/form-data")
-    .field("name[firstName]", "John")
-    .field("name[lastName]", "Doe")
-    .expect(201)
-    .expect({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    });
+
+Deno.test('Feature app and response', async (t) => {
+  const app = new NHttp({
+    env: "production",
+    bodyLimit: {
+      json: "2mb",
+      urlencoded: "2mb",
+      raw: "2mb",
+      multipart: "100mb",
+    },
+    parseQuery: (str: string) => ({ noop: str })
+  });
+  app.get("/hello", ({ response, getCookies }) => {
+    response.type("text/html");
+    response.header("x-powered-by", "nhttp");
+    response.header({ "name": "john" });
+    response.header(new Headers({ "name1": "john" }));
+    response.cookie("key", "value", { encode: true });
+    response.cookie("key1", { "no": "1" });
+    response.clearCookie("key");
+    const status = response.status();
+    response.status(status as number);
+    return getCookies(true) || {};
+  });
+  app.get("/redirect", ({ response }) => response.redirect("/hello"));
+  app.get("/users", ({ query }) => query);
+  app.get(/\/yes/, () => 'yes');
+  app.get("/error", ({ noop }) => {
+    noop();
+    return 'noop';
+  });
+  await t.step('get /yes-yes (RegExp)', async () => {
+    await superdeno(handleApp(app))
+      .get("/yes-yes")
+      .expect(200)
+      .expect("yes")
+  })
+  await t.step('get /hello', async () => {
+    await superdeno(handleApp(app))
+      .get("/hello")
+      .expect(200)
+  })
+  await t.step('get /redirect', async () => {
+    await superdeno(handleApp(app))
+      .get("/redirect")
+      .expect(302)
+  })
+  await t.step('get /users?name=john', async () => {
+    await superdeno(handleApp(app))
+      .get("/users?name=john")
+      .expect(200)
+      .expect({ noop: 'name=john' })
+  })
+  await t.step('error without stack on prod', async () => {
+    await superdeno(handleApp(app))
+      .get("/error")
+      .expect(500)
+      .expect({ status: 500, message: 'noop is not a function', name: 'TypeError' })
+  })
 });
-Deno.test("it should route POST via content-type text/plain", async () => {
-  await superdeno(handle)
-    .post("/post")
-    .set("Content-Type", "text/plain")
-    .set("Accept", "text/plain")
-    .send(JSON.stringify({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    }))
-    .expect(201)
-    .expect({
-      name: {
-        firstName: "John",
-        lastName: "Doe",
-      },
-    });
-});
-Deno.test("it should middleware via expressMiddleware wrapper", async () => {
-  const sub = new NHttp()
+
+Deno.test("Error handling", async (t) => {
+  const app = new NHttp();
+  app.get("/error", ({ noop }) => {
+    noop();
+    return 'noop';
+  });
+  app.onError((err) => {
+    return err.message;
+  })
+  app.on404(({ url }) => {
+    return url + ' 404 not found';
+  })
+  await t.step('Noop is not a function', async () => {
+    await superdeno(handleApp(app))
+      .get("/error")
+      .expect(500)
+      .expect('noop is not a function')
+  })
+  await t.step('Url /hello 404 not found', async () => {
+    await superdeno(handleApp(app))
+      .get("/hello")
+      .expect(404)
+      .expect('/hello 404 not found')
+  })
+})
+Deno.test("Body parser", async (t) => {
+  const app = new NHttp();
+  app.post("/", ({ body, response }) => {
+    response.status(201);
+    return body;
+  });
+
+  await t.step('jsonBody', async () => {
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      })
+      .expect(201)
+      .expect({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      });
+  })
+  await t.step('urlencodedBody', async () => {
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("Accept", "application/x-www-form-urlencoded")
+      .send("name[firstName]=John&name[lastName]=Doe")
+      .expect(201)
+      .expect({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      });
+  })
+  await t.step('multipartBody', async () => {
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Accept", "multipart/form-data")
+      .field("name[firstName]", "John")
+      .field("name[lastName]", "Doe")
+      .expect(201)
+      .expect({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      });
+  })
+  await t.step('rawBody', async () => {
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "text/plain")
+      .set("Accept", "text/plain")
+      .send(JSON.stringify({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      }))
+      .expect(201)
+      .expect({
+        name: {
+          firstName: "John",
+          lastName: "Doe",
+        },
+      });
+  })
+  await t.step('rawBody not json', async () => {
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "text/plain")
+      .set("Accept", "text/plain")
+      .send("my name john")
+      .expect(201)
+      .expect({_raw: 'my name john'});
+  })
+})
+Deno.test("Middleware and sub router", async (t) => {
+  const users = new Router({ base: '/users' });
+  users.get("/", ({ foo, bar, foobar }) => {
+    return foo + bar + (foobar || '');
+  });
+
+  const items = new Router();
+  items.get("/items", ({ foo, bar, foobar }) => {
+    return foo + bar + (foobar || '');
+  });
+
+  const books = new Router({ base: '/' });
+  books.get("/books", ({ foo, bar, foobar }) => {
+    return foo + bar + (foobar || '');
+  });
+  const app = new NHttp();
+
+  // global middleware
+  app.use((rev, next) => {
+    rev.foo = 'foo';
+    return next();
+  }, (rev, next) => {
+    rev.bar = 'bar';
+    return next();
+  });
+
+  // router middleware
+  app.use("/api/v1", (rev, next) => {
+    rev.foobar = 'foobar';
+    return next();
+  }, [users, items]);
+  app.use("/api/v1", books);
+
+  app.get("/foobar", ({ foo, bar, foobar }) => {
+    return foo + bar + (foobar || '');
+  });
+
+  await t.step('get only /foobar', async () => {
+    await superdeno(handleApp(app))
+      .get("/foobar")
+      .expect(200)
+      .expect('foobar')
+  })
+  await t.step('get /api/v1/users', async () => {
+    await superdeno(handleApp(app))
+      .get("/api/v1/users")
+      .expect(200)
+      .expect('foobarfoobar')
+  })
+  await t.step('get /api/v1/items', async () => {
+    await superdeno(handleApp(app))
+      .get("/api/v1/items")
+      .expect(200)
+      .expect('foobarfoobar')
+  })
+  await t.step('get /api/v1/books', async () => {
+    await superdeno(handleApp(app))
+      .get("/api/v1/books")
+      .expect(200)
+      .expect('foobar')
+  })
+})
+
+Deno.test("Middleware via expressMiddleware wrapper", async () => {
+  const app = new NHttp()
     .use(expressMiddleware([
       (_, res, next) => {
         res.set("name", "john");
@@ -302,29 +399,19 @@ Deno.test("it should middleware via expressMiddleware wrapper", async () => {
         }
       },
     ] as EMidd[]));
-  await superdeno(handleApp(sub))
+  await superdeno(handleApp(app))
     .get("/")
     .expect(200)
     .expect("name", "john")
     .expect("hello");
-  await superdeno(handleApp(sub))
+  await superdeno(handleApp(app))
     .get("/hello")
     .expect(200)
     .expect("hello respond");
 });
-Deno.test("it should custom parseQuery", async () => {
-  const sub = new NHttp({
-    parseQuery: (str: string) =>
-      Object.fromEntries(new URLSearchParams(str).entries()),
-  })
-    .get("/hello", ({ query }) => query);
-  await superdeno(handleApp(sub))
-    .get("/hello?name=john")
-    .expect(200)
-    .expect({ name: "john" });
-});
-Deno.test("it should multiple error", async () => {
-  const sub = new NHttp()
+
+Deno.test("Multiple error", async () => {
+  const app = new NHttp()
     .use((_, next) => {
       return next(new Error("my error"));
     })
@@ -332,7 +419,7 @@ Deno.test("it should multiple error", async () => {
       noop();
       return err.message || "hello";
     });
-  await superdeno(handleApp(sub))
+  await superdeno(handleApp(app))
     .get("/hello")
     .expect(500)
     .expect(/noop/);

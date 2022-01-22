@@ -1,4 +1,4 @@
-import { Cookie, TObject } from "./types.ts";
+import { Cookie, TObject, TRet } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
 
 const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
@@ -74,8 +74,7 @@ export class HttpResponse {
    * response.clearCookie("name");
    */
   clearCookie!: (name: string, options?: Cookie) => void;
-  // deno-lint-ignore no-explicit-any
-  [k: string]: any
+  [k: string]: TRet
 }
 
 export class JsonResponse extends Response {

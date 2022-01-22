@@ -1,9 +1,10 @@
 import { RequestEvent } from "./request_event.ts";
+import Router from "./router.ts";
 
 // deno-lint-ignore no-explicit-any
-export type NextFunction = (err?: Error) => any;
-// deno-lint-ignore no-explicit-any
-export type TObject = { [k: string]: any };
+export type TRet = any;
+export type NextFunction = (err?: Error) => TRet;
+export type TObject = { [k: string]: TRet };
 export type RetHandler =
   | Promise<void | string | TObject>
   | void
@@ -48,6 +49,14 @@ export type Cookie = {
   other?: string[];
   encode?: boolean;
 };
+export type TQueryFunc = TRet;
+export type TApp = {
+  parseQuery?: TQueryFunc;
+  bodyLimit?: TBodyLimit;
+  env?: string;
+};
+export type FetchEvent = TRet;
 
-// deno-lint-ignore no-explicit-any
-export type TQueryFunc = any;
+export type RouterOrWare<
+  Rev extends RequestEvent = RequestEvent,
+> = Handler<Rev> | Handler<Rev>[] | Router<Rev> | Router<Rev>[];

@@ -1,5 +1,5 @@
 import { HttpResponse } from "./http_response.ts";
-import { TObject } from "./types.ts";
+import { TObject, TRet } from "./types.ts";
 
 export class RequestEvent {
   readonly request!: Request;
@@ -21,6 +21,5 @@ export class RequestEvent {
    * const objectWithDecode = rev.getCookies(true);
    */
   getCookies!: (decode?: boolean) => Record<string, string>;
-  // deno-lint-ignore no-explicit-any
-  [k: string]: any
+  [k: string]: TRet
 }

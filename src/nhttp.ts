@@ -1,14 +1,19 @@
 import {
+  FetchEvent,
   Handler,
   Handlers,
   NextFunction,
   RetHandler,
+  RouterOrWare,
+  TApp,
   TBodyLimit,
   TObject,
   TQueryFunc,
+  TRet,
 } from "./types.ts";
 import Router from "./router.ts";
 import {
+  middAssets,
   concatRegexp,
   findFns,
   getReqCookies,
@@ -20,18 +25,8 @@ import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import { HttpResponse, response } from "./http_response.ts";
 
-type TApp = {
-  parseQuery?: TQueryFunc;
-  bodyLimit?: TBodyLimit;
-  env?: string;
-};
-
-// deno-lint-ignore no-explicit-any
-type FetchEvent = any;
-
 const defError = (
-  // deno-lint-ignore no-explicit-any
-  err: any,
+  err: TObject,
   rev: RequestEvent,
   env: string,
 ): RetHandler => {
@@ -69,8 +64,7 @@ export class NHttp<
    */
   onError(
     fn: (
-      // deno-lint-ignore no-explicit-any
-      err: any,
+      err: TObject,
       rev: Rev,
       next: NextFunction,
     ) => RetHandler,
@@ -108,55 +102,25 @@ export class NHttp<
    * app.use(...middlewares);
    * app.use('/api/v1', routers);
    */
-  use(...middlewares: Handlers<Rev>): this;
-  use(prefix: string, ...middlewares: Handlers<Rev>): this;
-  use(prefix: string, router: Router<Rev> | Router<Rev>[]): this;
   use(
-    prefix: string,
-    middleware: Handler<Rev> | Handler<Rev>[],
-    router: Router<Rev> | Router<Rev>[],
-  ): this;
-  use(prefix: string, middleware: Handler<Rev> | Handler<Rev>[]): this;
-  use(router: Router<Rev> | Router<Rev>[]): this;
-  use(
-    middleware: Handler<Rev> | Handler<Rev>[],
-    router: Router<Rev> | Router<Rev>[],
-  ): this;
-  // deno-lint-ignore no-explicit-any
-  use(...args: any) {
-    let str = typeof args[0] === "string" ? args[0] : "";
-    let last = args[args.length - 1];
-    if (str === "/") str = "";
-    if (args.length === 1 && typeof args[0] === "function") {
-      this.midds = this.midds.concat(args[0]);
-    } else if (
+    prefix: string | RouterOrWare<Rev> | RouterOrWare<Rev>[],
+    ...routerOrMiddleware: Array<RouterOrWare<Rev> | RouterOrWare<Rev>[]>
+  ) {
+    let args = routerOrMiddleware, str = "";
+    if (typeof prefix === "function" && args.length === 0) {
+      this.midds = this.midds.concat(prefix);
+      return this;
+    }
+    if (typeof prefix === "string") str = prefix === "/" ? "" : prefix;
+    else args = [prefix].concat(args);
+    const last = args[args.length - 1] as TObject;
+    if (
       typeof last === "object" && (last.c_routes || last[0].c_routes)
     ) {
-      const wares = findFns(args) as Handler[];
-      last = Array.isArray(last) ? last : [last];
-      let i = 0, j = 0;
-      for (; i < last.length; i++) {
-        for (; j < last[i].c_routes.length; j++) {
-          const { method, path, fns } = last[i].c_routes[j];
-          let _path: string | RegExp;
-          if (path instanceof RegExp) _path = concatRegexp(str, path);
-          else {
-            let mPath = path;
-            if (mPath === "/" && str !== "") mPath = "";
-            _path = str + mPath;
-          }
-          this.on(method, _path, ...wares.concat(fns));
-        }
-      }
+      this.pushRoutes(str, findFns(args) as Handler[], last);
     } else if (str !== "") {
       this.pmidds = this.pmidds || {};
-      this.pmidds[str] = [
-        ((rev, next) => {
-          rev.url = rev.url.substring(str.length) || "/";
-          rev.path = rev.path.substring(str.length) || "/";
-          return next();
-        }) as Handler,
-      ].concat(findFns(args) as Handler[]);
+      this.pmidds[str] = middAssets(str).concat(findFns(args) as Handler[]);
     } else {
       this.midds = this.midds.concat(findFns(args) as Handler[]);
     }
@@ -307,9 +271,24 @@ export class NHttp<
       }
     }
   }
+  private pushRoutes(str: string, wares: Handler[], last: TRet) {
+    last = Array.isArray(last) ? last : [last];
+    last.forEach((obj: TObject) => {
+      obj.c_routes.forEach((route: TObject) => {
+        const { method, path, fns } = route;
+        let _path: string | RegExp;
+        if (path instanceof RegExp) _path = concatRegexp(str, path);
+        else {
+          let mPath = path;
+          if (mPath === "/" && str !== "") mPath = "";
+          _path = str + mPath;
+        }
+        this.on(method, _path, [wares, fns]);
+      });
+    });
+  }
   private _onError(
-    // deno-lint-ignore no-explicit-any
-    err: any,
+    err: TObject,
     rev: Rev,
     _: NextFunction,
   ): RetHandler {

@@ -1,9 +1,13 @@
 import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Cookie, Handler, NextFunction, TObject, TSizeList } from "./types.ts";
-
-// deno-lint-ignore no-control-regex
-const SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+import {
+  Cookie,
+  Handler,
+  NextFunction,
+  TObject,
+  TRet,
+  TSizeList,
+} from "./types.ts";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -97,8 +101,7 @@ export function myParse(arr: EArr[]) {
         red[field] = [red[field], value];
       }
     } else {
-      // deno-lint-ignore no-explicit-any
-      let [_, prefix, keys]: any = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      let [_, prefix, keys]: TRet = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
       if (keys) {
         keys = Array.from(
           keys.matchAll(/\[([^\]]*)\]/g),
@@ -149,8 +152,7 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
  *    helmet(),
  * ]));
  */
-// deno-lint-ignore no-explicit-any
-export function expressMiddleware(...middlewares: any): any {
+export function expressMiddleware(...middlewares: TRet): TRet {
   const midds = middlewares;
   const opts = midds.length && midds[midds.length - 1];
   const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
@@ -174,8 +176,7 @@ export function expressMiddleware(...middlewares: any): any {
         res.hasHeader = (a: string) => res.header(a) !== null;
         res.removeHeader = (a: string) => res.header().delete(a);
         res.end = res.send;
-        // deno-lint-ignore no-explicit-any
-        res.writeHead = (a: number, ...b: any) => {
+        res.writeHead = (a: number, ...b: TRet) => {
           res.status(a);
           for (let i = 0; i < b.length; i++) {
             if (typeof b[i] === "object") res.header(b[i]);
@@ -195,23 +196,26 @@ export function expressMiddleware(...middlewares: any): any {
   return handlers;
 }
 
+export function middAssets(str: string) {
+  return [
+    ((rev, next) => {
+      rev.url = rev.url.substring(str.length) || "/";
+      rev.path = rev.path.substring(str.length) || "/";
+      return next();
+    }) as Handler,
+  ];
+}
+
 export function serializeCookie(
   name: string,
   value: string,
   cookie: Cookie = {},
 ) {
-  if (!SERIALIZE_COOKIE_REGEXP.test(name)) {
-    throw new TypeError("name is invalid");
-  }
-  if (value !== "" && !SERIALIZE_COOKIE_REGEXP.test(value)) {
-    throw new TypeError("value is invalid");
-  }
   cookie.encode = !!cookie.encode;
   if (cookie.encode) {
     value = "E:" + btoa(encoder.encode(value).toString());
   }
   let ret = `${name}=${value}`;
-
   if (name.startsWith("__Secure")) {
     cookie.secure = true;
   }
@@ -226,28 +230,19 @@ export function serializeCookie(
   if (cookie.httpOnly) {
     ret += `; HttpOnly`;
   }
-  if (typeof cookie.maxAge === "number" && Number.isInteger(cookie.maxAge)) {
+  if (typeof cookie.maxAge === "number") {
     ret += `; Max-Age=${cookie.maxAge}`;
   }
   if (cookie.domain) {
-    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.domain)) {
-      throw new TypeError("domain is invalid");
-    }
     ret += `; Domain=${cookie.domain}`;
   }
   if (cookie.sameSite) {
     ret += `; SameSite=${cookie.sameSite}`;
   }
   if (cookie.path) {
-    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.path)) {
-      throw new TypeError("path is invalid");
-    }
     ret += `; Path=${cookie.path}`;
   }
   if (cookie.expires) {
-    if (typeof cookie.expires.toUTCString !== "function") {
-      throw new TypeError("expires is invalid");
-    }
     ret += `; Expires=${cookie.expires.toUTCString()}`;
   }
   if (cookie.other) {
