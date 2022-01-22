@@ -13,10 +13,10 @@ import {
 } from "./types.ts";
 import Router from "./router.ts";
 import {
-  middAssets,
   concatRegexp,
   findFns,
   getReqCookies,
+  middAssets,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";

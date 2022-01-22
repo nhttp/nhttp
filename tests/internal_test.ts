@@ -1,13 +1,7 @@
 import {
   assertEquals as expect,
 } from "https://deno.land/std@0.105.0/testing/asserts.ts";
-import {
-  middAssets,
-  concatRegexp,
-  getReqCookies,
-  parseQuery,
-  serializeCookie,
-} from "../src/utils.ts";
+import { concatRegexp, getReqCookies, serializeCookie } from "../src/utils.ts";
 import {
   getError,
   HttpError,
@@ -200,7 +194,7 @@ const myUploadArray = await fetch(BASE + "/upload-array", {
 });
 
 const form5 = new FormData();
-form5.append('hello', 'hello');
+form5.append("hello", "hello");
 const myUploadErroRequired = await fetch(BASE + "/upload", {
   method: "POST",
   body: form5,
