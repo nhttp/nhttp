@@ -1,7 +1,14 @@
 {
   "lint": {
     "files": {
-      "exclude": ["mod.js", "dev.ts", "cf_workers/"]
+      "exclude": [
+        "mod.js",
+        "dev.ts",
+        "cf_workers/",
+        "dummy/",
+        "cov_profile",
+        "cov_profile.lcov"
+      ]
     }
   },
   "fmt": {
@@ -10,6 +17,7 @@
         "mod.js",
         "dev.ts",
         "cf_workers/",
+        "dummy/",
         "cov_profile",
         "cov_profile.lcov"
       ]

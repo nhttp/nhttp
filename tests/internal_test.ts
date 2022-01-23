@@ -1,11 +1,12 @@
 import {
   assertEquals as expect,
 } from "https://deno.land/std@0.105.0/testing/asserts.ts";
-import { TObject } from "../src/types.ts";
+import { TObject, TRet } from "../src/types.ts";
 import {
   concatRegexp,
   decURI,
   getReqCookies,
+  myParse,
   parseQuery,
   serializeCookie,
   toBytes,
@@ -17,6 +18,7 @@ import {
   multipart,
   NHttp,
   RequestEvent,
+  Router,
 } from "./../mod.ts";
 
 const rev = new RequestEvent();
@@ -42,16 +44,6 @@ Deno.test("Utils", async (t) => {
     const obj = parseQuery(null);
     expect(obj, {});
   });
-  await t.step("misc error", () => {
-    const obj = getError({ status: "asdasd" });
-    console.log(obj);
-    expect(obj, {
-      status: 500,
-      message: "Something went wrong",
-      name: "HttpError",
-      stack: undefined,
-    });
-  });
 });
 Deno.test("RequestEvent undefined first", () => {
   const names = Object.getOwnPropertyNames(rev);
@@ -65,12 +57,40 @@ Deno.test("HttpResponse undefined first", () => {
     expect(typeof res[name], "undefined");
   });
 });
-Deno.test("getError object", () => {
-  const err = new HttpError(500, "my test error", "MyTestError") as TObject;
-  const obj = getError(err, true);
-  expect(typeof obj, "object");
-  const obj2 = getError(new HttpError());
-  expect(typeof obj2, "object");
+Deno.test("getError object", async (t) => {
+  await t.step("Misc error", () => {
+    const obj = getError({ status: "asdasd" });
+    expect(obj, {
+      status: 500,
+      message: "Something went wrong",
+      name: "HttpError",
+      stack: undefined,
+    });
+  });
+  await t.step("Misc error with stack", () => {
+    const obj = getError({
+      status: "asdasd",
+      stack: `at file
+    file://noop.ts line 1000
+    at file 
+    file://noop2.ts line 1200`,
+    }, true);
+    expect(obj, {
+      status: 500,
+      message: "Something went wrong",
+      name: "HttpError",
+      stack: ["file://noop.ts line 1000", "file://noop2.ts line 1200"],
+    });
+  });
+  await t.step("HttpError", () => {
+    const err = new HttpError(500, "my test error", "MyTestError") as TObject;
+    const obj = getError(err, true);
+    expect(typeof obj, "object");
+  });
+  await t.step("HttpError no params", () => {
+    const obj = getError(new HttpError());
+    expect(typeof obj, "object");
+  });
 });
 
 Deno.test("cookie", () => {
@@ -186,7 +206,17 @@ myApp.post(
 );
 
 const info = await new Promise((ok) => {
-  myApp.listen({ port: 8080 }, (_, info) => {
+  myApp.listen(8080, (_, info) => {
+    ok(info);
+  });
+});
+const infoSSL = await new Promise((ok) => {
+  myApp.listen({
+    port: 8081,
+    certFile: "./dummy/localhost.cert",
+    keyFile: "./dummy/localhost.key",
+    alpnProtocols: ["h2", "http/1.1"],
+  }, (_, info) => {
     ok(info);
   });
 });
@@ -215,24 +245,47 @@ const myUploadErrorRequired = await fetch(BASE + "/upload", {
   method: "POST",
   body: form5,
 });
+
+const form6 = new FormData();
+form6.append("hello", "hello");
+const myUploadArrayRequeired = await fetch(BASE + "/upload-array", {
+  method: "POST",
+  body: form6,
+});
 Deno.test("it should listen app", () => {
   expect(myRes.status, 200);
   expect((info as TObject).port, 8080);
+  expect((infoSSL as TObject).port, 8081);
 });
 
 Deno.test("Multipart", async (t) => {
-  expect(myUploadArray.status, 201);
-  expect(myUploadErrorRequired.status, 400);
-  expect(myUpload.status, 201);
+  await t.step("validate form", () => {
+    expect(myUploadArray.status, 201);
+    expect(myUploadErrorRequired.status, 400);
+    expect(myUploadArrayRequeired.status, 400);
+    expect(myUpload.status, 201);
+  });
   await t.step("Optional parse", () => {
+    const myParseTest = (obj: TObject) => {
+      const arr = [] as TObject[];
+      for (const key in obj) {
+        arr.push([key, obj[key]]);
+      }
+      return arr;
+    };
     const form = new FormData();
     form.append("name", "john");
+    form.append("address[one]", "jakarta");
+    form.append("address[two]", "majalengka");
     const obj = multipart.createBody(form, {
       // example parse using options
       // Use qs.parse instead for case. https://github.com/ljharb/qs.
-      parse: (f: TObject) => f,
+      parse: (f: TRet) => myParse(myParseTest(f) as TRet),
     });
-    expect(obj, { name: "john" });
+    expect(obj, {
+      name: "john",
+      address: { one: "jakarta", two: "majalengka" },
+    });
   });
   await t.step("validate max count", () => {
     const file = new File(["hello world"], "text.txt");
@@ -273,4 +326,19 @@ Deno.test("Multipart", async (t) => {
     }
     expect(obj.message, "file to large, maxSize = 1");
   });
+  await t.step("cleanup body", () => {
+    const body = {
+      name: "john",
+      file: new File(["hello"], "text.txt"),
+      file2: [new File(["hello"], "text.txt")],
+    } as TObject;
+    multipart["cleanUp"](body);
+    expect(body, { name: "john" });
+  });
+});
+
+Deno.test("Single router", () => {
+  const router = new Router();
+  router.on("GET", /hello/, () => {});
+  expect(Array.isArray(router.c_routes), true);
 });

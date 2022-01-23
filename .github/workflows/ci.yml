@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }} # runs a test on Ubuntu, Windows and macOS
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
@@ -30,7 +30,7 @@ jobs:
         run: deno lint --config deno.json
 
       - name: Run Test
-        run: deno test --coverage=cov_profile --allow-net --allow-read --allow-write tests
+        run: deno test --coverage=cov_profile --allow-net --allow-read --allow-write --unstable tests
 
       - name: Create cov report
         if: matrix.os == 'ubuntu-latest'

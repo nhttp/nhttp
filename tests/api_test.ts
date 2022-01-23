@@ -30,6 +30,13 @@ Deno.test("Route response", async (t) => {
         "x-powered-by": "nhttp",
       }),
     }));
+  app.get("/json-response2", () =>
+    new JsonResponse({ name: "john" }, {
+      headers: {
+        "x-powered-by": "nhttp",
+      },
+    }));
+  // support sleep in handlers
   app.get("/async", async () => {
     await sleep(1000);
     return "hello";
@@ -44,6 +51,12 @@ Deno.test("Route response", async (t) => {
   await t.step("use /hello", async () => {
     await superdeno(handleApp(app))
       .get("/hello")
+      .expect(200)
+      .expect("hello");
+  });
+  await t.step("use /hello/world", async () => {
+    await superdeno(handleApp(app))
+      .get("/hello/world")
       .expect(200)
       .expect("hello");
   });
@@ -75,6 +88,14 @@ Deno.test("Route response", async (t) => {
     await superdeno(handleApp(app))
       .get("/json-response")
       .expect(200)
+      .expect("x-powered-by", "nhttp")
+      .expect({ name: "john" });
+  });
+  await t.step("get /json-response2", async () => {
+    await superdeno(handleApp(app))
+      .get("/json-response2")
+      .expect(200)
+      .expect("x-powered-by", "nhttp")
       .expect({ name: "john" });
   });
   await t.step("get /form", async () => {
@@ -446,4 +467,74 @@ Deno.test("Multiple error", async () => {
     .get("/hello")
     .expect(500)
     .expect(/noop/);
+});
+Deno.test("Verify body", async (t) => {
+  await t.step("verify 1 bytes", async () => {
+    const app = new NHttp({
+      bodyLimit: {
+        // multipart verify files not supported
+        // multipart: 1,
+        json: 1,
+        urlencoded: 1,
+        raw: 1,
+      },
+    });
+    app.post("/", ({ body }) => body);
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send({ name: "john" })
+      .expect(400);
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("Accept", "application/x-www-form-urlencoded")
+      .send("name=john")
+      .expect(400);
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "text/plain")
+      .set("Accept", "text/plain")
+      .send(JSON.stringify({ name: "john" }))
+      .expect(400);
+  });
+  await t.step("body all disable", async () => {
+    const app = new NHttp({
+      bodyLimit: {
+        multipart: 0,
+        json: 0,
+        urlencoded: 0,
+        raw: 0,
+      },
+    });
+    app.post("/", ({ body }) => body);
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Accept", "application/json")
+      .send({ name: "john" })
+      .expect(200)
+      .expect({});
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("Accept", "application/x-www-form-urlencoded")
+      .send("name=john")
+      .expect(200)
+      .expect({});
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Content-Type", "text/plain")
+      .set("Accept", "text/plain")
+      .send(JSON.stringify({ name: "john" }))
+      .expect(200)
+      .expect({});
+    await superdeno(handleApp(app))
+      .post("/")
+      .set("Accept", "multipart/form-data")
+      .field("name", "john")
+      .expect(200)
+      .expect({});
+  });
 });
