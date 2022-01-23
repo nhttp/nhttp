@@ -40,6 +40,7 @@ Deno.test("Route response", async (t) => {
     return form;
   });
   app.on("GET", "/with-on", () => "hello");
+  app.get("*", ({ params }) => params);
   await t.step("use /hello", async () => {
     await superdeno(handleApp(app))
       .get("/hello")
@@ -86,6 +87,12 @@ Deno.test("Route response", async (t) => {
       .get("/with-on")
       .expect(200)
       .expect("hello");
+  });
+  await t.step("get *", async () => {
+    await superdeno(handleApp(app))
+      .get("/john/doe")
+      .expect(200)
+      .expect({ wild: ["john", "doe"] });
   });
 });
 
@@ -169,7 +176,7 @@ Deno.test("Feature app and response", async (t) => {
     response.header("x-powered-by", "nhttp");
     response.header({ "name": "john" });
     response.header(new Headers({ "name1": "john" }));
-    response.cookie("key", "value", { encode: true });
+    response.cookie("key", "value", { encode: true, maxAge: 30 });
     response.cookie("key1", { "no": "1" });
     response.clearCookie("key");
     const status = response.status();
@@ -409,7 +416,12 @@ Deno.test("Middleware via expressMiddleware wrapper", async () => {
           return req.respond({ body: "hello respond" });
         }
       },
-    ] as EMidd[]));
+    ] as EMidd[], {
+      beforeWrap: (rev: TObject, res: TObject) => {
+        rev.noop = "noop";
+        res.noop = "noop";
+      },
+    }));
   await superdeno(handleApp(app))
     .get("/")
     .expect(200)

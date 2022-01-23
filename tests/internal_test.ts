@@ -1,7 +1,15 @@
 import {
   assertEquals as expect,
 } from "https://deno.land/std@0.105.0/testing/asserts.ts";
-import { concatRegexp, getReqCookies, serializeCookie } from "../src/utils.ts";
+import { TObject } from "../src/types.ts";
+import {
+  concatRegexp,
+  decURI,
+  getReqCookies,
+  parseQuery,
+  serializeCookie,
+  toBytes,
+} from "../src/utils.ts";
 import {
   getError,
   HttpError,
@@ -14,27 +22,50 @@ import {
 const rev = new RequestEvent();
 const res = new HttpResponse();
 
-// deno-lint-ignore no-explicit-any
-type TObject = { [k: string]: any };
-
-const { test } = Deno;
-test("concatRegexp instanceof RegExp", () => {
-  expect(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
-  expect(concatRegexp(/\/hello\//, /\/hello/) instanceof RegExp, true);
+Deno.test("Utils", async (t) => {
+  await t.step("concatRegex", () => {
+    expect(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
+    expect(concatRegexp("", /\/hello/) instanceof RegExp, true);
+    expect(concatRegexp(/\/hello\//, /\/hello/) instanceof RegExp, true);
+  });
+  await t.step("decUri", () => {
+    const str = decURI("hello%20world%%%%%%");
+    const str2 = decURI("hello%20world");
+    expect(str, "hello%20world%%%%%%");
+    expect(str2, "hello world");
+  });
+  await t.step("toBytes only number", () => {
+    const bytes = toBytes(123);
+    expect(bytes, 123);
+  });
+  await t.step("parseQuery is null", () => {
+    const obj = parseQuery(null);
+    expect(obj, {});
+  });
+  await t.step("misc error", () => {
+    const obj = getError({ status: "asdasd" });
+    console.log(obj);
+    expect(obj, {
+      status: 500,
+      message: "Something went wrong",
+      name: "HttpError",
+      stack: undefined,
+    });
+  });
 });
-test("RequestEvent undefined first", () => {
+Deno.test("RequestEvent undefined first", () => {
   const names = Object.getOwnPropertyNames(rev);
   names.forEach((name) => {
     expect(typeof rev[name], "undefined");
   });
 });
-test("HttpResponse undefined first", () => {
+Deno.test("HttpResponse undefined first", () => {
   const names = Object.getOwnPropertyNames(res);
   names.forEach((name) => {
     expect(typeof res[name], "undefined");
   });
 });
-test("getError object", () => {
+Deno.test("getError object", () => {
   const err = new HttpError(500, "my test error", "MyTestError") as TObject;
   const obj = getError(err, true);
   expect(typeof obj, "object");
@@ -42,7 +73,7 @@ test("getError object", () => {
   expect(typeof obj2, "object");
 });
 
-test("cookie", () => {
+Deno.test("cookie", () => {
   const now = Date.now();
   const date = new Date();
   const cookie = serializeCookie("__Secure", "value", {
@@ -170,21 +201,6 @@ const myUpload = await fetch(BASE + "/upload", {
   body: form,
 });
 
-const form2 = new FormData();
-form2.append("myfile", new File(["hello world"], "text.txt"));
-form2.append("myfile", new File(["hello world"], "foo.txt"));
-const myUploadErrorMaxCount = await fetch(BASE + "/upload", {
-  method: "POST",
-  body: form2,
-});
-
-const form3 = new FormData();
-form3.append("myfile", new File(["html {color: black}"], "text.css"));
-const myUploadErrorAccept = await fetch(BASE + "/upload", {
-  method: "POST",
-  body: form3,
-});
-
 const form4 = new FormData();
 form4.append("myfile", new File(["html {color: black}"], "text.css"));
 form4.append("myfile2", new File(["hello world"], "text.txt"));
@@ -195,16 +211,66 @@ const myUploadArray = await fetch(BASE + "/upload-array", {
 
 const form5 = new FormData();
 form5.append("hello", "hello");
-const myUploadErroRequired = await fetch(BASE + "/upload", {
+const myUploadErrorRequired = await fetch(BASE + "/upload", {
   method: "POST",
   body: form5,
 });
-test("it should listen app", () => {
+Deno.test("it should listen app", () => {
   expect(myRes.status, 200);
-  expect(myUploadArray.status, 201);
-  expect(myUploadErroRequired.status, 400);
-  expect(myUploadErrorMaxCount.status, 400);
-  expect(myUploadErrorAccept.status, 400);
-  expect(myUpload.status, 201);
   expect((info as TObject).port, 8080);
+});
+
+Deno.test("Multipart", async (t) => {
+  expect(myUploadArray.status, 201);
+  expect(myUploadErrorRequired.status, 400);
+  expect(myUpload.status, 201);
+  await t.step("Optional parse", () => {
+    const form = new FormData();
+    form.append("name", "john");
+    const obj = multipart.createBody(form, {
+      // example parse using options
+      // Use qs.parse instead for case. https://github.com/ljharb/qs.
+      parse: (f: TObject) => f,
+    });
+    expect(obj, { name: "john" });
+  });
+  await t.step("validate max count", () => {
+    const file = new File(["hello world"], "text.txt");
+    let obj;
+    try {
+      obj = multipart["validate"]([file, file], {
+        name: "file",
+        maxCount: 1,
+      });
+    } catch (err) {
+      obj = err;
+    }
+    expect(obj.message, "file no more than 1 file");
+  });
+  await t.step("validate accept", () => {
+    const file = new File(["hello world"], "text.txt");
+    let obj;
+    try {
+      obj = multipart["validate"]([file], {
+        name: "file",
+        accept: "png|jpg",
+      });
+    } catch (err) {
+      obj = err;
+    }
+    expect(obj.message, "file only accept png|jpg");
+  });
+  await t.step("validate max size", () => {
+    const file = new File(["hello world"], "text.txt");
+    let obj;
+    try {
+      obj = multipart["validate"]([file], {
+        name: "file",
+        maxSize: 1,
+      });
+    } catch (err) {
+      obj = err;
+    }
+    expect(obj.message, "file to large, maxSize = 1");
+  });
 });

@@ -6,7 +6,13 @@
   },
   "fmt": {
     "files": {
-      "exclude": ["mod.js", "dev.ts", "cf_workers/"]
+      "exclude": [
+        "mod.js",
+        "dev.ts",
+        "cf_workers/",
+        "cov_profile",
+        "cov_profile.lcov"
+      ]
     }
   }
 }
