@@ -45,7 +45,7 @@ export var NHttp: {
     _onError(err: any, rev: any, _: any): any;
     on404(fn: any): any;
     _on404(rev: any, _: any): any;
-    use(...args: any[]): any;
+    use(prefix: any, ...routerOrMiddleware: any[]): any;
     midds: any[];
     pmidds: any;
     on(method: any, path: any, ...handlers: any[]): any;
@@ -53,6 +53,7 @@ export var NHttp: {
     handleEvent(event: any): any;
     listen(opts: any, callback: any): Promise<void>;
     server: any;
+    pushRoutes(str: any, wares: any, last: any): void;
     handleConn(conn: any): Promise<void>;
     withPromise(handler: any, rev: any, next: any, isDepError: any): Promise<any>;
     route: {};

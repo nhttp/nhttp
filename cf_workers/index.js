@@ -38,7 +38,6 @@ __export(exports, {
 });
 
 // src/utils.ts
-var SERIALIZE_COOKIE_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 var encoder = new TextEncoder();
 var decoder = new TextDecoder();
 var decURI = (str) => {
@@ -73,7 +72,7 @@ function toBytes(arg) {
   const arr = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i.exec(arg);
   let val, unt = "b";
   if (!arr) {
-    val = parseInt(val, 10);
+    val = parseInt(arg, 10);
     unt = "b";
   } else {
     val = parseFloat(arr[1]);
@@ -198,13 +197,16 @@ function expressMiddleware(...middlewares) {
   }
   return handlers;
 }
+function middAssets(str) {
+  return [
+    (rev, next) => {
+      rev.url = rev.url.substring(str.length) || "/";
+      rev.path = rev.path.substring(str.length) || "/";
+      return next();
+    }
+  ];
+}
 function serializeCookie(name, value, cookie = {}) {
-  if (!SERIALIZE_COOKIE_REGEXP.test(name)) {
-    throw new TypeError("name is invalid");
-  }
-  if (value !== "" && !SERIALIZE_COOKIE_REGEXP.test(value)) {
-    throw new TypeError("value is invalid");
-  }
   cookie.encode = !!cookie.encode;
   if (cookie.encode) {
     value = "E:" + btoa(encoder.encode(value).toString());
@@ -224,28 +226,19 @@ function serializeCookie(name, value, cookie = {}) {
   if (cookie.httpOnly) {
     ret += `; HttpOnly`;
   }
-  if (typeof cookie.maxAge === "number" && Number.isInteger(cookie.maxAge)) {
+  if (typeof cookie.maxAge === "number") {
     ret += `; Max-Age=${cookie.maxAge}`;
   }
   if (cookie.domain) {
-    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.domain)) {
-      throw new TypeError("domain is invalid");
-    }
     ret += `; Domain=${cookie.domain}`;
   }
   if (cookie.sameSite) {
     ret += `; SameSite=${cookie.sameSite}`;
   }
   if (cookie.path) {
-    if (!SERIALIZE_COOKIE_REGEXP.test(cookie.path)) {
-      throw new TypeError("path is invalid");
-    }
     ret += `; Path=${cookie.path}`;
   }
   if (cookie.expires) {
-    if (typeof cookie.expires.toUTCString !== "function") {
-      throw new TypeError("expires is invalid");
-    }
     ret += `; Expires=${cookie.expires.toUTCString()}`;
   }
   if (cookie.other) {
@@ -710,6 +703,7 @@ var NHttp = class extends Router {
   }
   onError(fn) {
     this._onError = (err, rev, next) => {
+      rev.__onErr = true;
       let status = err.status || err.statusCode || err.code || 500;
       if (typeof status !== "number")
         status = 500;
@@ -725,41 +719,22 @@ var NHttp = class extends Router {
     };
     return this;
   }
-  use(...args) {
-    let str = typeof args[0] === "string" ? args[0] : "";
-    let last = args[args.length - 1];
-    if (str === "/")
-      str = "";
-    if (args.length === 1 && typeof args[0] === "function") {
-      this.midds = this.midds.concat(args[0]);
-    } else if (typeof last === "object" && (last.c_routes || last[0].c_routes)) {
-      const wares = findFns(args);
-      last = Array.isArray(last) ? last : [last];
-      let i = 0, j = 0;
-      for (; i < last.length; i++) {
-        for (; j < last[i].c_routes.length; j++) {
-          const { method, path, fns } = last[i].c_routes[j];
-          let _path;
-          if (path instanceof RegExp)
-            _path = concatRegexp(str, path);
-          else {
-            let mPath = path;
-            if (mPath === "/" && str !== "")
-              mPath = "";
-            _path = str + mPath;
-          }
-          this.on(method, _path, ...wares.concat(fns));
-        }
-      }
+  use(prefix, ...routerOrMiddleware) {
+    let args = routerOrMiddleware, str = "";
+    if (typeof prefix === "function" && args.length === 0) {
+      this.midds = this.midds.concat(prefix);
+      return this;
+    }
+    if (typeof prefix === "string")
+      str = prefix === "/" ? "" : prefix;
+    else
+      args = [prefix].concat(args);
+    const last = args[args.length - 1];
+    if (typeof last === "object" && (last.c_routes || last[0].c_routes)) {
+      this.pushRoutes(str, findFns(args), last);
     } else if (str !== "") {
       this.pmidds = this.pmidds || {};
-      this.pmidds[str] = [
-        (rev, next) => {
-          rev.url = rev.url.substring(str.length) || "/";
-          rev.path = rev.path.substring(str.length) || "/";
-          return next();
-        }
-      ].concat(findFns(args));
+      this.pmidds[str] = middAssets(str).concat(findFns(args));
     } else {
       this.midds = this.midds.concat(findFns(args));
     }
@@ -808,7 +783,7 @@ var NHttp = class extends Router {
       }
       if (ret) {
         if (typeof ret.then === "function") {
-          return this.withPromise(ret, rev, next);
+          return this.withPromise(ret, rev, next, rev.__onErr);
         }
         return rev.response.send(ret);
       }
@@ -834,8 +809,8 @@ var NHttp = class extends Router {
     } else if (typeof opts === "object") {
       isTls = opts.certFile !== void 0;
     }
-    this.server = isTls ? Deno.listenTls(opts) : Deno.listen(opts);
     try {
+      this.server = isTls ? Deno.listenTls(opts) : Deno.listen(opts);
       if (callback) {
         callback(void 0, __spreadProps(__spreadValues({}, opts), {
           hostname: opts.hostname || "localhost",
@@ -856,11 +831,28 @@ var NHttp = class extends Router {
     } catch (error) {
       if (callback) {
         callback(error, __spreadProps(__spreadValues({}, opts), {
-          hostname: opts.hostname || "localhost",
-          server: this.server
+          hostname: opts.hostname || "localhost"
         }));
       }
     }
+  }
+  pushRoutes(str, wares, last) {
+    last = Array.isArray(last) ? last : [last];
+    last.forEach((obj) => {
+      obj.c_routes.forEach((route) => {
+        const { method, path, fns } = route;
+        let _path;
+        if (path instanceof RegExp)
+          _path = concatRegexp(str, path);
+        else {
+          let mPath = path;
+          if (mPath === "/" && str !== "")
+            mPath = "";
+          _path = str + mPath;
+        }
+        this.on(method, _path, [wares, fns]);
+      });
+    });
   }
   _onError(err, rev, _) {
     return defError(err, rev, this.env);
@@ -892,7 +884,7 @@ var NHttp = class extends Router {
       return rev.response.send(ret);
     } catch (err) {
       if (isDepError) {
-        return this._onError(err, rev, next);
+        return defError(err, rev, this.env);
       }
       return next(err);
     }
