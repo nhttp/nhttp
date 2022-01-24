@@ -70,6 +70,7 @@ export class NHttp<
     ) => RetHandler,
   ) {
     this._onError = (err, rev, next) => {
+      (rev as TRet).__onErr = true;
       let status: number = err.status || err.statusCode || err.code || 500;
       if (typeof status !== "number") status = 500;
       rev.response.status(status);
@@ -173,6 +174,7 @@ export class NHttp<
             ret as unknown as Promise<Handler<RequestEvent>>,
             rev,
             next,
+            rev.__onErr,
           );
         }
         return rev.response.send(ret);
@@ -238,12 +240,12 @@ export class NHttp<
     } else if (typeof opts === "object") {
       isTls = (opts as Deno.ListenTlsOptions).certFile !== void 0;
     }
-    this.server = (
-      isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
-        opts as Deno.ListenOptions & { transport?: "tcp" | undefined },
-      )
-    ) as Deno.Listener;
     try {
+      this.server = (
+        isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
+          opts as Deno.ListenOptions & { transport?: "tcp" | undefined },
+        )
+      ) as Deno.Listener;
       if (callback) {
         callback(undefined, {
           ...opts,
@@ -266,7 +268,6 @@ export class NHttp<
         callback(error, {
           ...opts,
           hostname: opts.hostname || "localhost",
-          server: this.server,
         });
       }
     }
@@ -332,7 +333,7 @@ export class NHttp<
       return rev.response.send(ret);
     } catch (err) {
       if (isDepError) {
-        return this._onError(err, rev, next);
+        return defError(err, rev, this.env);
       }
       return next(err);
     }

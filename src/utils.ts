@@ -44,7 +44,7 @@ export function toBytes(arg: string | number) {
   const arr = (/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i).exec(arg);
   let val, unt = "b";
   if (!arr) {
-    val = parseInt(val as unknown as string, 10);
+    val = parseInt(arg as unknown as string, 10);
     unt = "b";
   } else {
     val = parseFloat(arr[1]);
@@ -70,7 +70,12 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
   const pathx = new RegExp(`^${path}/*$`);
   return { pathx, wild };
 }
-function needPatch(data: TObject | TObject[], keys: number[], value: string) {
+
+export function needPatch(
+  data: TObject | TObject[],
+  keys: number[],
+  value: string,
+) {
   if (keys.length === 0) {
     return value;
   }

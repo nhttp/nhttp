@@ -2,6 +2,7 @@ import { superdeno } from "https://deno.land/x/superdeno@4.7.2/mod.ts";
 import { TObject } from "../src/types.ts";
 import {
   expressMiddleware,
+  HttpError,
   JsonResponse,
   NextFunction,
   NHttp,
@@ -251,6 +252,9 @@ Deno.test("Error handling", async (t) => {
     noop();
     return "noop";
   });
+  app.get("/check-status", () => {
+    throw new HttpError("200" as unknown as number);
+  });
   app.onError((err) => {
     return err.message;
   });
@@ -268,6 +272,11 @@ Deno.test("Error handling", async (t) => {
       .get("/hello")
       .expect(404)
       .expect("/hello 404 not found");
+  });
+  await t.step("Url /check-status str as number", async () => {
+    await superdeno(handleApp(app))
+      .get("/check-status")
+      .expect(500);
   });
 });
 Deno.test("Body parser", async (t) => {
@@ -358,6 +367,9 @@ Deno.test("Middleware and sub router", async (t) => {
   users.get("/", ({ foo, bar, foobar }) => {
     return foo + bar + (foobar || "");
   });
+  users.get(/\/hello/, ({ foo, bar, foobar }) => {
+    return foo + bar + (foobar || "");
+  });
 
   const items = new Router();
   items.get("/items", ({ foo, bar, foobar }) => {
@@ -365,7 +377,7 @@ Deno.test("Middleware and sub router", async (t) => {
   });
 
   const books = new Router({ base: "/" });
-  books.get("/books", ({ foo, bar, foobar }) => {
+  books.get("/", ({ foo, bar, foobar }) => {
     return foo + bar + (foobar || "");
   });
   const app = new NHttp();
@@ -384,7 +396,9 @@ Deno.test("Middleware and sub router", async (t) => {
     rev.foobar = "foobar";
     return next();
   }, [users, items]);
-  app.use("/api/v1", books);
+
+  // other router prefix
+  app.use("/api/v1/books", books);
 
   app.get("/foobar", ({ foo, bar, foobar }) => {
     return foo + bar + (foobar || "");
@@ -399,6 +413,12 @@ Deno.test("Middleware and sub router", async (t) => {
   await t.step("get /api/v1/users", async () => {
     await superdeno(handleApp(app))
       .get("/api/v1/users")
+      .expect(200)
+      .expect("foobarfoobar");
+  });
+  await t.step("get /api/v1/users/hello/world", async () => {
+    await superdeno(handleApp(app))
+      .get("/api/v1/users/hello/world")
       .expect(200)
       .expect("foobarfoobar");
   });
@@ -454,19 +474,38 @@ Deno.test("Middleware via expressMiddleware wrapper", async () => {
     .expect("hello respond");
 });
 
-Deno.test("Multiple error", async () => {
-  const app = new NHttp()
-    .use((_, next) => {
-      return next(new Error("my error"));
-    })
-    .onError((err, { noop }) => {
-      noop();
-      return err.message || "hello";
-    });
-  await superdeno(handleApp(app))
-    .get("/hello")
-    .expect(500)
-    .expect(/noop/);
+Deno.test("Multiple error", async (t) => {
+  await t.step("error sync", async () => {
+    await superdeno(handleApp(
+      new NHttp()
+        .use((_, next) => {
+          return next(new Error("my error"));
+        })
+        .onError((err, { noop }) => {
+          noop();
+          return err.message || "hello";
+        }),
+    ))
+      .get("/hello")
+      .expect(500)
+      .expect(/noop/);
+  });
+  await t.step("error async", async () => {
+    await superdeno(handleApp(
+      new NHttp()
+        .use((_, next) => {
+          return next(new Error("my error"));
+        })
+        .onError(async (err, { noop }) => {
+          await sleep(1000);
+          noop();
+          return err.message || "hello";
+        }),
+    ))
+      .get("/hello")
+      .expect(500)
+      .expect(/noop/);
+  });
 });
 Deno.test("Verify body", async (t) => {
   await t.step("verify 1 bytes", async () => {
