@@ -87,12 +87,11 @@ function toPathx(path, isAny) {
     return {};
   }
   let wild = false;
-  path = path.replace(/\/$/, "").replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3").replace(/(\/?)\*/g, (_, p) => {
+  const pathx = new RegExp(`^${path.replace(/\/$/, "").replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3").replace(/(\/?)\*/g, (_, p) => {
     wild = true;
     return `(${p}.*)?`;
-  }).replace(/\.(?=[\w(])/, "\\.");
-  const pathx = new RegExp(`^${path}/*$`);
-  return { pathx, wild };
+  }).replace(/\.(?=[\w(])/, "\\.")}/*$`);
+  return { pathx, path, wild };
 }
 function needPatch(data, keys, value) {
   if (keys.length === 0) {
@@ -280,6 +279,29 @@ function getReqCookies(req, decode, i = 0) {
 }
 
 // src/router.ts
+function wildcard(path, wild, match) {
+  const params = match.groups || {};
+  if (!wild)
+    return params;
+  if (!path)
+    return params;
+  if (path.indexOf("*") !== -1) {
+    match.shift();
+    const wild2 = match.filter((el) => el !== void 0).filter((el) => el.startsWith("/")).join("").split("/");
+    wild2.shift();
+    const ret = __spreadProps(__spreadValues({}, params), { wild: wild2.filter((el) => el !== "") });
+    if (path === "*" || path.indexOf("/*") !== -1)
+      return ret;
+    let wn = path.split("/").find((el) => el.startsWith(":") && el.endsWith("*"));
+    if (!wn)
+      return ret;
+    wn = wn.slice(1, -1);
+    ret[wn] = [ret[wn]].concat(ret.wild).filter((el) => el !== "");
+    delete ret.wild;
+    return ret;
+  }
+  return params;
+}
 function base(url) {
   const iof = url.indexOf("/", 1);
   if (iof !== -1)
@@ -349,12 +371,9 @@ var Router = class {
         url = decURI(url);
         match = obj.pathx.exec(url);
         fns = obj.fns;
-        if (match.groups)
-          params = match.groups || {};
-        if (obj.wild && typeof match[1] === "string") {
-          params["wild"] = match[1].split("/");
-          params["wild"].shift();
-        }
+        if (!match)
+          break;
+        params = wildcard(obj.path, obj.wild, match);
         break;
       }
       i++;
@@ -742,10 +761,15 @@ var NHttp = class extends Router {
   }
   on(method, path, ...handlers) {
     const fns = findFns(handlers);
-    const { wild, pathx } = toPathx(path, method === "ANY");
+    const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY");
     if (pathx) {
       this.route[method] = this.route[method] || [];
-      this.route[method].push({ wild, pathx, fns });
+      this.route[method].push({
+        path: oriPath,
+        pathx,
+        fns,
+        wild
+      });
     } else {
       this.route[method + path] = { fns };
     }
