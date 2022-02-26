@@ -23,20 +23,20 @@ import {
 const rev = new RequestEvent();
 const res = new HttpResponse();
 
-Deno.test("Wildcard", async () => {
+Deno.test("Wildcard", () => {
   const n1 = new NHttp();
   n1.get("*", () => {});
   n1.post("/*/:id", () => {});
   n1.put("/:slug*", () => {});
   n1.patch("/:slug*/:id", () => {});
-  const m1 = n1.find('GET', "/hello", () => {});
-  const m2 = n1.find('GET', "/hello/", () => {});
-  const m3 = n1.find('POST', "/hello/123", () => {});
-  const m4 = n1.find('POST', "/hello/123/", () => {});
-  const m5 = n1.find('PUT', "/hello/123", () => {});
-  const m6 = n1.find('PUT', "/hello/123/", () => {});
-  const m7 = n1.find('PATCH', "/hello/world/123", () => {});
-  const m8 = n1.find('PATCH', "/hello/world/123/", () => {});
+  const m1 = n1.find("GET", "/hello", () => {});
+  const m2 = n1.find("GET", "/hello/", () => {});
+  const m3 = n1.find("POST", "/hello/123", () => {});
+  const m4 = n1.find("POST", "/hello/123/", () => {});
+  const m5 = n1.find("PUT", "/hello/123", () => {});
+  const m6 = n1.find("PUT", "/hello/123/", () => {});
+  const m7 = n1.find("PATCH", "/hello/world/123", () => {});
+  const m8 = n1.find("PATCH", "/hello/world/123/", () => {});
   expect(m1.params, { wild: ["hello"] });
   expect(m2.params, { wild: ["hello"] });
   expect(m3.params, { wild: ["hello"], id: "123" });
@@ -45,7 +45,7 @@ Deno.test("Wildcard", async () => {
   expect(m6.params, { slug: ["hello", "123"] });
   expect(m7.params, { slug: ["hello", "world"], id: "123" });
   expect(m8.params, { slug: ["hello", "world"], id: "123" });
-})
+});
 
 Deno.test("Utils", async (t) => {
   await t.step("concatRegex", () => {
