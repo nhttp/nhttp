@@ -129,10 +129,15 @@ export class NHttp<
   }
   on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>): this {
     const fns = findFns(handlers);
-    const { wild, pathx } = toPathx(path, method === "ANY");
+    const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY");
     if (pathx) {
       this.route[method] = this.route[method] || [];
-      (this.route[method] as TObject[]).push({ wild, pathx, fns });
+      (this.route[method] as TObject[]).push({
+        path: oriPath,
+        pathx,
+        fns,
+        wild,
+      });
     } else {
       this.route[method + path] = { fns };
     }

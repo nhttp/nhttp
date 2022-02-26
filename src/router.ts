@@ -1,6 +1,30 @@
 import { RequestEvent } from "./request_event.ts";
-import { Handler, Handlers, TObject } from "./types.ts";
+import { Handler, Handlers, TObject, TRet } from "./types.ts";
 import { concatRegexp, decURI } from "./utils.ts";
+
+function wildcard(path: string | undefined, wild: boolean, match: TRet) {
+  const params = match.groups || {};
+  if (!wild) return params;
+  if (!path) return params;
+  if (path.indexOf("*") !== -1) {
+    match.shift();
+    const wild = match.filter((el: TRet) => el !== void 0).filter((
+      el: string,
+    ) => el.startsWith("/")).join("").split("/");
+    wild.shift();
+    const ret = { ...params, wild: wild.filter((el: string) => el !== "") };
+    if (path === "*" || path.indexOf("/*") !== -1) return ret;
+    let wn = path.split("/").find((el: string) =>
+      el.startsWith(":") && el.endsWith("*")
+    );
+    if (!wn) return ret;
+    wn = wn.slice(1, -1);
+    ret[wn] = [ret[wn]].concat(ret.wild).filter((el) => el !== "");
+    delete ret.wild;
+    return ret;
+  }
+  return params;
+}
 
 function base(url: string) {
   const iof = url.indexOf("/", 1);
@@ -125,11 +149,8 @@ export default class Router<
         url = decURI(url);
         match = obj.pathx.exec(url);
         fns = obj.fns;
-        if (match.groups) params = match.groups || {};
-        if (obj.wild && typeof match[1] === "string") {
-          params["wild"] = match[1].split("/");
-          params["wild"].shift();
-        }
+        if (!match) break;
+        params = wildcard(obj.path, obj.wild, match);
         break;
       }
       i++;

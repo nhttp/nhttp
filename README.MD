@@ -1,7 +1,7 @@
 <!-- // deno-fmt-ignore-file -->
 
 <p align="center">
-  <a href="https://github.com/nhttp/nhttp"><img height="200" src="https://raw.githubusercontent.com/nhttp/nhttp/master/dummy/logo.png" alt="logo"></a>
+  <a href="https://github.com/nhttp/nhttp"><img height="200" style="height: 200px" src="https://raw.githubusercontent.com/nhttp/nhttp/master/dummy/logo.png" alt="logo"></a>
   <h1 align="center">NHttp</h1>
 </p>
 <p align="center">

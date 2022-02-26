@@ -59,16 +59,17 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
     return {};
   }
   let wild = false;
-  path = path
-    .replace(/\/$/, "")
-    .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3")
-    .replace(/(\/?)\*/g, (_, p) => {
-      wild = true;
-      return `(${p}.*)?`;
-    })
-    .replace(/\.(?=[\w(])/, "\\.");
-  const pathx = new RegExp(`^${path}/*$`);
-  return { pathx, wild };
+  const pathx = new RegExp(`^${
+    path
+      .replace(/\/$/, "")
+      .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3")
+      .replace(/(\/?)\*/g, (_, p) => {
+        wild = true;
+        return `(${p}.*)?`;
+      })
+      .replace(/\.(?=[\w(])/, "\\.")
+  }/*$`);
+  return { pathx, path, wild };
 }
 
 export function needPatch(
