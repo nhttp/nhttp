@@ -1,6 +1,6 @@
 {
   "name": "nhttp-workers",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "An simple http framework for Deno, Deno Deploy and Cloudflare Workers.",
   "main": "index.js",
   "types": "index.d.ts",

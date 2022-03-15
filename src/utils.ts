@@ -20,6 +20,13 @@ export const decURI = (str: string) => {
     return str;
   }
 };
+export const decURIComponent = (str: string) => {
+  try {
+    return decodeURIComponent(str);
+  } catch (_e) {
+    return str;
+  }
+};
 
 export function findFns(arr: TObject[]): Array<unknown> {
   let ret: Array<unknown>[] = [], i = 0;
@@ -266,12 +273,12 @@ function tryDecode(str: string) {
     if (ret !== str) {
       if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
         const json = ret.substring(2);
-        return JSON.parse(json);
+        return JSON.parse(decURIComponent(json));
       }
     }
-    return ret;
-  } catch (_error) {
-    return str;
+    return decURIComponent(ret);
+  } catch (_e) {
+    return decURIComponent(str);
   }
 }
 
@@ -283,10 +290,20 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   const len = arr.length;
   while (i < len) {
     const [key, ...oriVal] = arr[i].split("=");
-    const val = oriVal.join("=");
-    ret[key.trim()] = decode
-      ? (val.startsWith("E:") ? tryDecode(val) : val)
-      : val;
+    let val = oriVal.join("=");
+    if (decode) {
+      ret[key.trim()] = val.startsWith("E:")
+        ? tryDecode(val)
+        : decURIComponent(val);
+    } else {
+      val = decURIComponent(val);
+      if (val.startsWith("j:{") || val.startsWith("j:[")) {
+        const json = val.substring(2);
+        ret[key.trim()] = JSON.parse(json);
+      } else {
+        ret[key.trim()] = val;
+      }
+    }
     i++;
   }
   return ret;

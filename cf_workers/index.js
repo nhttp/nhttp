@@ -37,9 +37,7 @@ __export(exports, {
   multipart: () => multipart
 });
 
-// src/utils.ts
-var encoder = new TextEncoder();
-var decoder = new TextDecoder();
+// src/router.ts
 var decURI = (str) => {
   try {
     return decodeURI(str);
@@ -47,109 +45,6 @@ var decURI = (str) => {
     return str;
   }
 };
-function findFns(arr) {
-  let ret = [], i = 0;
-  const len = arr.length;
-  for (; i < len; i++) {
-    if (Array.isArray(arr[i]))
-      ret = ret.concat(findFns(arr[i]));
-    else if (typeof arr[i] === "function")
-      ret.push(arr[i]);
-  }
-  return ret;
-}
-function toBytes(arg) {
-  const sizeList = {
-    b: 1,
-    kb: 1 << 10,
-    mb: 1 << 20,
-    gb: 1 << 30,
-    tb: Math.pow(1024, 4),
-    pb: Math.pow(1024, 5)
-  };
-  if (typeof arg === "number")
-    return arg;
-  const arr = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i.exec(arg);
-  let val, unt = "b";
-  if (!arr) {
-    val = parseInt(arg, 10);
-    unt = "b";
-  } else {
-    val = parseFloat(arr[1]);
-    unt = arr[4].toLowerCase();
-  }
-  return Math.floor(sizeList[unt] * val);
-}
-function toPathx(path, isAny) {
-  if (path instanceof RegExp)
-    return { pathx: path, wild: true };
-  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
-    return {};
-  }
-  let wild = false;
-  const pathx = new RegExp(`^${path.replace(/\/$/, "").replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3").replace(/(\/?)\*/g, (_, p) => {
-    wild = true;
-    return `(${p}.*)?`;
-  }).replace(/\.(?=[\w(])/, "\\.")}/*$`);
-  return { pathx, path, wild };
-}
-function needPatch(data, keys, value) {
-  if (keys.length === 0) {
-    return value;
-  }
-  let key = keys.shift();
-  if (!key) {
-    data = data || [];
-    if (Array.isArray(data)) {
-      key = data.length;
-    }
-  }
-  const index = +key;
-  if (!isNaN(index)) {
-    data = data || [];
-    key = index;
-  }
-  data = data || {};
-  const val = needPatch(data[key], keys, value);
-  data[key] = val;
-  return data;
-}
-function myParse(arr) {
-  const obj = arr.reduce((red, [field, value]) => {
-    if (red[field]) {
-      if (Array.isArray(red[field])) {
-        red[field] = [...red[field], value];
-      } else {
-        red[field] = [red[field], value];
-      }
-    } else {
-      let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
-      if (keys) {
-        keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m) => m[1]);
-        value = needPatch(red[prefix], keys, value);
-      }
-      red[prefix] = value;
-    }
-    return red;
-  }, {});
-  return obj;
-}
-function parseQuery(query) {
-  if (query === null)
-    return {};
-  if (typeof query === "string") {
-    let i = 0;
-    const arr = query.split("&");
-    const data = [], len = arr.length;
-    while (i < len) {
-      const el = arr[i].split("=");
-      data.push([decURI(el[0]), decURI(el[1] || "")]);
-      i++;
-    }
-    return myParse(data);
-  }
-  return myParse(Array.from(query.entries()));
-}
 function concatRegexp(prefix, path) {
   if (prefix === "")
     return path;
@@ -158,127 +53,6 @@ function concatRegexp(prefix, path) {
   flags = Array.from(new Set(flags.split(""))).join();
   return new RegExp(prefix.source + path.source, flags);
 }
-function expressMiddleware(...middlewares) {
-  const midds = middlewares;
-  const opts = midds.length && midds[midds.length - 1];
-  const beforeWrap = typeof opts === "object" && opts.beforeWrap;
-  const fns = findFns(midds);
-  let handlers = [];
-  let j = 0;
-  const len = fns.length;
-  while (j < len) {
-    const fn = fns[j];
-    handlers = handlers.concat((rev, next) => {
-      const res = rev.response;
-      if (!rev.__isWrapMiddleware) {
-        rev.headers = rev.request.headers;
-        rev.method = rev.request.method;
-        res.setHeader = res.set = res.header;
-        res.getHeader = res.get = (a) => res.header(a);
-        res.hasHeader = (a) => res.header(a) !== null;
-        res.removeHeader = (a) => res.header().delete(a);
-        res.end = res.send;
-        res.writeHead = (a, ...b) => {
-          res.status(a);
-          for (let i = 0; i < b.length; i++) {
-            if (typeof b[i] === "object")
-              res.header(b[i]);
-          }
-        };
-        rev.respond = ({ body, status, headers }) => rev.respondWith(new Response(body, { status, headers }));
-        rev.__isWrapMiddleware = true;
-      }
-      if (beforeWrap)
-        beforeWrap(rev, res);
-      return fn(rev, res, next);
-    });
-    j++;
-  }
-  return handlers;
-}
-function middAssets(str) {
-  return [
-    (rev, next) => {
-      rev.url = rev.url.substring(str.length) || "/";
-      rev.path = rev.path.substring(str.length) || "/";
-      return next();
-    }
-  ];
-}
-function serializeCookie(name, value, cookie = {}) {
-  cookie.encode = !!cookie.encode;
-  if (cookie.encode) {
-    value = "E:" + btoa(encoder.encode(value).toString());
-  }
-  let ret = `${name}=${value}`;
-  if (name.startsWith("__Secure")) {
-    cookie.secure = true;
-  }
-  if (name.startsWith("__Host")) {
-    cookie.path = "/";
-    cookie.secure = true;
-    delete cookie.domain;
-  }
-  if (cookie.secure) {
-    ret += `; Secure`;
-  }
-  if (cookie.httpOnly) {
-    ret += `; HttpOnly`;
-  }
-  if (typeof cookie.maxAge === "number") {
-    ret += `; Max-Age=${cookie.maxAge}`;
-  }
-  if (cookie.domain) {
-    ret += `; Domain=${cookie.domain}`;
-  }
-  if (cookie.sameSite) {
-    ret += `; SameSite=${cookie.sameSite}`;
-  }
-  if (cookie.path) {
-    ret += `; Path=${cookie.path}`;
-  }
-  if (cookie.expires) {
-    ret += `; Expires=${cookie.expires.toUTCString()}`;
-  }
-  if (cookie.other) {
-    ret += `; ${cookie.other.join("; ")}`;
-  }
-  return ret;
-}
-function tryDecode(str) {
-  try {
-    str = str.substring(2);
-    const dec = atob(str);
-    const uint = Uint8Array.from(dec.split(","));
-    const ret = decoder.decode(uint) || str;
-    if (ret !== str) {
-      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
-        const json = ret.substring(2);
-        return JSON.parse(json);
-      }
-    }
-    return ret;
-  } catch (_error) {
-    return str;
-  }
-}
-function getReqCookies(req, decode, i = 0) {
-  const str = req.headers.get("Cookie");
-  if (str === null)
-    return {};
-  const ret = {};
-  const arr = str.split(";");
-  const len = arr.length;
-  while (i < len) {
-    const [key, ...oriVal] = arr[i].split("=");
-    const val = oriVal.join("=");
-    ret[key.trim()] = decode ? val.startsWith("E:") ? tryDecode(val) : val : val;
-    i++;
-  }
-  return ret;
-}
-
-// src/router.ts
 function wildcard(path, wild, match) {
   const params = match.groups || {};
   if (!wild)
@@ -387,6 +161,264 @@ var Router = class {
     return { params, fns };
   }
 };
+
+// src/utils.ts
+var encoder = new TextEncoder();
+var decoder = new TextDecoder();
+var decURI2 = (str) => {
+  try {
+    return decodeURI(str);
+  } catch (_e) {
+    return str;
+  }
+};
+var decURIComponent = (str) => {
+  try {
+    return decodeURIComponent(str);
+  } catch (_e) {
+    return str;
+  }
+};
+function findFns(arr) {
+  let ret = [], i = 0;
+  const len = arr.length;
+  for (; i < len; i++) {
+    if (Array.isArray(arr[i]))
+      ret = ret.concat(findFns(arr[i]));
+    else if (typeof arr[i] === "function")
+      ret.push(arr[i]);
+  }
+  return ret;
+}
+function toBytes(arg) {
+  const sizeList = {
+    b: 1,
+    kb: 1 << 10,
+    mb: 1 << 20,
+    gb: 1 << 30,
+    tb: Math.pow(1024, 4),
+    pb: Math.pow(1024, 5)
+  };
+  if (typeof arg === "number")
+    return arg;
+  const arr = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i.exec(arg);
+  let val, unt = "b";
+  if (!arr) {
+    val = parseInt(arg, 10);
+    unt = "b";
+  } else {
+    val = parseFloat(arr[1]);
+    unt = arr[4].toLowerCase();
+  }
+  return Math.floor(sizeList[unt] * val);
+}
+function toPathx(path, isAny) {
+  if (path instanceof RegExp)
+    return { pathx: path, wild: true };
+  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
+    return {};
+  }
+  let wild = false;
+  const pathx = new RegExp(`^${path.replace(/\/$/, "").replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3").replace(/(\/?)\*/g, (_, p) => {
+    wild = true;
+    return `(${p}.*)?`;
+  }).replace(/\.(?=[\w(])/, "\\.")}/*$`);
+  return { pathx, path, wild };
+}
+function needPatch(data, keys, value) {
+  if (keys.length === 0) {
+    return value;
+  }
+  let key = keys.shift();
+  if (!key) {
+    data = data || [];
+    if (Array.isArray(data)) {
+      key = data.length;
+    }
+  }
+  const index = +key;
+  if (!isNaN(index)) {
+    data = data || [];
+    key = index;
+  }
+  data = data || {};
+  const val = needPatch(data[key], keys, value);
+  data[key] = val;
+  return data;
+}
+function myParse(arr) {
+  const obj = arr.reduce((red, [field, value]) => {
+    if (red[field]) {
+      if (Array.isArray(red[field])) {
+        red[field] = [...red[field], value];
+      } else {
+        red[field] = [red[field], value];
+      }
+    } else {
+      let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      if (keys) {
+        keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m) => m[1]);
+        value = needPatch(red[prefix], keys, value);
+      }
+      red[prefix] = value;
+    }
+    return red;
+  }, {});
+  return obj;
+}
+function parseQuery(query) {
+  if (query === null)
+    return {};
+  if (typeof query === "string") {
+    let i = 0;
+    const arr = query.split("&");
+    const data = [], len = arr.length;
+    while (i < len) {
+      const el = arr[i].split("=");
+      data.push([decURI2(el[0]), decURI2(el[1] || "")]);
+      i++;
+    }
+    return myParse(data);
+  }
+  return myParse(Array.from(query.entries()));
+}
+function concatRegexp2(prefix, path) {
+  if (prefix === "")
+    return path;
+  prefix = new RegExp(prefix);
+  let flags = prefix.flags + path.flags;
+  flags = Array.from(new Set(flags.split(""))).join();
+  return new RegExp(prefix.source + path.source, flags);
+}
+function expressMiddleware(...middlewares) {
+  const midds = middlewares;
+  const opts = midds.length && midds[midds.length - 1];
+  const beforeWrap = typeof opts === "object" && opts.beforeWrap;
+  const fns = findFns(midds);
+  let handlers = [];
+  let j = 0;
+  const len = fns.length;
+  while (j < len) {
+    const fn = fns[j];
+    handlers = handlers.concat((rev, next) => {
+      const res = rev.response;
+      if (!rev.__isWrapMiddleware) {
+        rev.headers = rev.request.headers;
+        rev.method = rev.request.method;
+        res.setHeader = res.set = res.header;
+        res.getHeader = res.get = (a) => res.header(a);
+        res.hasHeader = (a) => res.header(a) !== null;
+        res.removeHeader = (a) => res.header().delete(a);
+        res.end = res.send;
+        res.writeHead = (a, ...b) => {
+          res.status(a);
+          for (let i = 0; i < b.length; i++) {
+            if (typeof b[i] === "object")
+              res.header(b[i]);
+          }
+        };
+        rev.respond = ({ body, status, headers }) => rev.respondWith(new Response(body, { status, headers }));
+        rev.__isWrapMiddleware = true;
+      }
+      if (beforeWrap)
+        beforeWrap(rev, res);
+      return fn(rev, res, next);
+    });
+    j++;
+  }
+  return handlers;
+}
+function middAssets(str) {
+  return [
+    (rev, next) => {
+      rev.url = rev.url.substring(str.length) || "/";
+      rev.path = rev.path.substring(str.length) || "/";
+      return next();
+    }
+  ];
+}
+function serializeCookie(name, value, cookie = {}) {
+  cookie.encode = !!cookie.encode;
+  if (cookie.encode) {
+    value = "E:" + btoa(encoder.encode(value).toString());
+  }
+  let ret = `${name}=${value}`;
+  if (name.startsWith("__Secure")) {
+    cookie.secure = true;
+  }
+  if (name.startsWith("__Host")) {
+    cookie.path = "/";
+    cookie.secure = true;
+    delete cookie.domain;
+  }
+  if (cookie.secure) {
+    ret += `; Secure`;
+  }
+  if (cookie.httpOnly) {
+    ret += `; HttpOnly`;
+  }
+  if (typeof cookie.maxAge === "number") {
+    ret += `; Max-Age=${cookie.maxAge}`;
+  }
+  if (cookie.domain) {
+    ret += `; Domain=${cookie.domain}`;
+  }
+  if (cookie.sameSite) {
+    ret += `; SameSite=${cookie.sameSite}`;
+  }
+  if (cookie.path) {
+    ret += `; Path=${cookie.path}`;
+  }
+  if (cookie.expires) {
+    ret += `; Expires=${cookie.expires.toUTCString()}`;
+  }
+  if (cookie.other) {
+    ret += `; ${cookie.other.join("; ")}`;
+  }
+  return ret;
+}
+function tryDecode(str) {
+  try {
+    str = str.substring(2);
+    const dec = atob(str);
+    const uint = Uint8Array.from(dec.split(","));
+    const ret = decoder.decode(uint) || str;
+    if (ret !== str) {
+      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
+        const json = ret.substring(2);
+        return JSON.parse(decURIComponent(json));
+      }
+    }
+    return decURIComponent(ret);
+  } catch (_e) {
+    return decURIComponent(str);
+  }
+}
+function getReqCookies(req, decode, i = 0) {
+  const str = req.headers.get("Cookie");
+  if (str === null)
+    return {};
+  const ret = {};
+  const arr = str.split(";");
+  const len = arr.length;
+  while (i < len) {
+    const [key, ...oriVal] = arr[i].split("=");
+    let val = oriVal.join("=");
+    if (decode) {
+      ret[key.trim()] = val.startsWith("E:") ? tryDecode(val) : decURIComponent(val);
+    } else {
+      val = decURIComponent(val);
+      if (val.startsWith("j:{") || val.startsWith("j:[")) {
+        const json = val.substring(2);
+        ret[key.trim()] = JSON.parse(json);
+      } else {
+        ret[key.trim()] = val;
+      }
+    }
+    i++;
+  }
+  return ret;
+}
 
 // src/error.ts
 var HttpError = class extends Error {
@@ -867,7 +899,7 @@ var NHttp = class extends Router {
         const { method, path, fns } = route;
         let _path;
         if (path instanceof RegExp)
-          _path = concatRegexp(str, path);
+          _path = concatRegexp2(str, path);
         else {
           let mPath = path;
           if (mPath === "/" && str !== "")

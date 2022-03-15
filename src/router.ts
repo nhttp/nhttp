@@ -1,6 +1,21 @@
 import { RequestEvent } from "./request_event.ts";
 import { Handler, Handlers, TObject, TRet } from "./types.ts";
-import { concatRegexp, decURI } from "./utils.ts";
+
+const decURI = (str: string) => {
+  try {
+    return decodeURI(str);
+  } catch (_e) {
+    return str;
+  }
+};
+
+function concatRegexp(prefix: string | RegExp, path: RegExp) {
+  if (prefix === "") return path;
+  prefix = new RegExp(prefix);
+  let flags = prefix.flags + path.flags;
+  flags = Array.from(new Set(flags.split(""))).join();
+  return new RegExp(prefix.source + path.source, flags);
+}
 
 function wildcard(path: string | undefined, wild: boolean, match: TRet) {
   const params = match.groups || {};
