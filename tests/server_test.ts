@@ -117,7 +117,7 @@ const myUploadArrayRequeired = await fetch(BASE + "/upload-array", {
   body: form6,
 });
 Deno.test("it should listen app", () => {
-  expect((infoFail as TObject).name, "TypeError");
+  expect((infoFail as TObject).name, "NotFound");
   expect(myRes.status, 200);
   expect((info as TObject).port, 8080);
   expect((infoSSL as TObject).port, 8081);

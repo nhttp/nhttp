@@ -21,9 +21,10 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.18.0
+          deno-version: 1.21.0
 
       - name: Verify formatting
+        if: matrix.os != 'windows-latest'
         run: deno fmt --config deno.json
 
       - name: Run linter
