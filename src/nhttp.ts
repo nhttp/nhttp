@@ -1,12 +1,14 @@
 import {
+  CustomHandler,
   FetchEvent,
   Handler,
   Handlers,
+  ListenOptions,
   NextFunction,
   RetHandler,
   RouterOrWare,
   TApp,
-  TBodyLimit,
+  TBodyParser,
   TObject,
   TQueryFunc,
   TRet,
@@ -14,40 +16,75 @@ import {
 import Router from "./router.ts";
 import {
   concatRegexp,
+  findFn,
   findFns,
   getReqCookies,
+  getUrl,
   middAssets,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
-import { withBody } from "./body.ts";
+import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { HttpResponse, response } from "./http_response.ts";
 
 const defError = (
   err: TObject,
   rev: RequestEvent,
-  env: string,
+  stack: boolean,
 ): RetHandler => {
-  const obj = getError(err, env === "development");
+  const obj = getError(err, stack);
   return rev.response.status(obj.status).json(obj);
 };
 
+const noop = () => new Promise((ok) => setTimeout(ok));
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
   private parseQuery: TQueryFunc;
   private multipartParseQuery?: TQueryFunc;
-  private bodyLimit?: TBodyLimit;
+  private bodyParser: TBodyParser | boolean | undefined;
   private env: string;
-  server: Deno.Listener | undefined;
-  constructor({ parseQuery, bodyLimit, env }: TApp = {}) {
+  private flash?: boolean;
+  private errorStack!: boolean;
+  private strictUrl?: boolean;
+  server: TRet;
+  /**
+   * handleEvent
+   * @example
+   * addEventListener("fetch", (event) => {
+   *   event.respondWith(app.handleEvent(event))
+   * });
+   */
+  handleEvent: (event: FetchEvent, ...args: TRet) => TRet;
+  /**
+   * handle
+   * @example
+   * await Deno.serve(app.handle, { port: 3000 });
+   * // or
+   * Bun.serve({ fetch: app.handle });
+   */
+  handle: (request: Request, ...args: TRet) => TRet;
+  constructor(
+    { parseQuery, bodyParser, env, flash, errorStack, strictUrl }: TApp = {},
+  ) {
     super();
     this.parseQuery = parseQuery || parseQueryOri;
     this.multipartParseQuery = parseQuery;
-    this.bodyLimit = bodyLimit;
+    this.bodyParser = bodyParser;
+    this.strictUrl = strictUrl;
+    this.errorStack = errorStack !== false;
     this.env = env || "development";
+    if (this.env !== "development") {
+      this.errorStack = false;
+    }
+    this.flash = flash;
+    this.handleEvent = (event: FetchEvent, ...args: TRet) => {
+      return this.handleRequest(event.request, () => args);
+    };
+    this.handle = (request: TRet, ...args: TRet) => {
+      return this.handleRequest(request, () => args);
+    };
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
         rev.__parseQuery = parseQuery;
@@ -103,13 +140,15 @@ export class NHttp<
    * app.use(...middlewares);
    * app.use('/api/v1', routers);
    */
-  use(
-    prefix: string | RouterOrWare<Rev> | RouterOrWare<Rev>[],
-    ...routerOrMiddleware: Array<RouterOrWare<Rev> | RouterOrWare<Rev>[]>
+  use<T>(
+    prefix: string | RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[],
+    ...routerOrMiddleware: Array<
+      RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[]
+    >
   ) {
     let args = routerOrMiddleware, str = "";
     if (typeof prefix === "function" && args.length === 0) {
-      this.midds = this.midds.concat(prefix);
+      this.midds = this.midds.concat(findFn(prefix));
       return this;
     }
     if (typeof prefix === "string") str = prefix === "/" ? "" : prefix;
@@ -127,7 +166,11 @@ export class NHttp<
     }
     return this;
   }
-  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>): this {
+  on<T>(
+    method: string,
+    path: string | RegExp,
+    ...handlers: Handlers<Rev & T>
+  ): this {
     const fns = findFns(handlers);
     const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY");
     if (pathx) {
@@ -143,75 +186,62 @@ export class NHttp<
     }
     return this;
   }
-  handle(rev: Rev, isRw?: boolean) {
-    let i = 0, k = -1, l = 0, j = 0, len;
-    const { method, url } = rev.request;
-    rev.search = null;
-    rev.query = {};
-    while ((k = url.indexOf("/", k + 1)) != -1) {
-      l += 1;
-      if (l === 3) {
-        rev.url = rev.path = url.substring(k);
-        len = rev.url.length;
-        while (j < len) {
-          if (rev.url.charCodeAt(j) === 0x3f) {
-            rev.path = rev.url.substring(0, j);
-            rev.query = this.parseQuery(rev.url.substring(j + 1));
-            rev.search = rev.url.substring(j);
-            break;
-          }
-          j++;
+  private handleRequest(req: Request, info: () => TObject[]) {
+    let i = 0, body_response: TRet;
+    const rev = new RequestEvent(req) as Rev;
+    rev.info = info;
+    const method = req.method;
+    const { fns, params } = <{
+      fns: Handler<Rev>[];
+      params?: TObject;
+    }> this.find(
+      method,
+      getUrl(req.url),
+      this._on404,
+      (url) => {
+        const iof = url.indexOf("?");
+        if (iof != -1) {
+          rev.path = url.substring(0, iof);
+          rev.query = this.parseQuery(url.substring(iof + 1));
+          rev.search = url.substring(iof);
         }
-        break;
-      }
-    }
-    const { fns, params } = this.find(method, rev.path, this._on404);
-    const next: NextFunction = (err?: Error) => {
-      let ret;
+        return rev.path;
+      },
+      this.strictUrl,
+    );
+    if (params) rev.params = params;
+    rev.respondWith = (r) => {
+      body_response = () => r;
+      return r as Response;
+    };
+    rev.getCookies = (d) => getReqCookies(req, d);
+    const next: NextFunction = (err?: TRet) => {
       try {
-        ret = err ? this._onError(err, rev, next) : fns[i++](rev, next);
+        const ret = err ? this._onError(err, rev, next) : fns[i++](rev, next);
+        if (typeof ret == "string") return new Response(ret, rev.res?.init);
+        if (ret instanceof Response) return ret;
+        return (async () => {
+          try {
+            const val = await ret;
+            if (val) return rev.response.send(val);
+            if (body_response) return body_response();
+            await noop();
+            return body_response?.();
+          } catch (e) {
+            return err ? defError(e, rev, this.errorStack) : next(e);
+          }
+        })();
       } catch (e) {
-        return err ? defError(e, rev, this.env) : next(e);
-      }
-      if (ret) {
-        if (typeof (ret as Promise<void>).then === "function") {
-          return this.withPromise(
-            ret as unknown as Promise<Handler<RequestEvent>>,
-            rev,
-            next,
-            rev.__onErr,
-          );
-        }
-        return rev.response.send(ret);
+        return err ? defError(e, rev, this.errorStack) : next(e);
       }
     };
-    rev.params = params;
-    rev.getCookies = (n) => getReqCookies(rev.request, n);
-    if (isRw) rev.respondWith = (r) => r as Response;
-    response(
-      rev.response = {} as HttpResponse,
-      rev.respondWith,
-      rev.responseInit = {},
-    );
-    if (method === "GET") return next();
-    if (method === "HEAD") return next();
-    return withBody(
-      rev,
-      next,
+    if (method == "GET") return next();
+    if (method == "HEAD") return next();
+    return bodyParser(
+      this.bodyParser,
       this.parseQuery,
       this.multipartParseQuery,
-      this.bodyLimit,
-    );
-  }
-  /**
-   * handleEvent
-   * @example
-   * addEventListener("fetch", (event) => {
-   *   event.respondWith(app.handleEvent(event))
-   * });
-   */
-  handleEvent(event: FetchEvent) {
-    return this.handle(event, true);
+    )(rev, next);
   }
   /**
    * listen the server
@@ -220,63 +250,71 @@ export class NHttp<
    * app.listen({ port: 3000, hostname: 'localhost' });
    * app.listen({
    *    port: 443,
-   *    certFile: "./path/to/localhost.crt",
-   *    keyFile: "./path/to/localhost.key",
+   *    cert: "./path/to/localhost.crt",
+   *    key: "./path/to/localhost.key",
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
   async listen(
-    opts:
-      | number
-      | Deno.ListenOptions
-      | Deno.ListenTlsOptions
-      | TObject,
+    opts: number | ListenOptions,
     callback?: (
       err?: Error,
-      opts?:
-        | Deno.ListenOptions
-        | Deno.ListenTlsOptions
-        | TObject,
+      opts?: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    let isTls = false;
+    let isTls = false, handler = this.handle;
     if (typeof opts === "number") {
       opts = { port: opts };
     } else if (typeof opts === "object") {
-      isTls = (opts as Deno.ListenTlsOptions).certFile !== void 0;
+      isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
+        opts.alpnProtocols !== void 0;
+      handler = opts.handler || handler;
+    }
+    const runCallback = (err?: Error) => {
+      if (callback) {
+        const _opts = opts as ListenOptions;
+        callback(err, {
+          ..._opts,
+          hostname: _opts.hostname || "localhost",
+        });
+        return true;
+      }
+    };
+    if (opts.test) {
+      runCallback();
+      return;
     }
     try {
-      this.server = (
-        isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
-          opts as Deno.ListenOptions & { transport?: "tcp" | undefined },
-        )
-      ) as Deno.Listener;
-      if (callback) {
-        callback(undefined, {
-          ...opts,
-          hostname: opts.hostname || "localhost",
-          server: this.server,
-        });
-      }
-      while (true) {
-        try {
-          const conn = await this.server.accept();
-          if (conn) {
-            this.handleConn(conn);
-          } else {
-            break;
-          }
-        } catch (_e) { /* noop */ }
+      if (this.flash) {
+        if ((Deno as TRet).serve == void 0) {
+          console.log(
+            new TypeError(
+              "flash server is unstable. please add --unstable flag",
+            ),
+          );
+          return;
+        }
+        if (runCallback()) opts.onListen = () => {};
+        await (Deno as TRet).serve(opts, this.handle);
+      } else {
+        this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
+        runCallback();
+        while (true) {
+          try {
+            const conn = await this.server.accept();
+            if (conn) {
+              this.handleConn(conn, handler);
+            } else {
+              break;
+            }
+          } catch (_e) { /* noop */ }
+        }
       }
     } catch (error) {
-      if (callback) {
-        callback(error, {
-          ...opts,
-          hostname: opts.hostname || "localhost",
-        });
-      }
+      runCallback(error);
     }
   }
+
   private pushRoutes(str: string, wares: Handler[], last: TRet) {
     last = Array.isArray(last) ? last : [last];
     last.forEach((obj: TObject) => {
@@ -298,7 +336,7 @@ export class NHttp<
     rev: Rev,
     _: NextFunction,
   ): RetHandler {
-    return defError(err, rev, this.env);
+    return defError(err, rev, this.errorStack);
   }
   private _on404(rev: Rev, _: NextFunction): RetHandler {
     const obj = getError(
@@ -310,37 +348,33 @@ export class NHttp<
     );
     return rev.response.status(obj.status).json(obj);
   }
-  private async handleConn(conn: Deno.Conn) {
+
+  private async handleConn(conn: TRet, handler: CustomHandler) {
     try {
-      const httpConn = Deno.serveHttp(conn);
-      for await (const rev of httpConn) {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = rev.respondWith(promise);
-        (rev as Rev).conn = conn;
-        rev.respondWith = resp! as (
-          r: Response | Promise<Response>,
-        ) => Promise<void>;
-        this.handle(rev as Rev);
-        await rw;
+      const httpConn = Deno.serveHttp(conn as Deno.Conn);
+      while (true) {
+        try {
+          const rev = await httpConn.nextRequest();
+          if (rev) {
+            await rev.respondWith(handler(rev.request, conn));
+          } else {
+            break;
+          }
+        } catch (_err) {
+          break;
+        }
       }
     } catch (_e) { /* noop */ }
   }
-  private async withPromise(
-    handler: Promise<Handler>,
-    rev: Rev,
-    next: NextFunction,
-    isDepError?: boolean,
-  ) {
-    try {
-      const ret = await handler;
-      if (!ret) return;
-      return rev.response.send(ret);
-    } catch (err) {
-      if (isDepError) {
-        return defError(err, rev, this.env);
-      }
-      return next(err);
-    }
-  }
+}
+
+/**
+ * inital app.
+ * @example
+ * const app = nhttp();
+ */
+export function nhttp<Rev extends RequestEvent = RequestEvent>(
+  opts: TApp = {},
+) {
+  return new NHttp<Rev>(opts);
 }

@@ -1,7 +1,7 @@
 import { RequestEvent } from "./request_event.ts";
 import { Handler, Handlers, TObject, TRet } from "./types.ts";
 
-const decURI = (str: string) => {
+export const decURI = (str: string) => {
   try {
     return decodeURI(str);
   } catch (_e) {
@@ -9,7 +9,7 @@ const decURI = (str: string) => {
   }
 };
 
-function concatRegexp(prefix: string | RegExp, path: RegExp) {
+export function concatRegexp(prefix: string | RegExp, path: RegExp) {
   if (prefix === "") return path;
   prefix = new RegExp(prefix);
   let flags = prefix.flags + path.flags;
@@ -17,7 +17,7 @@ function concatRegexp(prefix: string | RegExp, path: RegExp) {
   return new RegExp(prefix.source + path.source, flags);
 }
 
-function wildcard(path: string | undefined, wild: boolean, match: TRet) {
+export function wildcard(path: string | undefined, wild: boolean, match: TRet) {
   const params = match.groups || {};
   if (!wild) return params;
   if (!path) return params;
@@ -41,17 +41,13 @@ function wildcard(path: string | undefined, wild: boolean, match: TRet) {
   return params;
 }
 
-function base(url: string) {
+export function base(url: string) {
   const iof = url.indexOf("/", 1);
   if (iof !== -1) return url.substring(0, iof);
   return url;
 }
 
 type TRouter = { base?: string };
-type MethodHandler<
-  Rev extends RequestEvent = RequestEvent,
-  T = TObject,
-> = (path: string | RegExp, ...handlers: Handlers<Rev>) => T;
 /**
  * Router
  * @example
@@ -65,74 +61,25 @@ export default class Router<
   c_routes: TObject[] = [];
   midds: Handler<Rev>[] = [];
   pmidds: TObject | undefined;
-  /**
-   * method GET (app or router)
-   * @example
-   * app.get("/", ...handlers);
-   */
-  get: MethodHandler<Rev, this>;
-  /**
-   * method POST (app or router)
-   * @example
-   * app.post("/", ...handlers);
-   */
-  post: MethodHandler<Rev, this>;
-  /**
-   * method PUT (app or router)
-   * @example
-   * app.put("/", ...handlers);
-   */
-  put: MethodHandler<Rev, this>;
-  /**
-   * method PATCH (app or router)
-   * @example
-   * app.patch("/", ...handlers);
-   */
-  patch: MethodHandler<Rev, this>;
-  /**
-   * method DELETE (app or router)
-   * @example
-   * app.delete("/", ...handlers);
-   */
-  delete: MethodHandler<Rev, this>;
-  /**
-   * method ANY (allow all method directly) (app or router)
-   * @example
-   * app.any("/", ...handlers);
-   */
-  any: MethodHandler<Rev, this>;
-  head: MethodHandler<Rev, this>;
-  options: MethodHandler<Rev, this>;
-  trace: MethodHandler<Rev, this>;
-  connect: MethodHandler<Rev, this>;
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
     if (this.base === "/") this.base = "";
-    this.get = this.on.bind(this, "GET");
-    this.post = this.on.bind(this, "POST");
-    this.put = this.on.bind(this, "PUT");
-    this.patch = this.on.bind(this, "PATCH");
-    this.delete = this.on.bind(this, "DELETE");
-    this.any = this.on.bind(this, "ANY");
-    this.head = this.on.bind(this, "HEAD");
-    this.options = this.on.bind(this, "OPTIONS");
-    this.trace = this.on.bind(this, "TRACE");
-    this.connect = this.on.bind(this, "CONNECT");
   }
-  private single(mtd: string, url: string) {
-    let { fns, m } = this.route[mtd + url];
-    if (m) return { params: {}, fns };
-    fns = this.midds.concat(fns);
-    this.route[mtd + url] = { m: true, fns };
-    return { params: {}, fns };
+  private getRoute(key: string) {
+    const route = this.route[key];
+    if (!route) return void 0;
+    if (route.m) return { fns: route.fns };
+    route.fns = this.midds.concat(route.fns);
+    this.route[key] = { m: true, fns: route.fns };
+    return { fns: route.fns };
   }
   /**
    * build handlers (app or router)
    * @example
    * app.on("GET", "/", ...handlers);
    */
-  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>) {
+  on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>) {
     let _path: string | RegExp;
     if (path instanceof RegExp) _path = concatRegexp(this.base, path);
     else {
@@ -142,39 +89,128 @@ export default class Router<
     this.c_routes.push({ method, path: _path, fns: handlers });
     return this;
   }
-  find(method: string, url: string, fn404: Handler<Rev>) {
-    if (this.route[method + url]) {
-      return this.single(method, url);
-    }
-    if (url !== "/" && url[url.length - 1] === "/") {
-      const _url = url.slice(0, -1);
-      if (this.route[method + _url]) {
-        return this.single(method, _url);
+  /**
+   * method GET (app or router)
+   * @example
+   * app.get("/", ...handlers);
+   */
+  get<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("GET", path, ...handlers);
+  }
+  /**
+   * method POST (app or router)
+   * @example
+   * app.post("/", ...handlers);
+   */
+  post<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("POST", path, ...handlers);
+  }
+  /**
+   * method PUT (app or router)
+   * @example
+   * app.put("/", ...handlers);
+   */
+  put<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("PUT", path, ...handlers);
+  }
+  /**
+   * method PATCH (app or router)
+   * @example
+   * app.patch("/", ...handlers);
+   */
+  patch<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("PATCH", path, ...handlers);
+  }
+  /**
+   * method DELETE (app or router)
+   * @example
+   * app.delete("/", ...handlers);
+   */
+  delete<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("DELETE", path, ...handlers);
+  }
+  /**
+   * method ANY (allow all method directly) (app or router)
+   * @example
+   * app.any("/", ...handlers);
+   */
+  any<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("ANY", path, ...handlers);
+  }
+  /**
+   * method HEAD (app or router)
+   * @example
+   * app.head("/", ...handlers);
+   */
+  head<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("HEAD", path, ...handlers);
+  }
+  /**
+   * method OPTIONS (app or router)
+   * @example
+   * app.options("/", ...handlers);
+   */
+  options<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("OPTIONS", path, ...handlers);
+  }
+  /**
+   * method TRACE (app or router)
+   * @example
+   * app.trace("/", ...handlers);
+   */
+  trace<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("TRACE", path, ...handlers);
+  }
+  /**
+   * method CONNECT (app or router)
+   * @example
+   * app.connect("/", ...handlers);
+   */
+  connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("CONNECT", path, ...handlers);
+  }
+  find(
+    method: string,
+    path: string,
+    fn404: Handler<Rev>,
+    getPath: (url: string) => string,
+    lose?: boolean,
+  ) {
+    return this.getRoute(method + path) || (() => {
+      let url = getPath(path);
+      if (this.route[method + url]) return this.getRoute(method + url);
+      if (lose) {
+        if (url !== "/" && url[url.length - 1] == "/") {
+          const _url = url.slice(0, -1);
+          if (this.route[method + _url]) {
+            return this.getRoute(method + _url);
+          }
+        }
       }
-    }
-    let fns: Handler<Rev>[] = [], params: TObject = {};
-    let i = 0, obj: TObject = {};
-    let arr = this.route[method] || [];
-    let match: TObject;
-    if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
-    const len = arr.length;
-    while (i < len) {
-      obj = arr[i];
-      if (obj.pathx && obj.pathx.test(url)) {
-        url = decURI(url);
-        match = obj.pathx.exec(url);
-        fns = obj.fns;
-        if (!match) break;
-        params = wildcard(obj.path, obj.wild, match);
-        break;
+      let fns: Handler<Rev>[] = [], params: TObject | undefined;
+      let i = 0, obj: TObject = {};
+      let arr = this.route[method] || [];
+      let match: TObject;
+      if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
+      const len = arr.length;
+      while (i < len) {
+        obj = arr[i];
+        if (obj.pathx && obj.pathx.test(url)) {
+          url = decURI(url);
+          match = obj.pathx.exec(url);
+          fns = obj.fns;
+          if (!match) break;
+          params = wildcard(obj.path, obj.wild, match);
+          break;
+        }
+        i++;
       }
-      i++;
-    }
-    if (this.pmidds) {
-      const p = base(url || "/");
-      if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
-    }
-    fns = this.midds.concat(fns, [fn404]);
-    return { params, fns };
+      if (this.pmidds) {
+        const p = base(url || "/");
+        if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
+      }
+      fns = this.midds.concat(fns, [fn404]);
+      return { fns, params };
+    })();
   }
 }

@@ -1,4 +1,3 @@
-import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Cookie,
@@ -9,8 +8,8 @@ import {
   TSizeList,
 } from "./types.ts";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+export const encoder = new TextEncoder();
+export const decoder = new TextDecoder();
 type EArr = [string, string | TObject];
 
 export const decURI = (str: string) => {
@@ -28,12 +27,49 @@ export const decURIComponent = (str: string) => {
   }
 };
 
-export function findFns(arr: TObject[]): Array<unknown> {
-  let ret: Array<unknown>[] = [], i = 0;
+export function findFn(fn: TRet) {
+  if (fn.length === 3) {
+    const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
+      const res = rev.response;
+      rev.method = rev.request.method;
+      if (!rev.__wrapMiddleware) {
+        rev.__wrapMiddleware = true;
+        rev.getHeaders = () =>
+          Object.fromEntries(rev.request.headers.entries());
+        res.append = (a: string, b: string) => res.headers.append(a, b);
+        res.setHeader = res.set = res.header;
+        res.getHeader = res.get = (a: string) => res.header(a);
+        res.hasHeader = (a: string) => res.header(a) !== undefined;
+        res.removeHeader = (a: string) => res.headers.delete(a);
+        res.end = res.send;
+        res.writeHead = (a: number, ...b: TRet) => {
+          res.status(a);
+          for (let i = 0; i < b.length; i++) {
+            if (typeof b[i] === "object") res.header(b[i]);
+          }
+        };
+        rev.respond = ({ body, status, headers }: TObject) =>
+          rev.respondWith(
+            new Response(body as BodyInit, { status, headers } as TObject),
+          );
+      }
+      return fn(rev, res, next);
+    };
+    return newFn;
+  }
+  return fn;
+}
+
+export function findFns(arr: TObject[]): Handler[] {
+  let ret: Handler[] = [], i = 0;
   const len = arr.length;
   for (; i < len; i++) {
-    if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i] as TObject[]));
-    else if (typeof arr[i] === "function") ret.push(arr[i] as Array<unknown>);
+    const fn: TRet = arr[i];
+    if (Array.isArray(fn)) {
+      ret = ret.concat(findFns(fn as TObject[]));
+    } else if (typeof fn === "function") {
+      ret.push(findFn(fn));
+    }
   }
   return ret;
 }
@@ -155,6 +191,8 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
 
 /**
  * Wrapper middleware for framework express like (req, res, next)
+ * @deprecated
+ * auto added to Nhttp.use
  * @example
  * ...
  * import cors from "https://esm.sh/cors?no-check";
@@ -166,47 +204,7 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
  * ]));
  */
 export function expressMiddleware(...middlewares: TRet): TRet {
-  const midds = middlewares;
-  const opts = midds.length && midds[midds.length - 1];
-  const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
-  const fns = findFns(midds) as ((
-    req: RequestEvent,
-    res: HttpResponse,
-    next: NextFunction,
-  ) => Promise<void> | void)[];
-  let handlers: Handler[] = [];
-  let j = 0;
-  const len = fns.length;
-  while (j < len) {
-    const fn = fns[j];
-    handlers = handlers.concat((rev, next) => {
-      const res = rev.response;
-      if (!rev.__isWrapMiddleware) {
-        rev.headers = rev.request.headers;
-        rev.method = rev.request.method;
-        res.setHeader = res.set = res.header;
-        res.getHeader = res.get = (a: string) => res.header(a);
-        res.hasHeader = (a: string) => res.header(a) !== null;
-        res.removeHeader = (a: string) => res.header().delete(a);
-        res.end = res.send;
-        res.writeHead = (a: number, ...b: TRet) => {
-          res.status(a);
-          for (let i = 0; i < b.length; i++) {
-            if (typeof b[i] === "object") res.header(b[i]);
-          }
-        };
-        rev.respond = ({ body, status, headers }: TObject) =>
-          rev.respondWith(
-            new Response(body as BodyInit, { status, headers } as TObject),
-          );
-        rev.__isWrapMiddleware = true;
-      }
-      if (beforeWrap) beforeWrap(rev, res);
-      return fn(rev, res, next);
-    });
-    j++;
-  }
-  return handlers;
+  return findFns(middlewares);
 }
 
 export function middAssets(str: string) {
@@ -217,6 +215,10 @@ export function middAssets(str: string) {
       return next();
     }) as Handler,
   ];
+}
+
+export function getUrl(url: string) {
+  return url.substring(url.indexOf("/", 8));
 }
 
 export function serializeCookie(
@@ -308,3 +310,46 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   }
   return ret;
 }
+
+export const list_status: Record<number, string> = {
+  100: "Continue",
+  101: "Switching Protocols",
+  102: "Processing",
+  103: "Early Hints",
+  200: "OK",
+  201: "Created",
+  202: "Accepted",
+  204: "No Content",
+  206: "Partial Content",
+  301: "Moved Permanently",
+  302: "Moved Temporarily",
+  303: "See Other",
+  304: "Not Modified",
+  307: "Temporary Redirect",
+  308: "Permanent Redirect",
+  400: "Bad Request",
+  401: "Unauthorized",
+  402: "Payment Required",
+  403: "Forbidden",
+  404: "Not Found",
+  405: "Not Allowed",
+  406: "Not Acceptable",
+  408: "Request Time-out",
+  409: "Conflict",
+  410: "Gone",
+  411: "Length Required",
+  412: "Precondition Failed",
+  413: "Request Entity Too Large",
+  414: "Request-URI Too Large",
+  415: "Unsupported Media Type",
+  416: "Requested Range Not Satisfiable",
+  421: "Misdirected Request",
+  429: "Too Many Requests",
+  500: "Internal Server Error",
+  501: "Not Implemented",
+  502: "Bad Gateway",
+  503: "Service Temporarily Unavailable",
+  504: "Gateway Time-out",
+  505: "HTTP Version Not Supported",
+  507: "Insufficient Storage",
+};

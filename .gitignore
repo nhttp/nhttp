@@ -1,4 +1,9 @@
 dev.ts
+dev.js
+dev.tsx
+bench.ts
+dev.tsx
+deno.lock
 note.txt
 backup_api.txt
 /public

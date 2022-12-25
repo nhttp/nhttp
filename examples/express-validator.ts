@@ -1,25 +1,32 @@
-import { expressMiddleware, Handler, HttpError, NHttp } from "../mod.ts";
-import { body, validationResult } from "https://esm.sh/express-validator";
+import { HttpError, NHttp } from "../mod.ts";
+import { body, validationResult } from "npm:express-validator";
 
-const validator: Handler[] = [
-  expressMiddleware([
-    body("username").isString(),
-    body("password").isLength({ min: 6 }),
-    body("email").isEmail(),
-  ]),
-  (rev, next) => {
+const app = new NHttp();
+
+app.post(
+  "/",
+  body("username").isString(),
+  body("username2").isString(),
+  body("username3").isString(),
+  body("username4").isString(),
+  body("username5").isString(),
+  body("username6").isString(),
+  body("username7").isString(),
+  body("username8").isString(),
+  body("username12").isString(),
+  body("username123").isString(),
+  body("username23").isString(),
+  body("username34").isString(),
+  body("username45").isString(),
+  body("password").isLength({ min: 6 }),
+  body("email").isEmail(),
+  function (rev) {
     const errors = validationResult(rev);
     if (!errors.isEmpty()) {
       throw new HttpError(422, errors.array());
     }
-    return next();
+    return rev.body;
   },
-];
-
-const app = new NHttp();
-
-app.post("/user", validator, ({ response, body }) => {
-  return response.send(body);
-});
+);
 
 app.listen(3000);

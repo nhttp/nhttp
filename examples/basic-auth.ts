@@ -15,13 +15,13 @@ const checkUser = (auth: string | null) => {
 };
 
 const authenticate: Handler = (rev, next) => {
-  const cookie = rev.getCookies(true);
+  const cookie = rev.cookies;
   if (!cookie.session) {
     const auth = rev.request.headers.get("authorization") || null;
     if (checkUser(auth)) {
       const user = checkUser(auth);
-      rev.locals = { user: user?.username };
-      rev.response.cookie("session", user?.username, { encode: true });
+      rev.locals = { user };
+      rev.response.cookie("session", user, { encode: true });
       return next();
     }
     rev.response.header("WWW-Authenticate", "Basic");
@@ -33,6 +33,7 @@ const authenticate: Handler = (rev, next) => {
 };
 
 app.get("/home", authenticate, ({ response, locals }) => {
+  console.log(locals.user);
   // deno-fmt-ignore
   return response.type('text/html').send(`
         <h1>Hello, ${locals.user}</h1>

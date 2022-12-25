@@ -1,61 +1,167 @@
+import { RespondWith } from "./request_event.ts";
 import { Cookie, TObject, TRet } from "./types.ts";
-import { serializeCookie } from "./utils.ts";
+import { list_status, serializeCookie } from "./utils.ts";
 
-const JSON_TYPE_CHARSET = "application/json; charset=utf-8";
-const encoder = new TextEncoder();
+export const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
+
+export type ResInit = {
+  headers?: TObject;
+  status?: number;
+};
 
 export class HttpResponse {
+  init: ResInit | undefined;
+  constructor(public resp: RespondWith) {}
   /**
    * set header or get header
    * @example
-   * // set headers
+   * // set header
    * response.header("content-type", "text/css");
-   * response.header({"content-type": "text/css"});
-   * // get headers
-   * response.header("content-type");
-   * // get all headers
-   * response.header();
-   * // delete headers
-   * response.header().delete("content-type");
+   * response.header({ "content-type": "text/css" });
+   *
+   * // get header
+   * const type = response.header("content-type");
    */
-  header!: (
+  header(key: string, value: string | string[]): this;
+  header(key: string): string;
+  header(key: TObject): this;
+  header(): Headers;
+  header(
     key?: TObject | string,
-    value?: string,
-  ) => HttpResponse | (HttpResponse & Headers) | (HttpResponse & string);
+    value?: string | string[],
+  ): this | string | Headers {
+    if (!this.init) this.init = {};
+    if (this.init.headers) {
+      if (this.init.headers instanceof Headers) {
+        this.init.headers = Object.fromEntries(this.init.headers.entries());
+      }
+    } else this.init.headers = {};
+    if (typeof key == "string") {
+      key = key.toLowerCase();
+      if (!value) {
+        return this.init.headers[key];
+      }
+      this.init.headers[key] = value;
+      return this;
+    }
+    if (typeof key == "object") {
+      if (key instanceof Headers) key = Object.fromEntries(key.entries());
+      for (const k in key) this.init.headers[k.toLowerCase()] = key[k];
+      return this;
+    }
+    return (this.init.headers = new Headers(this.init.headers));
+  }
+  /**
+   * headers instanceof Headers
+   * @example
+   * // delete
+   * response.headers.delete("key");
+   *
+   * // append
+   * response.headers.append("key", "val");
+   */
+  get headers() {
+    if (!this.init) this.init = {};
+    if (this.init.headers instanceof Headers) return this.init.headers;
+    return (this.init.headers = new Headers(this.init.headers));
+  }
+  set headers(val: Headers) {
+    if (!this.init) this.init = {};
+    this.init.headers = val;
+  }
   /**
    * set status or get status
    * @example
    * // set status
    * response.status(200);
+   *
    * // get status
-   * response.status();
+   * const status = response.status();
    */
-  status!: (code?: number) => HttpResponse | (HttpResponse & number);
+  status(code: number): this;
+  status(): number;
+  status(code?: number): this | number {
+    if (!this.init) this.init = {};
+    if (code) {
+      this.init.status = code;
+      return this;
+    }
+    return (this.init.status || 200);
+  }
+  /**
+   * sendStatus
+   * @example
+   * response.sendStatus(200);
+   */
+  sendStatus(code: number) {
+    this.status(code);
+    return this.resp(new Response(list_status[this.status()], this.init));
+  }
+  /**
+   * set/get statusCode
+   * @example
+   * // set status
+   * response.statusCode = 200;
+   *
+   * // get status
+   * const status = response.statusCode;
+   */
+  get statusCode() {
+    return this.status();
+  }
+  set statusCode(val: number) {
+    this.status(val);
+  }
   /**
    * shorthand for content-type headers
    * @example
    * response.type("text/html");
    */
-  type!: (contentType: string) => HttpResponse;
+  type(contentType: string) {
+    this.header("content-type", contentType);
+    return this;
+  }
   /**
    * send response body
    * @example
    * return response.send("hello");
    */
-  send!: (body?: BodyInit | TObject | null) => Promise<void> | Response;
+  send(body?: BodyInit | TObject | null) {
+    if (typeof body == "object") {
+      if (body instanceof Response) return body;
+      if (
+        body instanceof Uint8Array ||
+        body instanceof ReadableStream ||
+        body instanceof FormData ||
+        body instanceof Blob ||
+        typeof (body as TRet).read == "function"
+      ) {
+        return this.resp(new Response(body as BodyInit, this.init));
+      }
+      return this.json(body);
+    }
+    return this.resp(new Response(body, this.init));
+  }
   /**
    * shorthand for send json body
    * @example
    * return response.json({ name: "john" });
    */
-  json!: (body: TObject | null) => Promise<void> | Response;
+  json(body: TObject | null) {
+    if (!this.init) this.init = {};
+    if (this.init.headers) this.type(JSON_TYPE_CHARSET);
+    else this.init.headers = { "content-type": JSON_TYPE_CHARSET };
+    return this.resp(new Response(JSON.stringify(body), this.init));
+  }
   /**
    * redirect url
    * @example
    * return response.redirect("/home");
    * return response.redirect("/home", 301);
    */
-  redirect!: (url: string, status?: number) => Response | Promise<void>;
+  redirect(url: string, status?: number) {
+    return this.header("Location", url).status(status || 302).send();
+  }
   /**
    * cookie
    * @example
@@ -63,18 +169,39 @@ export class HttpResponse {
    *    httpOnly: true
    * });
    */
-  cookie!: (
+  cookie(
     name: string,
     value: string | string[] | number | number[] | TObject | undefined,
-    options?: Cookie,
-  ) => HttpResponse;
+    opts: Cookie = {},
+  ) {
+    opts.httpOnly = opts.httpOnly !== false;
+    opts.path = opts.path || "/";
+    if (opts.maxAge) {
+      opts.expires = new Date(Date.now() + opts.maxAge);
+      opts.maxAge /= 1000;
+    }
+    value = typeof value === "object"
+      ? "j:" + JSON.stringify(value)
+      : String(value);
+    this.headers.append(
+      "Set-Cookie",
+      serializeCookie(name, value, opts),
+    );
+    return this;
+  }
   /**
    * clear cookie
    * @example
    * response.clearCookie("name");
    */
-  clearCookie!: (name: string, options?: Cookie) => void;
-  [k: string]: TRet
+  clearCookie(name: string, opts: Cookie = {}) {
+    opts.httpOnly = opts.httpOnly !== false;
+    this.headers.append(
+      "Set-Cookie",
+      serializeCookie(name, "", { ...opts, expires: new Date(0) }),
+    );
+  }
+  [k: string]: TRet;
 }
 
 export class JsonResponse extends Response {
@@ -86,94 +213,4 @@ export class JsonResponse extends Response {
     } else resInit.headers = { "content-type": JSON_TYPE_CHARSET };
     super(JSON.stringify(body), resInit);
   }
-}
-
-export function response(
-  res: HttpResponse,
-  respondWith: (r: Response | Promise<Response>) => Promise<void> | Response,
-  opts: ResponseInit,
-) {
-  res.header = function (key, value) {
-    if (opts.headers) {
-      if (opts.headers instanceof Headers) {
-        opts.headers = Object.fromEntries(opts.headers.entries());
-      }
-    }
-    opts.headers = opts.headers || {} as TObject;
-    if (typeof key === "string") {
-      key = key.toLowerCase();
-      if (!value) return opts.headers[key] as HttpResponse & string;
-      opts.headers[key] = value;
-      return this;
-    }
-    if (typeof key === "object") {
-      if (key instanceof Headers) {
-        key = Object.fromEntries(key.entries());
-      }
-      for (const k in key) opts.headers[k.toLowerCase()] = key[k];
-      return this;
-    }
-    return (opts.headers = new Headers(opts.headers)) as HttpResponse & Headers;
-  };
-  res.status = function (code) {
-    if (code) {
-      opts.status = code;
-      return this;
-    }
-    return (opts.status || 200) as HttpResponse & number;
-  };
-  res.type = function (value) {
-    this.header("content-type", value);
-    return this;
-  };
-  res.send = function (body) {
-    if (typeof body === "string") {
-      return respondWith(new Response(encoder.encode(body), opts));
-    }
-    if (typeof body === "object") {
-      if (body instanceof Response) {
-        return respondWith(body);
-      }
-      if (
-        body instanceof Uint8Array ||
-        body instanceof ReadableStream ||
-        body instanceof FormData ||
-        body instanceof Blob ||
-        typeof (body as unknown as Deno.Reader).read === "function"
-      ) {
-        return respondWith(new Response(body as BodyInit, opts));
-      }
-      return respondWith(new JsonResponse(body, opts));
-    }
-    return respondWith(new Response(body, opts));
-  };
-  res.json = function (body) {
-    return respondWith(new JsonResponse(body, opts));
-  };
-  res.redirect = function (url, status) {
-    return this.header("Location", url).status(status || 302).send();
-  };
-  res.cookie = function (name, value, _opts = {}) {
-    _opts.httpOnly = _opts.httpOnly !== false;
-    _opts.path = _opts.path || "/";
-    if (_opts.maxAge) {
-      _opts.expires = new Date(Date.now() + _opts.maxAge);
-      _opts.maxAge /= 1000;
-    }
-    value = typeof value === "object"
-      ? "j:" + JSON.stringify(value)
-      : String(value);
-    this.header().append(
-      "Set-Cookie",
-      serializeCookie(name, value, _opts),
-    );
-    return this;
-  };
-  res.clearCookie = function (name, _opts = {}) {
-    _opts.httpOnly = _opts.httpOnly !== false;
-    this.header().append(
-      "Set-Cookie",
-      serializeCookie(name, "", { ..._opts, expires: new Date(0) }),
-    );
-  };
 }
