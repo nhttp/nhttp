@@ -75,6 +75,9 @@ export class RequestEvent {
   get cookies() {
     return this._cookies || (this._cookies = getReqCookies(this.request, true));
   }
+  set cookies(val: TObject) {
+    this._cookies = val;
+  }
   /**
    * params as json object.
    * @example
@@ -156,6 +159,8 @@ export class RequestEvent {
   }
   /**
    * get cookies from request
+   * @deprecated
+   * Use `rev.cookies` instead. `rev.cookies`, auto decode when cookie is encode.
    * @example
    * const object = rev.getCookies();
    * const objectWithDecode = rev.getCookies(true);

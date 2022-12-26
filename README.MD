@@ -72,9 +72,7 @@ app.listen(8000, () => {
 
 METHOD => `get | post | put | patch | delete | any | head | options`.
 
-app[METHOD](path: string | RegExp, (rev: RequestEvent) => { // code });
-
-// or app[METHOD](path: string | RegExp, ...handlers);
+`app[METHOD](path: string | RegExp, ...handlers);`
 
 ## Run
 
@@ -272,7 +270,7 @@ app.post("/", ({ response }) => {
 app.listen(8000);
 ```
 
-## Body
+## Body Parser
 
 Support json, urlencoded, multipart, raw.
 
@@ -375,7 +373,7 @@ app.use("/api/v1", [user, item]);
 ## RequestEvent & Types
 
 ```ts
-import { nhttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
 const app = nhttp();
 
