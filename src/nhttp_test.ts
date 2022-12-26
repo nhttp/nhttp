@@ -68,11 +68,11 @@ Deno.test("nhttp", async (t) => {
   await t.step("strict url", async () => {
     const app = nhttp({ strictUrl: true });
     app.get("/hello", () => "hello");
-    await superdeno(app.handle).get("/hello/").expect("hello");
+    await superdeno(app.handle).get("/hello/").expect(404);
 
     const app2 = nhttp();
     app2.get("/hello", () => "hello");
-    await superdeno(app2.handle).get("/hello/").expect(404);
+    await superdeno(app2.handle).get("/hello/").expect("hello");
   });
   await t.step("middleware", async () => {
     const app = nhttp();

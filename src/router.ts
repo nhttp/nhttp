@@ -3,14 +3,14 @@ import { Handler, Handlers, TObject, TRet } from "./types.ts";
 
 export const decURI = (str: string) => {
   try {
-    return decodeURI(str);
+    return decodeURIComponent(str);
   } catch (_e) {
     return str;
   }
 };
 
 export function concatRegexp(prefix: string | RegExp, path: RegExp) {
-  if (prefix === "") return path;
+  if (prefix == "") return path;
   prefix = new RegExp(prefix);
   let flags = prefix.flags + path.flags;
   flags = Array.from(new Set(flags.split(""))).join();
@@ -18,7 +18,7 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
 }
 
 export function wildcard(path: string | undefined, wild: boolean, match: TRet) {
-  const params = match.groups || {};
+  const params = match?.groups || {};
   if (!wild) return params;
   if (!path) return params;
   if (path.indexOf("*") !== -1) {
@@ -174,13 +174,14 @@ export default class Router<
     path: string,
     fn404: Handler<Rev>,
     getPath: (url: string) => string,
-    lose?: boolean,
+    strict?: boolean,
   ) {
     return this.getRoute(method + path) || (() => {
-      let url = getPath(path);
+      const url = getPath(path);
       if (this.route[method + url]) return this.getRoute(method + url);
-      if (lose) {
-        if (url !== "/" && url[url.length - 1] == "/") {
+      if (url[url.length - 1] == "/") {
+        if (url != "/") {
+          if (strict == true) return { fns: [fn404] };
           const _url = url.slice(0, -1);
           if (this.route[method + _url]) {
             return this.getRoute(method + _url);
@@ -190,17 +191,13 @@ export default class Router<
       let fns: Handler<Rev>[] = [], params: TObject | undefined;
       let i = 0, obj: TObject = {};
       let arr = this.route[method] || [];
-      let match: TObject;
       if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
       const len = arr.length;
       while (i < len) {
         obj = arr[i];
-        if (obj.pathx && obj.pathx.test(url)) {
-          url = decURI(url);
-          match = obj.pathx.exec(url);
+        if (obj.pathx?.test(url)) {
           fns = obj.fns;
-          if (!match) break;
-          params = wildcard(obj.path, obj.wild, match);
+          params = wildcard(obj.path, obj.wild, obj.pathx.exec(decURI(url)));
           break;
         }
         i++;

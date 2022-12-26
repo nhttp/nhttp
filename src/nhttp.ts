@@ -46,7 +46,7 @@ export class NHttp<
   private bodyParser: TBodyParser | boolean | undefined;
   private env: string;
   private flash?: boolean;
-  private errorStack!: boolean;
+  private stackError!: boolean;
   private strictUrl?: boolean;
   server: TRet;
   /**
@@ -66,17 +66,17 @@ export class NHttp<
    */
   handle: (request: Request, ...args: TRet) => TRet;
   constructor(
-    { parseQuery, bodyParser, env, flash, errorStack, strictUrl }: TApp = {},
+    { parseQuery, bodyParser, env, flash, stackError, strictUrl }: TApp = {},
   ) {
     super();
     this.parseQuery = parseQuery || parseQueryOri;
     this.multipartParseQuery = parseQuery;
     this.bodyParser = bodyParser;
     this.strictUrl = strictUrl;
-    this.errorStack = errorStack !== false;
+    this.stackError = stackError !== false;
     this.env = env || "development";
     if (this.env !== "development") {
-      this.errorStack = false;
+      this.stackError = false;
     }
     this.flash = flash;
     this.handleEvent = (event: FetchEvent, ...args: TRet) => {
@@ -228,11 +228,11 @@ export class NHttp<
             await noop();
             return body_response?.();
           } catch (e) {
-            return err ? defError(e, rev, this.errorStack) : next(e);
+            return err ? defError(e, rev, this.stackError) : next(e);
           }
         })();
       } catch (e) {
-        return err ? defError(e, rev, this.errorStack) : next(e);
+        return err ? defError(e, rev, this.stackError) : next(e);
       }
     };
     if (method == "GET") return next();
@@ -336,7 +336,7 @@ export class NHttp<
     rev: Rev,
     _: NextFunction,
   ): RetHandler {
-    return defError(err, rev, this.errorStack);
+    return defError(err, rev, this.stackError);
   }
   private _on404(rev: Rev, _: NextFunction): RetHandler {
     const obj = getError(

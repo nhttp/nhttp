@@ -27,7 +27,7 @@ await Deno.writeTextFile(
   "name": "nhttp-land",
   "description": "An Simple http framework for Deno and Friends",
   "author": "Herudi",
-  "version": "0.0.2",
+  "version": "1.1.12",
   "module": "./dist/mod.esm.js",
   "main": "./dist/mod.js",
   "types": "./types/mod.d.ts",

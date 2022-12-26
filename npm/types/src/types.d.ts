@@ -92,16 +92,17 @@ export type TApp = {
      */
     flash?: boolean;
     /**
-     * error stack. print error stack in response for default error handling. default to true.
+     * stackError. send error stacks in response for default error handling. default to true.
      * @example
      * const app = nhttp({
-     *    // disable error stack
-     *    errorStack: false
+     *    // disable stackError
+     *    stackError: false
      * })
      */
-    errorStack?: boolean;
+    stackError?: boolean;
     /**
      * strictUrl check last char in url like `/hello/` will redirect to `/hello`. default to false.
+     * if true, `/hello/` will redirect to 404 routes.
      */
     strictUrl?: boolean;
 };
