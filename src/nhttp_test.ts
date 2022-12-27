@@ -27,15 +27,15 @@ Deno.test("nhttp", async (t) => {
     const m7 = find("PATCH", "/hello/world/123");
     const m8 = find("PATCH", "/hello/world/123/");
     const m9 = find("ANY", "/any/hello");
-    assertEquals(m1.params, { wild: ["hello"] });
-    assertEquals(m2.params, { wild: ["hello"] });
-    assertEquals(m3.params, { wild: ["hello"], id: "123" });
-    assertEquals(m4.params, { wild: ["hello"], id: "123" });
-    assertEquals(m5.params, { slug: ["hello", "123"] });
-    assertEquals(m6.params, { slug: ["hello", "123"] });
-    assertEquals(m7.params, { slug: ["hello", "world"], id: "123" });
-    assertEquals(m8.params, { slug: ["hello", "world"], id: "123" });
-    assertEquals(m9.params, { wild: ["hello"] });
+    assertEquals(m1.param(), { wild: ["hello"] });
+    assertEquals(m2.param(), { wild: ["hello"] });
+    assertEquals(m3.param(), { wild: ["hello"], id: "123" });
+    assertEquals(m4.param(), { wild: ["hello"], id: "123" });
+    assertEquals(m5.param(), { slug: ["hello", "123"] });
+    assertEquals(m6.param(), { slug: ["hello", "123"] });
+    assertEquals(m7.param(), { slug: ["hello", "world"], id: "123" });
+    assertEquals(m8.param(), { slug: ["hello", "world"], id: "123" });
+    assertEquals(m9.param(), { wild: ["hello"] });
   });
   await t.step("handle", async () => {
     const app = nhttp({ env: "production" });

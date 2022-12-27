@@ -19,7 +19,6 @@ import {
   findFn,
   findFns,
   getReqCookies,
-  getUrl,
   middAssets,
   parseQuery as parseQueryOri,
   toPathx,
@@ -48,6 +47,7 @@ export class NHttp<
   private flash?: boolean;
   private stackError!: boolean;
   private strictUrl?: boolean;
+  private lenn: number | undefined;
   server: TRet;
   /**
    * handleEvent
@@ -188,28 +188,36 @@ export class NHttp<
   }
   private handleRequest(req: Request, info: () => TObject[]) {
     let i = 0, body_response: TRet;
-    const rev = new RequestEvent(req) as Rev;
+    const rev = new RequestEvent(req);
     rev.info = info;
     const method = req.method;
-    const { fns, params } = <{
+    const reqUrl = req.url;
+    if (this.lenn == void 0) this.lenn = reqUrl.indexOf("/", 8);
+    const { fns, param } = <{
       fns: Handler<Rev>[];
-      params?: TObject;
+      param?: () => TObject;
     }> this.find(
       method,
-      getUrl(req.url),
+      reqUrl.substring(this.lenn),
       this._on404,
-      (url) => {
+      (url, isLen) => {
+        if (!isLen) {
+          this.lenn = reqUrl.indexOf("/", 8);
+          url = reqUrl.substring(this.lenn);
+        }
         const iof = url.indexOf("?");
         if (iof != -1) {
-          rev.path = url.substring(0, iof);
+          const path = url.substring(0, iof);
+          rev.path = path;
           rev.query = this.parseQuery(url.substring(iof + 1));
           rev.search = url.substring(iof);
+          return path;
         }
-        return rev.path;
+        return url;
       },
       this.strictUrl,
     );
-    if (params) rev.params = params;
+    if (param) rev.__params = param;
     rev.respondWith = (r) => {
       body_response = () => r;
       return r as Response;
@@ -217,8 +225,12 @@ export class NHttp<
     rev.getCookies = (d) => getReqCookies(req, d);
     const next: NextFunction = (err?: TRet) => {
       try {
-        const ret = err ? this._onError(err, rev, next) : fns[i++](rev, next);
-        if (typeof ret == "string") return new Response(ret, rev.res?.init);
+        const ret = err
+          ? this._onError(err, <Rev> rev, next)
+          : fns[i++](<Rev> rev, next);
+        if (typeof ret == "string") {
+          return rev.respondWith(new Response(ret, rev.res?.init));
+        }
         if (ret instanceof Response) return ret;
         return (async () => {
           try {

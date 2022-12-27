@@ -1,4 +1,3 @@
-import { HttpResponse } from "./http_response";
 import { TObject, TRet } from "./types";
 export type RespondWith = (r: Response | Promise<Response>) => Promise<void> | Response;
 export declare class RequestEvent {
@@ -21,16 +20,8 @@ export declare class RequestEvent {
     info: () => TObject[];
     respondWith: RespondWith;
     search: string | undefined;
-    private _path;
-    private _url;
-    private _query;
-    private _body;
-    private _params;
-    private _file;
-    private _cookies;
-    res: HttpResponse | undefined;
     constructor(request: Request);
-    get response(): HttpResponse;
+    get response(): any;
     /**
      * lookup info responseInit.
      * @example

@@ -7,7 +7,6 @@ export type ResInit = {
 };
 export declare class HttpResponse {
     resp: RespondWith;
-    init: ResInit | undefined;
     constructor(resp: RespondWith);
     /**
      * set header or get header

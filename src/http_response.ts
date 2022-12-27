@@ -10,7 +10,6 @@ export type ResInit = {
 };
 
 export class HttpResponse {
-  init: ResInit | undefined;
   constructor(public resp: RespondWith) {}
   /**
    * set header or get header

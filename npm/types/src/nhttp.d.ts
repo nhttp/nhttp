@@ -9,6 +9,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private flash?;
     private stackError;
     private strictUrl?;
+    private lenn;
     server: TRet;
     /**
      * handleEvent

@@ -36,7 +36,7 @@ An Simple http framework for <a href="https://deno.land/">Deno</a> and Friends.
 ### deno.land
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 ```
 
 ### npm/yarn
@@ -52,9 +52,12 @@ yarn add nhttp-land
 ## Usage
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
+
+// or
+// const app = nhttp();
 
 app.get("/", (rev) => {
   return "Hello, World";
@@ -137,9 +140,9 @@ app.get(/.*ball$/, (rev) => {
 
 ```ts
 import { serve } from "https://deno.land/std@0.119.0/http/server.ts";
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.get("/", () => {
   return "hello custom";
@@ -154,9 +157,9 @@ await serve(app.handle);
 ## Bun
 
 ```ts
-import { nhttp } from "nhttp-land";
+import { NHttp } from "nhttp-land";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.get("/", ({ response }) => {
   return "hello bun";
@@ -168,9 +171,9 @@ Bun.serve({ fetch: app.handle });
 ## CF Workers
 
 ```ts
-import { nhttp } from "nhttp-land";
+import { NHttp } from "nhttp-land";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.get("/", ({ response }) => {
   return "hello cfw";
@@ -184,9 +187,9 @@ export default { fetch: app.handle };
 `app.use(...handlers)` or `app.use([fn1, fn2])`
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.use((rev, next) => {
   rev.foo = "foo";
@@ -205,10 +208,10 @@ app.listen(8000);
 > not all are supported
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 import helmet from "npm:helmet";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.use(helmet());
 
@@ -224,9 +227,9 @@ app.listen(8000);
 Example cors in middleware
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.use(({ response, request }, next) => {
   // example header
@@ -251,9 +254,9 @@ app.listen(8000);
 ## Status Code
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 // post with status 201
 app.post("/", ({ response }) => {
@@ -275,9 +278,9 @@ app.listen(8000);
 Support json, urlencoded, multipart, raw.
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 app.post("/save", ({ body }) => {
   return body;
@@ -291,7 +294,7 @@ app.listen(8000);
 Simple multipart upload.
 
 ```ts
-import { multipart, nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
 const upload = multipart.upload({
   // required field name
@@ -304,7 +307,7 @@ const upload = multipart.upload({
   required: true,
 });
 
-const app = nhttp();
+const app = new NHttp();
 
 app.post("/upload", upload, ({ body, file }) => {
   console.log(file.image);
@@ -320,7 +323,7 @@ app.listen(8000);
 Simple multipart upload with Bun.
 
 ```ts
-import { multipart, nhttp } from "nhttp-land";
+import { multipart, NHttp } from "nhttp-land";
 
 const upload = multipart.upload({
   // required field name
@@ -336,7 +339,7 @@ const upload = multipart.upload({
   writeFile: Bun.write,
 });
 
-const app = nhttp();
+const app = new NHttp();
 
 app.post("/upload", upload, ({ body, file }) => {
   console.log(file.image);
@@ -352,7 +355,7 @@ Bun.serve({ fetch: app.handle });
 `app.use(router | router[])` or `app.use(basePath, router | router[])`
 
 ```ts
-import { nhttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
 //user router example with base
 const user = new Router({ base: "/user" }); // base optional
@@ -362,7 +365,7 @@ user.get("/", ...handlers);
 const item = new Router();
 item.get("/item", ...handlers);
 
-const app = nhttp();
+const app = new NHttp();
 
 // register router
 app.use("/api/v1", [user, item]);
@@ -373,9 +376,9 @@ app.use("/api/v1", [user, item]);
 ## RequestEvent & Types
 
 ```ts
-import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = nhttp();
+const app = new NHttp();
 
 type TUser = {
   token: string;

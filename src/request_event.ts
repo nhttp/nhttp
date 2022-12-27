@@ -25,14 +25,6 @@ export class RequestEvent {
   info!: () => TObject[];
   respondWith!: RespondWith;
   search!: string | undefined;
-  private _path: string | undefined;
-  private _url: string | undefined;
-  private _query: TObject | undefined;
-  private _body: TObject | undefined;
-  private _params: TObject | undefined;
-  private _file: TObject | undefined;
-  private _cookies: TObject | undefined;
-  res: HttpResponse | undefined;
   constructor(public request: Request) {}
 
   get response() {
@@ -87,7 +79,7 @@ export class RequestEvent {
    * // => { name: "john", user: "john" }
    */
   get params() {
-    return this._params || (this._params = {});
+    return this._params || (this._params = this.__params?.() || {});
   }
   set params(val: TObject) {
     this._params = val;

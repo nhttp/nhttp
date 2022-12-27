@@ -171,43 +171,44 @@ export default class Router<
   }
   find(
     method: string,
-    path: string,
+    url: string,
     fn404: Handler<Rev>,
-    getPath: (url: string) => string,
+    getPath: (url: string, isLen: boolean) => string,
     strict?: boolean,
   ) {
-    return this.getRoute(method + path) || (() => {
-      const url = getPath(path);
-      if (this.route[method + url]) return this.getRoute(method + url);
-      if (url[url.length - 1] == "/") {
-        if (url != "/") {
+    return this.getRoute(method + url) || (() => {
+      const path = getPath(url, url[0] == "/");
+      if (this.route[method + path]) return this.getRoute(method + path);
+      if (path[path.length - 1] == "/") {
+        if (path != "/") {
           if (strict == true) return { fns: [fn404] };
-          const _url = url.slice(0, -1);
+          const _url = path.slice(0, -1);
           if (this.route[method + _url]) {
             return this.getRoute(method + _url);
           }
         }
       }
-      let fns: Handler<Rev>[] = [], params: TObject | undefined;
-      let i = 0, obj: TObject = {};
+      let fns: Handler<Rev>[] = [], param: TObject | undefined;
+      let i = 0, obj: TObject;
       let arr = this.route[method] || [];
       if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
       const len = arr.length;
       while (i < len) {
         obj = arr[i];
-        if (obj.pathx?.test(url)) {
+        if (obj?.pathx?.test(path)) {
           fns = obj.fns;
-          params = wildcard(obj.path, obj.wild, obj.pathx.exec(decURI(url)));
+          param = () =>
+            wildcard(obj.path, obj.wild, obj.pathx.exec(decURI(path)));
           break;
         }
         i++;
       }
       if (this.pmidds) {
-        const p = base(url || "/");
+        const p = base(path || "/");
         if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
       }
       fns = this.midds.concat(fns, [fn404]);
-      return { fns, params };
+      return { fns, param };
     })();
   }
 }
