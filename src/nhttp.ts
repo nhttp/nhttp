@@ -3,6 +3,7 @@ import {
   FetchEvent,
   Handler,
   Handlers,
+  HttpRequest,
   ListenOptions,
   NextFunction,
   RetHandler,
@@ -18,7 +19,9 @@ import {
   concatRegexp,
   findFn,
   findFns,
+  getPos,
   getReqCookies,
+  getUrl,
   middAssets,
   parseQuery as parseQueryOri,
   toPathx,
@@ -36,7 +39,7 @@ const defError = (
   return rev.response.status(obj.status).json(obj);
 };
 
-const noop = () => new Promise((ok) => setTimeout(ok));
+const delay = () => new Promise((ok) => setTimeout(ok));
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
@@ -56,7 +59,7 @@ export class NHttp<
    *   event.respondWith(app.handleEvent(event))
    * });
    */
-  handleEvent: (event: FetchEvent, ...args: TRet) => TRet;
+  handleEvent: (event: FetchEvent) => TRet;
   /**
    * handle
    * @example
@@ -64,7 +67,7 @@ export class NHttp<
    * // or
    * Bun.serve({ fetch: app.handle });
    */
-  handle: (request: Request, ...args: TRet) => TRet;
+  handle: (request: HttpRequest) => TRet;
   constructor(
     { parseQuery, bodyParser, env, flash, stackError, strictUrl }: TApp = {},
   ) {
@@ -79,11 +82,11 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
-    this.handleEvent = (event: FetchEvent, ...args: TRet) => {
-      return this.handleRequest(event.request, () => args);
+    this.handleEvent = (event: FetchEvent) => {
+      return this.handleRequest(event.request);
     };
-    this.handle = (request: TRet, ...args: TRet) => {
-      return this.handleRequest(request, () => args);
+    this.handle = (request: TRet) => {
+      return this.handleRequest(request);
     };
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
@@ -186,44 +189,44 @@ export class NHttp<
     }
     return this;
   }
-  private handleRequest(req: Request, info: () => TObject[]) {
-    let i = 0, body_response: TRet;
+  private handleRequest(req: HttpRequest) {
+    let i = 0, res: TRet;
     const rev = new RequestEvent(req);
-    rev.info = info;
     const method = req.method;
-    const reqUrl = req.url;
-    if (this.lenn == void 0) this.lenn = reqUrl.indexOf("/", 8);
     const { fns, param } = <{
       fns: Handler<Rev>[];
       param?: () => TObject;
     }> this.find(
       method,
-      reqUrl.substring(this.lenn),
+      getUrl(req.url, this.lenn ?? (this.lenn = getPos(req.url))),
       this._on404,
-      (url, isLen) => {
-        if (!isLen) {
-          this.lenn = reqUrl.indexOf("/", 8);
-          url = reqUrl.substring(this.lenn);
-        }
+      (url) => {
         const iof = url.indexOf("?");
         if (iof != -1) {
-          const path = url.substring(0, iof);
-          rev.path = path;
+          rev.path = url.substring(0, iof);
           rev.query = this.parseQuery(url.substring(iof + 1));
           rev.search = url.substring(iof);
-          return path;
+          return rev.path;
         }
         return url;
+      },
+      () => {
+        const pos = getPos(req.url);
+        if (this.lenn != void 0 && this.lenn != pos) {
+          return getUrl(req.url, this.lenn = pos);
+        }
+        return void 0;
       },
       this.strictUrl,
     );
     if (param) rev.__params = param;
     rev.respondWith = (r) => {
-      body_response = () => r;
+      if (rev.__wm == void 0) return r as Response;
+      res = () => r;
       return r as Response;
     };
     rev.getCookies = (d) => getReqCookies(req, d);
-    const next: NextFunction = (err?: TRet) => {
+    const next: NextFunction = (err) => {
       try {
         const ret = err
           ? this._onError(err, <Rev> rev, next)
@@ -236,9 +239,9 @@ export class NHttp<
           try {
             const val = await ret;
             if (val) return rev.response.send(val);
-            if (body_response) return body_response();
-            await noop();
-            return body_response?.();
+            if (res) return res();
+            await delay();
+            return res?.();
           } catch (e) {
             return err ? defError(e, rev, this.stackError) : next(e);
           }
@@ -280,7 +283,7 @@ export class NHttp<
     } else if (typeof opts === "object") {
       isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
         opts.alpnProtocols !== void 0;
-      handler = opts.handler || handler;
+      handler = opts.handler ?? this.handle;
     }
     const runCallback = (err?: Error) => {
       if (callback) {
@@ -289,28 +292,25 @@ export class NHttp<
           ..._opts,
           hostname: _opts.hostname || "localhost",
         });
-        return true;
       }
     };
-    if (opts.test) {
-      runCallback();
-      return;
-    }
     try {
-      if (this.flash) {
-        if ((Deno as TRet).serve == void 0) {
-          console.log(
-            new TypeError(
-              "flash server is unstable. please add --unstable flag",
-            ),
-          );
-          return;
-        }
-        if (runCallback()) opts.onListen = () => {};
-        await (Deno as TRet).serve(opts, this.handle);
+      if (this.flash != false && (Deno as TRet).serve != void 0) {
+        opts.onListen = opts.onListen ?? (() => {});
+        runCallback();
+        if (opts.test) return;
+        await (Deno as TRet).serve(opts as TRet, handler);
       } else {
         this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
         runCallback();
+        if (opts.signal) {
+          opts.signal.addEventListener("abort", () => {
+            try {
+              this.server?.close();
+            } catch (_e) { /* noop */ }
+          }, { once: true });
+        }
+        if (opts.test) return;
         while (true) {
           try {
             const conn = await this.server.accept();
@@ -361,14 +361,14 @@ export class NHttp<
     return rev.response.status(obj.status).json(obj);
   }
 
-  private async handleConn(conn: TRet, handler: CustomHandler) {
+  private async handleConn(conn: Deno.Conn, handler: CustomHandler) {
     try {
-      const httpConn = Deno.serveHttp(conn as Deno.Conn);
+      const httpConn = Deno.serveHttp(conn);
       while (true) {
         try {
           const rev = await httpConn.nextRequest();
           if (rev) {
-            await rev.respondWith(handler(rev.request, conn));
+            await rev.respondWith(handler(rev.request));
           } else {
             break;
           }

@@ -87,8 +87,6 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    find(method: string, url: string, fn404: Handler<Rev>, getPath: (url: string, isLen: boolean) => string, strict?: boolean): {
-        fns: any;
-    };
+    find(method: string, url: string, fn404: Handler<Rev>, getPath: (url: string) => string, mutate?: () => string | undefined, strict?: boolean): TRet;
 }
 export {};

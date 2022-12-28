@@ -17,7 +17,7 @@ Deno.test("nhttp", async (t) => {
     app.put("/:slug*", () => {});
     app.patch("/:slug*/:id", () => {});
     const find: TRet = (method: string, url: string) =>
-      app.find(method, url, () => {}, () => url, false);
+      app.find(method, url, () => {}, () => url, () => url, false);
     const m1 = find("GET", "/hello");
     const m2 = find("GET", "/hello/");
     const m3 = find("POST", "/hello/123");
@@ -43,11 +43,8 @@ Deno.test("nhttp", async (t) => {
     app.get("/promise", async () => await new Promise((res) => res("ok")));
     app.post("/post", () => "post");
     app.head("/", () => "head");
-    app.get("/data", async ({ response, getCookies }) => {
-      await response.send(getCookies(true));
-    });
-    app.get("/hello", ({ response, info }) => {
-      response.send(info());
+    app.get("/hello", ({ response }) => {
+      return response.send([]);
     });
     app.get("/noop", () => {});
     app.get("/noop2", async () => {});
@@ -55,7 +52,6 @@ Deno.test("nhttp", async (t) => {
     await superdeno(app.handle).get("/promise?name=john").expect("ok");
     await superdeno(app.handle).post("/post").expect("post");
     await superdeno(app.handle).get("/hello").expect([]);
-    await superdeno(app.handle).get("/data").expect({});
     const head = await app.handleEvent(
       { request: req("HEAD", "/") },
     );
@@ -81,7 +77,7 @@ Deno.test("nhttp", async (t) => {
         rev.count = 0;
       }
       rev.count += 1;
-      next();
+      return next();
     };
     app.use(midd);
     app.use(midd, [midd, [midd]], midd);
@@ -123,7 +119,7 @@ Deno.test("nhttp", async (t) => {
       assertEquals(typeof getHeaders(), "object");
       respond({ body: "hello" });
     });
-    const init = await app.handle(req("GET", "/"), {});
+    const init = await app.handle(req("GET", "/"));
     assertEquals(await init.text(), "hello");
   });
   await t.step("sub router", async () => {

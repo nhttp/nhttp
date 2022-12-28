@@ -4,17 +4,7 @@ import { assertEquals } from "./deps_test.ts";
 Deno.test("RequestEvent", () => {
   const rev = new RequestEvent(new Request("http://x.x/"));
   const names = [
-    "conn",
-    "info",
     "respondWith",
-    "search",
-    "_path",
-    "_url",
-    "_query",
-    "_body",
-    "_file",
-    "_cookies",
-    "res",
     "getCookies",
   ];
   names.forEach((name) => {

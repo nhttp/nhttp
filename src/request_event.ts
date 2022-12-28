@@ -7,28 +7,11 @@ export type RespondWith = (
 ) => Promise<void> | Response;
 
 export class RequestEvent {
-  /**
-   * conn
-   * @deprecated
-   * Use `rev.info()` instead.
-   * @example
-   * const [conn] = rev.info();
-   * console.log(conn);
-   */
-  conn!: TObject | undefined;
-  /**
-   * lookup info as array
-   * @example
-   * const [conn] = rev.info();
-   * console.log(conn);
-   */
-  info!: () => TObject[];
   respondWith!: RespondWith;
-  search!: string | undefined;
   constructor(public request: Request) {}
 
-  get response() {
-    return this.res || (this.res = new HttpResponse(this.respondWith));
+  get response(): HttpResponse {
+    return this.res ?? (this.res = new HttpResponse(this.respondWith));
   }
 
   /**
@@ -38,13 +21,26 @@ export class RequestEvent {
    * console.log(headers, status, statusText);
    */
   get responseInit(): ResponseInit {
-    const init = this.res?.init || {};
-    const status = init.status || 200;
+    const init = this.res?.init ?? {};
+    const status = init.status ?? 200;
     const headers = init.headers instanceof Headers
       ? init.headers
-      : new Headers(init.headers || {});
+      : new Headers(init.headers ?? {});
     const statusText = list_status[status];
     return { headers, status, statusText };
+  }
+
+  /**
+   * search.
+   * @example
+   * const search = rev.search;
+   * console.log(search);
+   */
+  get search() {
+    return this._search ?? null;
+  }
+  set search(val: string | null) {
+    this._search = val;
   }
   /**
    * file.
@@ -53,7 +49,7 @@ export class RequestEvent {
    * console.log(file);
    */
   get file() {
-    return this._file || (this._file = {});
+    return this._file ?? (this._file = {});
   }
   set file(val: TObject) {
     this._file = val;
@@ -65,7 +61,7 @@ export class RequestEvent {
    * console.log(cookie);
    */
   get cookies() {
-    return this._cookies || (this._cookies = getReqCookies(this.request, true));
+    return this._cookies ?? (this._cookies = getReqCookies(this.request, true));
   }
   set cookies(val: TObject) {
     this._cookies = val;
@@ -79,7 +75,7 @@ export class RequestEvent {
    * // => { name: "john", user: "john" }
    */
   get params() {
-    return this._params || (this._params = this.__params?.() || {});
+    return this._params ?? (this._params = this.__params?.() || {});
   }
   set params(val: TObject) {
     this._params = val;
@@ -91,7 +87,7 @@ export class RequestEvent {
    * console.log(body);
    */
   get body() {
-    return this._body || (this._body = {});
+    return this._body ?? (this._body = {});
   }
   set body(val: TObject) {
     this._body = val;
@@ -105,7 +101,7 @@ export class RequestEvent {
    * // => /hello?name=john
    */
   get url() {
-    return this._url || (this._url = getUrl(this.request.url));
+    return this._url ?? (this._url = getUrl(this.request.url));
   }
   set url(val: string) {
     this._url = val;
@@ -130,7 +126,7 @@ export class RequestEvent {
    * // => /hello
    */
   get path() {
-    return this._path || this.url;
+    return this._path ?? this.url;
   }
   set path(val: string) {
     this._path = val;
@@ -144,7 +140,7 @@ export class RequestEvent {
    * // => { name: "john" }
    */
   get query() {
-    return this._query || (this._query = {});
+    return this._query ?? (this._query = {});
   }
   set query(val: TObject) {
     this._query = val;

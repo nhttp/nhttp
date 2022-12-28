@@ -1,27 +1,11 @@
+import { HttpResponse } from "./http_response";
 import { TObject, TRet } from "./types";
 export type RespondWith = (r: Response | Promise<Response>) => Promise<void> | Response;
 export declare class RequestEvent {
     request: Request;
-    /**
-     * conn
-     * @deprecated
-     * Use `rev.info()` instead.
-     * @example
-     * const [conn] = rev.info();
-     * console.log(conn);
-     */
-    conn: TObject | undefined;
-    /**
-     * lookup info as array
-     * @example
-     * const [conn] = rev.info();
-     * console.log(conn);
-     */
-    info: () => TObject[];
     respondWith: RespondWith;
-    search: string | undefined;
     constructor(request: Request);
-    get response(): any;
+    get response(): HttpResponse;
     /**
      * lookup info responseInit.
      * @example
@@ -29,6 +13,14 @@ export declare class RequestEvent {
      * console.log(headers, status, statusText);
      */
     get responseInit(): ResponseInit;
+    /**
+     * search.
+     * @example
+     * const search = rev.search;
+     * console.log(search);
+     */
+    get search(): string | null;
+    set search(val: string | null);
     /**
      * file.
      * @example

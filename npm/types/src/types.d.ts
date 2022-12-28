@@ -111,7 +111,7 @@ export type RouterOrWare<Rev extends RequestEvent = RequestEvent> = Handler<Rev>
 export interface HttpRequest extends Request {
     [k: string]: TRet;
 }
-export type CustomHandler = (request: HttpRequest, info: TRet) => TRet;
+export type CustomHandler = (request: HttpRequest) => TRet;
 export type ListenOptions = {
     port: number;
     hostname?: string;
@@ -122,5 +122,6 @@ export type ListenOptions = {
     transport?: string;
     alpnProtocols?: string[];
     handler?: CustomHandler;
+    signal?: AbortSignal;
     [k: string]: TRet;
 };

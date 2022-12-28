@@ -41,7 +41,8 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
  */
 export declare function expressMiddleware(...middlewares: TRet): TRet;
 export declare function middAssets(str: string): Handler<RequestEvent>[];
-export declare function getUrl(url: string): string;
+export declare function getPos(url: string): number;
+export declare function getUrl(url: string, pos?: number): string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
 export declare function getReqCookies(req: Request, decode?: boolean, i?: number): Record<string, string>;
 export declare const list_status: Record<number, string>;

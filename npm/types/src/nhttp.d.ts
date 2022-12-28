@@ -1,4 +1,4 @@
-import { FetchEvent, Handlers, ListenOptions, NextFunction, RetHandler, RouterOrWare, TApp, TObject, TRet } from "./types";
+import { FetchEvent, Handlers, HttpRequest, ListenOptions, NextFunction, RetHandler, RouterOrWare, TApp, TObject, TRet } from "./types";
 import Router from "./router";
 import { RequestEvent } from "./request_event";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Router<Rev> {
@@ -18,7 +18,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *   event.respondWith(app.handleEvent(event))
      * });
      */
-    handleEvent: (event: FetchEvent, ...args: TRet) => TRet;
+    handleEvent: (event: FetchEvent) => TRet;
     /**
      * handle
      * @example
@@ -26,7 +26,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * // or
      * Bun.serve({ fetch: app.handle });
      */
-    handle: (request: Request, ...args: TRet) => TRet;
+    handle: (request: HttpRequest) => TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError, strictUrl }?: TApp);
     /**
      * global error handling.

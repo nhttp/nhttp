@@ -159,7 +159,7 @@ export class HttpResponse {
    * return response.redirect("/home", 301);
    */
   redirect(url: string, status?: number) {
-    return this.header("Location", url).status(status || 302).send();
+    return this.header("Location", url).status(status ?? 302).send();
   }
   /**
    * cookie

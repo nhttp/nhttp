@@ -32,8 +32,8 @@ export function findFn(fn: TRet) {
     const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
       const res = rev.response;
       rev.method = rev.request.method;
-      if (!rev.__wrapMiddleware) {
-        rev.__wrapMiddleware = true;
+      if (!rev.__wm) {
+        rev.__wm = true;
         rev.getHeaders = () =>
           Object.fromEntries(rev.request.headers.entries());
         res.append = (a: string, b: string) => res.headers.append(a, b);
@@ -217,8 +217,12 @@ export function middAssets(str: string) {
   ];
 }
 
-export function getUrl(url: string) {
-  return url.substring(url.indexOf("/", 8));
+export function getPos(url: string) {
+  return url.indexOf("/", 8);
+}
+
+export function getUrl(url: string, pos?: number) {
+  return url.substring(pos ?? getPos(url));
 }
 
 export function serializeCookie(

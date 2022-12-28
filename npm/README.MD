@@ -65,7 +65,7 @@ app.get("/", (rev) => {
   // or
   // return { hello: "world" };
   // return new Response("Hello, World");
-  // rev.response.send("Hello, World");
+  // return rev.response.send("Hello, World");
 });
 
 app.listen(8000, () => {
@@ -139,8 +139,7 @@ app.get(/.*ball$/, (rev) => {
 ## Custom Server
 
 ```ts
-import { serve } from "https://deno.land/std@0.119.0/http/server.ts";
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+...
 
 const app = new NHttp();
 
@@ -148,38 +147,16 @@ app.get("/", () => {
   return "hello custom";
 });
 
-await serve(app.handle);
+// With Deno Flash Server
+await Deno.serve(app.handle);
 
-// or Deno Flash
-// await Deno.serve(app.handle);
-```
-
-## Bun
-
-```ts
-import { NHttp } from "nhttp-land";
-
-const app = new NHttp();
-
-app.get("/", ({ response }) => {
-  return "hello bun";
-});
-
+// With Bun
 Bun.serve({ fetch: app.handle });
-```
 
-## CF Workers
-
-```ts
-import { NHttp } from "nhttp-land";
-
-const app = new NHttp();
-
-app.get("/", ({ response }) => {
-  return "hello cfw";
+// With CF Workers
+addEventListener("fetch", (event) => {
+  event.respondWith(app.handle(event.request));
 });
-
-export default { fetch: app.handle };
 ```
 
 ## Middleware
@@ -275,18 +252,19 @@ app.listen(8000);
 
 ## Body Parser
 
-Support json, urlencoded, multipart, raw.
+NHttp auto parse the body. Support json, urlencoded, multipart, raw.
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+...
 
 const app = new NHttp();
 
-app.post("/save", ({ body }) => {
-  return body;
+app.post("/post", (rev) => {
+  console.log(rev.body);
+  return rev.body;
 });
 
-app.listen(8000);
+...
 ```
 
 ## Upload
@@ -318,7 +296,56 @@ app.post("/upload", upload, ({ body, file }) => {
 app.listen(8000);
 ```
 
-## Upload With Bun
+## Sub Router
+
+`app.use(router | router[])` or `app.use(basePath, router | router[])`
+
+```ts
+import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+
+//user router example with base
+const user = new Router({ base: "/user" }); // base optional
+user.get("/", ...handlers);
+
+//item router example without base
+const item = new Router();
+item.get("/item", ...handlers);
+
+const app = new NHttp();
+
+// register router
+app.use("/api/v1", [user, item]);
+
+...
+```
+
+## RequestEvent & Types
+
+```ts
+...
+
+const app = new NHttp();
+
+type TUser = {
+  token: string;
+};
+
+app.use<TUser>((rev, next) => {
+  // rev.token must be string.
+  rev.token = "1234";
+  return next();
+});
+
+app.get<TUser>("/hello", ({ token }) => {
+  return token;
+});
+
+...
+```
+
+## Recipe
+
+### Upload With Bun
 
 Simple multipart upload with Bun.
 
@@ -348,53 +375,6 @@ app.post("/upload", upload, ({ body, file }) => {
 });
 
 Bun.serve({ fetch: app.handle });
-```
-
-## Sub Router
-
-`app.use(router | router[])` or `app.use(basePath, router | router[])`
-
-```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-//user router example with base
-const user = new Router({ base: "/user" }); // base optional
-user.get("/", ...handlers);
-
-//item router example without base
-const item = new Router();
-item.get("/item", ...handlers);
-
-const app = new NHttp();
-
-// register router
-app.use("/api/v1", [user, item]);
-
-...
-```
-
-## RequestEvent & Types
-
-```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-const app = new NHttp();
-
-type TUser = {
-  token: string;
-};
-
-app.use<TUser>((rev, next) => {
-  // rev.token must be string.
-  rev.token = "1234";
-  return next();
-});
-
-app.get<TUser>("/hello", ({ token }) => {
-  return token;
-});
-
-...
 ```
 
 ## License
