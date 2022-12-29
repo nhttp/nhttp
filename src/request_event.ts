@@ -1,6 +1,7 @@
+import { STATUS_LIST } from "./constant.ts";
 import { HttpResponse } from "./http_response.ts";
 import { TObject, TRet } from "./types.ts";
-import { getReqCookies, getUrl, list_status } from "./utils.ts";
+import { getReqCookies, getUrl } from "./utils.ts";
 
 export type RespondWith = (
   r: Response | Promise<Response>,
@@ -11,7 +12,8 @@ export class RequestEvent {
   constructor(public request: Request) {}
 
   get response(): HttpResponse {
-    return this.res ?? (this.res = new HttpResponse(this.respondWith));
+    return this.res ??
+      (this.res = new HttpResponse(this.respondWith, this.request));
   }
 
   /**
@@ -26,7 +28,7 @@ export class RequestEvent {
     const headers = init.headers instanceof Headers
       ? init.headers
       : new Headers(init.headers ?? {});
-    const statusText = list_status[status];
+    const statusText = STATUS_LIST[status];
     return { headers, status, statusText };
   }
 
@@ -126,7 +128,7 @@ export class RequestEvent {
    * // => /hello
    */
   get path() {
-    return this._path ?? this.url;
+    return this._path ?? (this._path = this.url);
   }
   set path(val: string) {
     this._path = val;

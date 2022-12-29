@@ -27,7 +27,10 @@ Deno.test("HttpResponse", async (t) => {
     });
   });
   await t.step("response", async (t) => {
-    const res = new HttpResponse((r) => r as Response);
+    const res = new HttpResponse(
+      (r) => r as Response,
+      new Request("http://127.0.0.1/"),
+    );
     await t.step("header", () => {
       res.header("name", "john");
       res.header({ "address": "jakarta" });
@@ -117,12 +120,64 @@ Deno.test("HttpResponse", async (t) => {
     });
 
     await t.step("headers", () => {
-      const res = new HttpResponse((r) => r as Response);
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/"),
+      );
       res.headers.set("key", "value");
       assertEquals(res.headers.get("key"), "value");
       res.init = undefined;
       res.headers = new Headers();
       assertEquals(res.headers instanceof Headers, true);
+    });
+
+    await t.step("sendFile", async () => {
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/"),
+      );
+      const ret = await res.sendFile("dummy/test.txt") as Response;
+      assertEquals(ret.status, 200);
+    });
+    await t.step("sendFile etag", async () => {
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/", {
+          headers: {
+            "if-none-match": `W/"11-1672299711487"`,
+          },
+        }),
+      );
+      const ret = await res.sendFile("dummy/test.txt") as Response;
+      assertEquals(ret.status, 304);
+    });
+    await t.step("download", async () => {
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/"),
+      );
+      const ret = await res.download("dummy/test.txt") as Response;
+      assertEquals(ret.status, 200);
+    });
+    await t.step("download etag", async () => {
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/", {
+          headers: {
+            "if-none-match": `W/"11-1672299711487"`,
+          },
+        }),
+      );
+      const ret = await res.download("dummy/test.txt") as Response;
+      assertEquals(ret.status, 304);
+    });
+    await t.step("set/get header", () => {
+      const res = new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1/"),
+      );
+      res.setHeader("key", "value");
+      assertEquals(res.getHeader("key"), "value");
     });
   });
 });

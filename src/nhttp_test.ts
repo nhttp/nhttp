@@ -203,11 +203,16 @@ Deno.test("nhttp", async (t) => {
     assertEquals(ret, undefined);
   });
   await t.step("listen", async () => {
-    const def_port = 8000;
+    const def_port = 8080;
     const app = nhttp();
+    const ac = new AbortController();
     app.get("/", () => "hello");
     const info: TRet = await new Promise((ok) => {
-      app.listen({ port: def_port, test: true }, (_, obj) => {
+      app.listen({
+        signal: ac.signal,
+        port: def_port,
+        test: true,
+      }, (_, obj) => {
         ok(obj);
       });
     });
@@ -222,6 +227,7 @@ Deno.test("nhttp", async (t) => {
         ok(info);
       });
     });
+    ac.abort();
     assertEquals(info.port, def_port);
     assertEquals(infoSSL.port, def_port + 1);
   });

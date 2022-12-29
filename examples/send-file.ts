@@ -2,9 +2,8 @@ import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
 
-app.get("/send-file", async ({ response }) => {
-  response.type("text/css");
-  return await Deno.readFile("./public/test.css");
+app.get("/send-file", ({ response }) => {
+  return response.sendFile("./public/test.css");
 });
 
 app.listen(3000, () => {

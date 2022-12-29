@@ -1,4 +1,6 @@
-import { RequestEvent } from "./request_event.ts";
+import { MIME_LIST } from "./constant.ts";
+import { HttpResponse, JSON_TYPE_CHARSET, ResInit } from "./http_response.ts";
+import { RequestEvent, RespondWith } from "./request_event.ts";
 import {
   Cookie,
   Handler,
@@ -10,6 +12,7 @@ import {
 
 export const encoder = new TextEncoder();
 export const decoder = new TextDecoder();
+const build_date = new Date();
 type EArr = [string, string | TObject];
 
 export const decURI = (str: string) => {
@@ -315,45 +318,59 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   return ret;
 }
 
-export const list_status: Record<number, string> = {
-  100: "Continue",
-  101: "Switching Protocols",
-  102: "Processing",
-  103: "Early Hints",
-  200: "OK",
-  201: "Created",
-  202: "Accepted",
-  204: "No Content",
-  206: "Partial Content",
-  301: "Moved Permanently",
-  302: "Moved Temporarily",
-  303: "See Other",
-  304: "Not Modified",
-  307: "Temporary Redirect",
-  308: "Permanent Redirect",
-  400: "Bad Request",
-  401: "Unauthorized",
-  402: "Payment Required",
-  403: "Forbidden",
-  404: "Not Found",
-  405: "Not Allowed",
-  406: "Not Acceptable",
-  408: "Request Time-out",
-  409: "Conflict",
-  410: "Gone",
-  411: "Length Required",
-  412: "Precondition Failed",
-  413: "Request Entity Too Large",
-  414: "Request-URI Too Large",
-  415: "Unsupported Media Type",
-  416: "Requested Range Not Satisfiable",
-  421: "Misdirected Request",
-  429: "Too Many Requests",
-  500: "Internal Server Error",
-  501: "Not Implemented",
-  502: "Bad Gateway",
-  503: "Service Temporarily Unavailable",
-  504: "Gateway Time-out",
-  505: "HTTP Version Not Supported",
-  507: "Insufficient Storage",
-};
+export function getContentType(path: string) {
+  const iof = path.lastIndexOf(".");
+  if (iof <= 0) return MIME_LIST.arc;
+  const ext = path.substring(path.lastIndexOf(".") + 1);
+  return MIME_LIST[ext];
+}
+
+export function is304(res: HttpResponse, stat: TObject) {
+  if (!stat.size) return false;
+  const mtime = stat.mtime ?? build_date;
+  res.header("last-modified", mtime.toUTCString());
+  res.header("etag", `W/"${stat.size}-${mtime.getTime()}"`);
+  return res.request.headers.get("if-none-match") == res.header("ETag");
+}
+
+export function createOptionFile(
+  opts: {
+    etag?: boolean;
+    readFile?: (pathFile: string) => TRet;
+    stat?: (pathFile: string) => TRet;
+  } = {},
+) {
+  opts.etag = opts.etag ?? true;
+  opts.readFile = opts.readFile ?? Deno.readTextFile;
+  opts.stat = opts.stat ??
+    (typeof Deno != "undefined" ? Deno.stat : ((_p) => ({})));
+}
+
+export function sendBody(
+  resp: RespondWith,
+  init: ResInit,
+  body?: BodyInit | TObject | null,
+) {
+  if (typeof body == "string") return resp(new Response(body, init));
+  if (typeof body == "object") {
+    if (body instanceof Response) return body;
+    if (
+      body instanceof Uint8Array ||
+      body instanceof ReadableStream ||
+      body instanceof Blob ||
+      typeof (body as TRet).read == "function"
+    ) {
+      return resp(new Response(body as BodyInit, init));
+    }
+    if (!init) init = {};
+    if (init.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.set("content-type", JSON_TYPE_CHARSET);
+      } else {
+        init.headers["content-type"] = JSON_TYPE_CHARSET;
+      }
+    } else init.headers = { "content-type": JSON_TYPE_CHARSET };
+    return resp(new Response(JSON.stringify(body), init));
+  }
+  return resp(new Response(body, init));
+}

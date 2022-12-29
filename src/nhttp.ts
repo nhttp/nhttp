@@ -24,6 +24,7 @@ import {
   getUrl,
   middAssets,
   parseQuery as parseQueryOri,
+  sendBody,
   toPathx,
 } from "./utils.ts";
 import { bodyParser } from "./body.ts";
@@ -77,7 +78,7 @@ export class NHttp<
     this.bodyParser = bodyParser;
     this.strictUrl = strictUrl;
     this.stackError = stackError !== false;
-    this.env = env || "development";
+    this.env = env ?? "development";
     if (this.env !== "development") {
       this.stackError = false;
     }
@@ -162,7 +163,7 @@ export class NHttp<
     ) {
       this.pushRoutes(str, findFns(args) as Handler[], last);
     } else if (str !== "") {
-      this.pmidds = this.pmidds || {};
+      this.pmidds = this.pmidds ?? {};
       this.pmidds[str] = middAssets(str).concat(findFns(args) as Handler[]);
     } else {
       this.midds = this.midds.concat(findFns(args) as Handler[]);
@@ -221,7 +222,7 @@ export class NHttp<
     );
     if (param) rev.__params = param;
     rev.respondWith = (r) => {
-      if (rev.__wm == void 0) return r as Response;
+      if (!rev.__wm) return r as Response;
       res = () => r;
       return r as Response;
     };
@@ -232,13 +233,14 @@ export class NHttp<
           ? this._onError(err, <Rev> rev, next)
           : fns[i++](<Rev> rev, next);
         if (typeof ret == "string") {
+          if (!rev.res) return new Response(ret);
           return rev.respondWith(new Response(ret, rev.res?.init));
         }
         if (ret instanceof Response) return ret;
         return (async () => {
           try {
             const val = await ret;
-            if (val) return rev.response.send(val);
+            if (val) return sendBody(rev.respondWith, rev.res?.init, val);
             if (res) return res();
             await delay();
             return res?.();
@@ -295,13 +297,16 @@ export class NHttp<
       }
     };
     try {
-      if (this.flash != false && (Deno as TRet).serve != void 0) {
+      if (this.flash) {
+        if ((Deno as TRet).serve == void 0) {
+          console.log("Deno flash is unstable. please add --unstable flag.");
+          return;
+        }
         opts.onListen = opts.onListen ?? (() => {});
         runCallback();
         if (opts.test) return;
         await (Deno as TRet).serve(opts as TRet, handler);
       } else {
-        this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
         runCallback();
         if (opts.signal) {
           opts.signal.addEventListener("abort", () => {
@@ -311,6 +316,7 @@ export class NHttp<
           }, { once: true });
         }
         if (opts.test) return;
+        this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
         while (true) {
           try {
             const conn = await this.server.accept();

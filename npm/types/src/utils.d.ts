@@ -1,4 +1,5 @@
-import { RequestEvent } from "./request_event";
+import { HttpResponse, ResInit } from "./http_response";
+import { RequestEvent, RespondWith } from "./request_event";
 import { Cookie, Handler, TObject, TRet } from "./types";
 export declare const encoder: TextEncoder;
 export declare const decoder: TextDecoder;
@@ -45,5 +46,12 @@ export declare function getPos(url: string): number;
 export declare function getUrl(url: string, pos?: number): string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
 export declare function getReqCookies(req: Request, decode?: boolean, i?: number): Record<string, string>;
-export declare const list_status: Record<number, string>;
+export declare function getContentType(path: string): string;
+export declare function is304(res: HttpResponse, stat: TObject): boolean;
+export declare function createOptionFile(opts?: {
+    etag?: boolean;
+    readFile?: (pathFile: string) => TRet;
+    stat?: (pathFile: string) => TRet;
+}): void;
+export declare function sendBody(resp: RespondWith, init: ResInit, body?: BodyInit | TObject | null): Promise<void> | Response;
 export {};

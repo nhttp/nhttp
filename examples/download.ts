@@ -2,12 +2,8 @@ import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
 
-app.get("/download", async ({ response }) => {
-  response.header({
-    "content-type": "text/css",
-    "content-disposition": "attachment; filename=myfile.css",
-  });
-  return await Deno.readFile("./public/test.css");
+app.get("/download", ({ response }) => {
+  return response.download("./public/test.css");
 });
 
 app.listen(3000, () => {

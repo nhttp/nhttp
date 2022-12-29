@@ -7,7 +7,8 @@ export type ResInit = {
 };
 export declare class HttpResponse {
     resp: RespondWith;
-    constructor(resp: RespondWith);
+    request: Request;
+    constructor(resp: RespondWith, request: Request);
     /**
      * set header or get header
      * @example
@@ -17,6 +18,12 @@ export declare class HttpResponse {
      *
      * // get header
      * const type = response.header("content-type");
+     *
+     * // delete header
+     * response.headers.delete("content-type");
+     *
+     * // append header
+     * response.headers.append("key", "other-value");
      */
     header(key: string, value: string | string[]): this;
     header(key: string): string;
@@ -47,9 +54,43 @@ export declare class HttpResponse {
     /**
      * sendStatus
      * @example
-     * response.sendStatus(200);
+     * return response.sendStatus(500);
      */
     sendStatus(code: number): Promise<void> | Response;
+    /**
+     * setHeader
+     * @example
+     * response.setHeader("key", "value");
+     */
+    setHeader(key: string, value: string | string[]): this;
+    /**
+     * getHeader
+     * @example
+     * const str = response.getHeader("key");
+     */
+    getHeader(key: string): string;
+    /**
+     * sendFile
+     * @example
+     * return response.sendFile("folder/file.txt");
+     * return response.sendFile("folder/file.txt", { etag: false });
+     */
+    sendFile(pathFile: string, opts?: {
+        etag?: boolean;
+        readFile?: (pathFile: string) => TRet;
+        stat?: (pathFile: string) => TRet;
+    }): Promise<void | Response>;
+    /**
+     * download
+     * @example
+     * return response.download("folder/file.txt");
+     * return response.download("folder/file.txt", "filename.txt", { etag: false });
+     */
+    download(pathFile: string, filename?: string, opts?: {
+        etag?: boolean;
+        readFile?: (pathFile: string) => TRet;
+        stat?: (pathFile: string) => TRet;
+    }): Promise<void | Response>;
     /**
      * set/get statusCode
      * @example
@@ -64,7 +105,7 @@ export declare class HttpResponse {
     /**
      * shorthand for content-type headers
      * @example
-     * response.type("text/html");
+     * return response.type("html").send("<h1>hello, world</h1>");
      */
     type(contentType: string): this;
     /**
@@ -84,6 +125,7 @@ export declare class HttpResponse {
      * @example
      * return response.redirect("/home");
      * return response.redirect("/home", 301);
+     * return response.redirect("http://google.com");
      */
     redirect(url: string, status?: number): Promise<void> | Response;
     /**
