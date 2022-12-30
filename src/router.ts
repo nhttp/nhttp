@@ -48,6 +48,10 @@ export function base(url: string) {
 }
 
 type TRouter = { base?: string };
+interface TRouteMatch<Rev extends RequestEvent = RequestEvent> {
+  fns: Handler<Rev>[];
+  params: TObject | undefined;
+}
 /**
  * Router
  * @example
@@ -64,14 +68,16 @@ export default class Router<
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
-    if (this.base === "/") this.base = "";
+    if (this.base == "/") this.base = "";
   }
-  private getRoute(key: string) {
-    const { fns } = this.route[key];
-    if (this.midds.length) {
-      return { fns: this.midds.concat(fns) };
-    }
-    return { fns };
+  getRoute(method: string, path: string): TRouteMatch | undefined {
+    const route = this.route[method + path];
+    if (route == void 0) return;
+    if (route.m) return route;
+    route.fns = this.midds.concat(route.fns);
+    route.m = true;
+    this.route[method + path] = route;
+    return route;
   }
   /**
    * build handlers (app or router)
@@ -170,56 +176,50 @@ export default class Router<
   }
   find(
     method: string,
-    url: string,
+    path: string,
+    getPath: (path: string) => string,
     fn404: Handler<Rev>,
-    getPath: (url: string) => string,
-    mutate?: () => string | undefined,
-    strict?: boolean,
-  ): TRet {
-    if (this.route[method + url]) return this.getRoute(method + url);
-    const path = getPath(url);
+    mutate?: () => undefined | string,
+  ): TRouteMatch<Rev> {
+    path = getPath(path);
     if (path == "") {
-      const mut = mutate?.();
-      if (mut) {
-        return this.find(method, mut, fn404, getPath, void 0, strict);
-      }
+      const url = mutate?.();
+      if (url) return this.find(method, url, getPath, fn404, void 0);
     }
-    if (this.route[method + path]) return this.getRoute(method + path);
+    if (this.route[method + path]) {
+      return <TRouteMatch<Rev>> this.getRoute(method, path);
+    }
     if (path[path.length - 1] == "/") {
       if (path != "/") {
-        if (strict == true) return { fns: [fn404] };
         const _url = path.slice(0, -1);
         if (this.route[method + _url]) {
-          return this.getRoute(method + _url);
+          return <TRouteMatch<Rev>> this.getRoute(method, _url);
         }
       }
     }
-    let fns: Handler<Rev>[] = [], param: TObject | undefined;
+    let fns: Handler<Rev>[] = [], params: TObject | undefined;
     let i = 0, obj: TObject;
     let arr = this.route[method] ?? [];
     if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
     const len = arr.length;
     while (i < len) {
       obj = arr[i];
-      if (obj?.pathx?.test(path)) {
+      if (obj.pathx?.test(path)) {
         fns = obj.fns;
-        param = () =>
-          wildcard(obj.path, obj.wild, obj.pathx.exec(decURI(path)));
+        params = wildcard(obj.path, obj.wild, obj.pathx.exec(decURI(path)));
         break;
       }
       i++;
     }
-    if (!param) {
-      const mut = mutate?.();
-      if (mut) {
-        return this.find(method, mut, fn404, getPath, void 0, strict);
-      }
+    if (!params) {
+      const url = mutate?.();
+      if (url) return this.find(method, url, getPath, fn404, void 0);
     }
     if (this.pmidds) {
       const p = base(path || "/");
       if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
     }
     fns = this.midds.concat(fns, [fn404]);
-    return { fns, param };
+    return { fns, params };
   }
 }

@@ -8,8 +8,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private env;
     private flash?;
     private stackError;
-    private strictUrl?;
-    private lenn;
     server: TRet;
     /**
      * handleEvent
@@ -27,7 +25,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * Bun.serve({ fetch: app.handle });
      */
     handle: (request: HttpRequest) => TRet;
-    constructor({ parseQuery, bodyParser, env, flash, stackError, strictUrl }?: TApp);
+    constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**
      * global error handling.
      * @example

@@ -6,7 +6,7 @@ import { expressMiddleware } from "./utils.ts";
 import { mockConn } from "https://deno.land/std@0.170.0/http/_mock_conn.ts";
 
 const req = (method: string, url: string, body?: BodyInit) => {
-  return new Request("http://x.x" + url, { method, body });
+  return new Request("http://127.0.0.1:8000" + url, { method, body });
 };
 Deno.test("nhttp", async (t) => {
   await t.step("wildcard", () => {
@@ -17,7 +17,7 @@ Deno.test("nhttp", async (t) => {
     app.put("/:slug*", () => {});
     app.patch("/:slug*/:id", () => {});
     const find: TRet = (method: string, url: string) =>
-      app.find(method, url, () => {}, () => url, () => url, false);
+      app.find(method, url, () => url, () => url, () => url);
     const m1 = find("GET", "/hello");
     const m2 = find("GET", "/hello/");
     const m3 = find("POST", "/hello/123");
@@ -27,15 +27,15 @@ Deno.test("nhttp", async (t) => {
     const m7 = find("PATCH", "/hello/world/123");
     const m8 = find("PATCH", "/hello/world/123/");
     const m9 = find("ANY", "/any/hello");
-    assertEquals(m1.param(), { wild: ["hello"] });
-    assertEquals(m2.param(), { wild: ["hello"] });
-    assertEquals(m3.param(), { wild: ["hello"], id: "123" });
-    assertEquals(m4.param(), { wild: ["hello"], id: "123" });
-    assertEquals(m5.param(), { slug: ["hello", "123"] });
-    assertEquals(m6.param(), { slug: ["hello", "123"] });
-    assertEquals(m7.param(), { slug: ["hello", "world"], id: "123" });
-    assertEquals(m8.param(), { slug: ["hello", "world"], id: "123" });
-    assertEquals(m9.param(), { wild: ["hello"] });
+    assertEquals(m1.params, { wild: ["hello"] });
+    assertEquals(m2.params, { wild: ["hello"] });
+    assertEquals(m3.params, { wild: ["hello"], id: "123" });
+    assertEquals(m4.params, { wild: ["hello"], id: "123" });
+    assertEquals(m5.params, { slug: ["hello", "123"] });
+    assertEquals(m6.params, { slug: ["hello", "123"] });
+    assertEquals(m7.params, { slug: ["hello", "world"], id: "123" });
+    assertEquals(m8.params, { slug: ["hello", "world"], id: "123" });
+    assertEquals(m9.params, { wild: ["hello"] });
   });
   await t.step("handle", async () => {
     const app = nhttp({ env: "production" });
@@ -50,7 +50,7 @@ Deno.test("nhttp", async (t) => {
     app.get("/noop2", async () => {});
     await superdeno(app.handle).get("/").expect({});
     await superdeno(app.handle).get("/promise?name=john").expect("ok");
-    await superdeno(app.handle).post("/post").expect("post");
+    await superdeno(app.handle).post("/post/").expect("post");
     await superdeno(app.handle).get("/hello").expect([]);
     const head = await app.handleEvent(
       { request: req("HEAD", "/") },
@@ -60,15 +60,6 @@ Deno.test("nhttp", async (t) => {
     assertEquals(await head.text(), "head");
     assertEquals(noop, undefined);
     assertEquals(noop2, undefined);
-  });
-  await t.step("strict url", async () => {
-    const app = nhttp({ strictUrl: true });
-    app.get("/hello", () => "hello");
-    await superdeno(app.handle).get("/hello/").expect(404);
-
-    const app2 = nhttp();
-    app2.get("/hello", () => "hello");
-    await superdeno(app2.handle).get("/hello/").expect("hello");
   });
   await t.step("middleware", async () => {
     const app = nhttp();
@@ -111,6 +102,7 @@ Deno.test("nhttp", async (t) => {
     app.get("/", ({ response, respond, getHeaders }) => {
       response.setHeader("name", "john");
       response.getHeader("name");
+      response.get("name");
       response.hasHeader("name");
       response.hasHeader("test");
       response.append("name", "sahimar");

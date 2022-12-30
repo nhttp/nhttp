@@ -5,7 +5,7 @@ import { myParse } from "./utils.ts";
 
 Deno.test("multipart upload", async (t) => {
   const req = (body: BodyInit) =>
-    new Request("http://x.x/", { method: "POST", body });
+    new Request("http://127.0.0.1:8000/", { method: "POST", body });
   await t.step("upload file with option", async () => {
     const upload = multipart.upload({
       name: "myfile",

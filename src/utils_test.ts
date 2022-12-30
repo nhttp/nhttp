@@ -1,5 +1,7 @@
 import { Handler } from "../mod.ts";
+import { MIME_LIST } from "./constant.ts";
 import { assertEquals } from "./deps_test.ts";
+import { HttpResponse } from "./http_response.ts";
 import { TObject, TRet } from "./types.ts";
 import {
   concatRegexp,
@@ -7,9 +9,13 @@ import {
   decURIComponent,
   findFn,
   findFns,
+  getContentType,
   getReqCookies,
+  is304,
+  middAssets,
   needPatch,
   parseQuery,
+  sendBody,
   serializeCookie,
   toBytes,
   toPathx,
@@ -81,6 +87,44 @@ Deno.test("utils", async (t) => {
     const obj = needPatch(void 0 as unknown as TObject, [1], "2");
     assertEquals(typeof obj, "object");
   });
+  await t.step("getContentType <=0", () => {
+    const str = getContentType("./filename");
+    assertEquals(str, MIME_LIST.arc);
+  });
+  await t.step("is304 lose size", () => {
+    const bool = is304(
+      new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1:8000"),
+      ),
+      {},
+    );
+    assertEquals(bool, false);
+  });
+  await t.step("is304 lose mtime", () => {
+    const bool = is304(
+      new HttpResponse(
+        (r) => r as Response,
+        new Request("http://127.0.0.1:8000"),
+      ),
+      { size: 10 },
+    );
+    assertEquals(bool, false);
+  });
+  await t.step("sendBody Json Headers", () => {
+    const resp = sendBody((r) => r as Response, { headers: new Headers() }, {
+      name: "john",
+    });
+    assertEquals(resp instanceof Response, true);
+  });
+  await t.step("middAssets", () => {
+    const midd: Handler = (rev, next) => {
+      assertEquals(rev.url, "/");
+      assertEquals(rev.path, "/");
+      return next();
+    };
+    middAssets("/")[midd as TRet];
+  });
   await t.step("serialize cookie", () => {
     const now = Date.now();
     const date = new Date();
@@ -97,13 +141,13 @@ Deno.test("utils", async (t) => {
     });
     serializeCookie("__Host", "value");
     const obj = getReqCookies(
-      new Request("http://x.x/", {
+      new Request("http://127.0.0.1:8000/", {
         headers: new Headers({ "Cookie": cookie }),
       }),
       true,
     );
     const obj2 = getReqCookies(
-      new Request("http://x.x", {
+      new Request("http://127.0.0.1:8000/", {
         headers: new Headers({
           "Cookie": serializeCookie("test", 'j:{ "name": "john" }', {
             encode: true,
@@ -113,7 +157,7 @@ Deno.test("utils", async (t) => {
       true,
     );
     const obj3 = getReqCookies(
-      new Request("http://x.x", {
+      new Request("http://127.0.0.1:8000/", {
         headers: new Headers({
           "Cookie": serializeCookie("test", 'j:[{ "name": "john" }]', {
             encode: true,

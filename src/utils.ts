@@ -40,8 +40,8 @@ export function findFn(fn: TRet) {
         rev.getHeaders = () =>
           Object.fromEntries(rev.request.headers.entries());
         res.append = (a: string, b: string) => res.headers.append(a, b);
-        res.setHeader = res.set = res.header;
-        res.getHeader = res.get = (a: string) => res.header(a);
+        res.set = res.header;
+        res.get = (a: string) => res.header(a);
         res.hasHeader = (a: string) => res.header(a) !== undefined;
         res.removeHeader = (a: string) => res.headers.delete(a);
         res.end = res.send;
@@ -220,12 +220,26 @@ export function middAssets(str: string) {
   ];
 }
 
-export function getPos(url: string) {
-  return url.indexOf("/", 8);
+function getPos(url: string, k = -1, l = 0) {
+  while ((k = url.indexOf("/", k + 1)) != -1) {
+    l++;
+    if (l == 3) break;
+  }
+  return k;
 }
 
-export function getUrl(url: string, pos?: number) {
-  return url.substring(pos ?? getPos(url));
+let c_len: number | undefined;
+export function getUrl(url: string) {
+  return url.substring(c_len ?? (c_len = getPos(url)));
+}
+
+export function updateLen(url: string) {
+  const pos = getPos(url);
+  if (c_len && c_len != pos) {
+    c_len = pos;
+    return getUrl(url);
+  }
+  return;
 }
 
 export function serializeCookie(
@@ -351,14 +365,12 @@ export function sendBody(
   init: ResInit,
   body?: BodyInit | TObject | null,
 ) {
-  if (typeof body == "string") return resp(new Response(body, init));
   if (typeof body == "object") {
     if (body instanceof Response) return body;
     if (
       body instanceof Uint8Array ||
       body instanceof ReadableStream ||
-      body instanceof Blob ||
-      typeof (body as TRet).read == "function"
+      body instanceof Blob
     ) {
       return resp(new Response(body as BodyInit, init));
     }

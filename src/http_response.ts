@@ -131,7 +131,7 @@ export class HttpResponse {
    * return response.sendFile("folder/file.txt");
    * return response.sendFile("folder/file.txt", { etag: false });
    */
-  async sendFile(
+  sendFile(
     pathFile: string,
     opts: {
       etag?: boolean;
@@ -139,12 +139,19 @@ export class HttpResponse {
       stat?: (pathFile: string) => TRet;
     } = {},
   ) {
-    createOptionFile(opts);
-    const stat = await opts.stat?.(pathFile);
-    this.type(this.header("content-type") ?? getContentType(pathFile));
-    if (opts.etag && is304(this, stat)) return this.status(304).send();
-    const file = await opts.readFile?.(pathFile);
-    return this.resp(new Response(file, this.init));
+    return (async () => {
+      try {
+        createOptionFile(opts);
+        const stat = await opts.stat?.(pathFile);
+        this.type(this.header("content-type") ?? getContentType(pathFile));
+        if (opts.etag && is304(this, stat)) return this.status(304).send();
+        const file = await opts.readFile?.(pathFile);
+        return this.resp(new Response(file, this.init));
+      } catch (error) {
+        if (error.name == "NotFound") error.status = 404;
+        throw error;
+      }
+    })();
   }
   /**
    * download
@@ -152,7 +159,7 @@ export class HttpResponse {
    * return response.download("folder/file.txt");
    * return response.download("folder/file.txt", "filename.txt", { etag: false });
    */
-  async download(
+  download(
     pathFile: string,
     filename?: string,
     opts: {
@@ -162,13 +169,20 @@ export class HttpResponse {
     } = {},
   ) {
     filename = filename ?? pathFile.substring(pathFile.lastIndexOf("/") + 1);
-    createOptionFile(opts);
-    const stat = await opts.stat?.(pathFile);
-    this.type(this.header("content-type") ?? getContentType(pathFile));
-    this.header("content-disposition", `attachment; filename=${filename}`);
-    if (opts.etag && is304(this, stat)) return this.status(304).send();
-    const file = await opts.readFile?.(pathFile);
-    return this.resp(new Response(file, this.init));
+    return (async () => {
+      try {
+        createOptionFile(opts);
+        const stat = await opts.stat?.(pathFile);
+        this.type(this.header("content-type") ?? getContentType(pathFile));
+        this.header("content-disposition", `attachment; filename=${filename}`);
+        if (opts.etag && is304(this, stat)) return this.status(304).send();
+        const file = await opts.readFile?.(pathFile);
+        return this.resp(new Response(file, this.init));
+      } catch (error) {
+        if (error.name == "NotFound") error.status = 404;
+        throw error;
+      }
+    })();
   }
   /**
    * set/get statusCode

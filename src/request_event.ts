@@ -9,7 +9,9 @@ export type RespondWith = (
 
 export class RequestEvent {
   respondWith!: RespondWith;
-  constructor(public request: Request) {}
+  constructor(public request: Request) {
+    this.path = getUrl(request.url);
+  }
 
   get response(): HttpResponse {
     return this.res ??
@@ -77,7 +79,7 @@ export class RequestEvent {
    * // => { name: "john", user: "john" }
    */
   get params() {
-    return this._params ?? (this._params = this.__params?.() || {});
+    return this._params ?? (this._params = {});
   }
   set params(val: TObject) {
     this._params = val;
@@ -127,12 +129,7 @@ export class RequestEvent {
    * console.log(path);
    * // => /hello
    */
-  get path() {
-    return this._path ?? (this._path = this.url);
-  }
-  set path(val: string) {
-    this._path = val;
-  }
+  path: string;
   /**
    * lookup query parameter
    * @example

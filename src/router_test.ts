@@ -1,5 +1,6 @@
 import Router, { concatRegexp, decURI, wildcard } from "./router.ts";
 import { assertEquals } from "./deps_test.ts";
+import { TRet } from "./types.ts";
 
 Deno.test("router", async (t) => {
   await t.step("router regex", () => {
@@ -27,8 +28,8 @@ Deno.test("router", async (t) => {
         m: true,
       },
     };
-    const data = router["getRoute"]("GET/");
-    assertEquals(data, { fns: [] });
+    const data = router["getRoute"]("GET", "/");
+    assertEquals(data, { fns: [], m: true } as TRet);
   });
 
   await t.step("wild", () => {

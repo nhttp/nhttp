@@ -7,6 +7,10 @@ export declare function base(url: string): string;
 type TRouter = {
     base?: string;
 };
+interface TRouteMatch<Rev extends RequestEvent = RequestEvent> {
+    fns: Handler<Rev>[];
+    params: TObject | undefined;
+}
 /**
  * Router
  * @example
@@ -20,7 +24,7 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
     pmidds: TObject | undefined;
     private base;
     constructor({ base }?: TRouter);
-    private getRoute;
+    getRoute(method: string, path: string): TRouteMatch | undefined;
     /**
      * build handlers (app or router)
      * @example
@@ -87,6 +91,6 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    find(method: string, url: string, fn404: Handler<Rev>, getPath: (url: string) => string, mutate?: () => string | undefined, strict?: boolean): TRet;
+    find(method: string, path: string, getPath: (path: string) => string, fn404: Handler<Rev>, mutate?: () => undefined | string): TRouteMatch<Rev>;
 }
 export {};

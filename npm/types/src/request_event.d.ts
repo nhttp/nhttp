@@ -82,8 +82,7 @@ export declare class RequestEvent {
      * console.log(path);
      * // => /hello
      */
-    get path(): string;
-    set path(val: string);
+    path: string;
     /**
      * lookup query parameter
      * @example

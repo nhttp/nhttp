@@ -83,6 +83,14 @@ METHOD => `get | post | put | patch | delete | any | head | options`.
 deno run --allow-net yourfile.ts
 ```
 
+## Deno Flash
+
+> requires `--unstable` flag.
+
+```ts
+const app = new NHttp({ flash: true });
+```
+
 ## Route Paths
 
 ```ts
@@ -139,16 +147,13 @@ app.get(/.*ball$/, (rev) => {
 ## Custom Server
 
 ```ts
-...
+import { NHttp } from "nhttp-land";
 
 const app = new NHttp();
 
 app.get("/", () => {
   return "hello custom";
 });
-
-// With Deno Flash Server
-await Deno.serve(app.handle);
 
 // With Bun
 Bun.serve({ fetch: app.handle });
@@ -215,7 +220,7 @@ app.use(({ response, request }, next) => {
     "Access-Control-Allow-Methods": "*",
     "Access-Control-Allow-Headers": "*",
   });
-  if (request.method === "OPTIONS") {
+  if (request.method == "OPTIONS") {
     return response.send();
   }
   return next();
@@ -347,7 +352,7 @@ app.get<TUser>("/hello", ({ token }) => {
 
 ### Upload With Bun
 
-Simple multipart upload with Bun.
+Simple upload files with Bun.
 
 ```ts
 import { multipart, NHttp } from "nhttp-land";

@@ -19,13 +19,12 @@ import {
   concatRegexp,
   findFn,
   findFns,
-  getPos,
   getReqCookies,
-  getUrl,
   middAssets,
   parseQuery as parseQueryOri,
   sendBody,
   toPathx,
+  updateLen,
 } from "./utils.ts";
 import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
@@ -50,8 +49,6 @@ export class NHttp<
   private env: string;
   private flash?: boolean;
   private stackError!: boolean;
-  private strictUrl?: boolean;
-  private lenn: number | undefined;
   server: TRet;
   /**
    * handleEvent
@@ -70,13 +67,12 @@ export class NHttp<
    */
   handle: (request: HttpRequest) => TRet;
   constructor(
-    { parseQuery, bodyParser, env, flash, stackError, strictUrl }: TApp = {},
+    { parseQuery, bodyParser, env, flash, stackError }: TApp = {},
   ) {
     super();
     this.parseQuery = parseQuery || parseQueryOri;
     this.multipartParseQuery = parseQuery;
     this.bodyParser = bodyParser;
-    this.strictUrl = strictUrl;
     this.stackError = stackError !== false;
     this.env = env ?? "development";
     if (this.env !== "development") {
@@ -194,35 +190,27 @@ export class NHttp<
     let i = 0, res: TRet;
     const rev = new RequestEvent(req);
     const method = req.method;
-    const { fns, param } = <{
-      fns: Handler<Rev>[];
-      param?: () => TObject;
-    }> this.find(
-      method,
-      getUrl(req.url, this.lenn ?? (this.lenn = getPos(req.url))),
-      this._on404,
-      (url) => {
-        const iof = url.indexOf("?");
-        if (iof != -1) {
-          rev.path = url.substring(0, iof);
-          rev.query = this.parseQuery(url.substring(iof + 1));
-          rev.search = url.substring(iof);
-          return rev.path;
-        }
-        return url;
-      },
-      () => {
-        const pos = getPos(req.url);
-        if (this.lenn != void 0 && this.lenn != pos) {
-          return getUrl(req.url, this.lenn = pos);
-        }
-        return void 0;
-      },
-      this.strictUrl,
-    );
-    if (param) rev.__params = param;
+    const { fns, params } = this.getRoute(method, rev.path) ??
+      this.find(
+        method,
+        rev.path,
+        (path) => {
+          const iof = rev.path.indexOf("?");
+          if (iof != -1) {
+            rev.url = rev.path;
+            rev.path = rev.url.substring(0, iof);
+            rev.query = this.parseQuery(rev.url.substring(iof + 1));
+            rev.search = rev.url.substring(iof);
+            return rev.path;
+          }
+          return path;
+        },
+        this._on404,
+        () => updateLen(req.url),
+      );
+    if (params) rev.params = params;
     rev.respondWith = (r) => {
-      if (!rev.__wm) return r as Response;
+      if (rev.__wm == void 0) return r as Response;
       res = () => r;
       return r as Response;
     };
@@ -233,21 +221,26 @@ export class NHttp<
           ? this._onError(err, <Rev> rev, next)
           : fns[i++](<Rev> rev, next);
         if (typeof ret == "string") {
-          if (!rev.res) return new Response(ret);
           return rev.respondWith(new Response(ret, rev.res?.init));
         }
-        if (ret instanceof Response) return ret;
-        return (async () => {
-          try {
-            const val = await ret;
-            if (val) return sendBody(rev.respondWith, rev.res?.init, val);
-            if (res) return res();
-            await delay();
-            return res?.();
-          } catch (e) {
-            return err ? defError(e, rev, this.stackError) : next(e);
+        if (ret) {
+          if (ret.then) {
+            return (async () => {
+              try {
+                const val = await ret;
+                if (val) return sendBody(rev.respondWith, rev.res?.init, val);
+                if (res) return res();
+                await delay();
+                return res?.();
+              } catch (e) {
+                return err ? defError(e, rev, this.stackError) : next(e);
+              }
+            })();
           }
-        })();
+          return sendBody(rev.respondWith, rev.res?.init, ret);
+        }
+        if (res) return res();
+        return delay().finally(() => res?.());
       } catch (e) {
         return err ? defError(e, rev, this.stackError) : next(e);
       }

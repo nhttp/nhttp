@@ -116,11 +116,6 @@ export type TApp = {
    * })
    */
   stackError?: boolean;
-  /**
-   * strictUrl check last char in url like `/hello/` will redirect to `/hello`. default to false.
-   * if true, `/hello/` will redirect to 404 routes.
-   */
-  strictUrl?: boolean;
 };
 export type FetchEvent = TRet;
 

@@ -2,7 +2,7 @@ import { RequestEvent } from "./request_event.ts";
 import { assertEquals } from "./deps_test.ts";
 
 Deno.test("RequestEvent", () => {
-  const rev = new RequestEvent(new Request("http://x.x/"));
+  const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
   const names = [
     "respondWith",
     "getCookies",
@@ -11,7 +11,7 @@ Deno.test("RequestEvent", () => {
     assertEquals(typeof rev[name], "undefined");
   });
 
-  assertEquals(rev.cookies, {});
+  assertEquals(rev.search, null);
 
   assertEquals(rev.responseInit, {
     headers: new Headers(),
@@ -47,6 +47,12 @@ Deno.test("RequestEvent", () => {
   rev.params = { obj: {} };
   rev.params.name = "john";
   assertEquals(rev.params, { obj: {}, name: "john" });
+
+  assertEquals(rev.cookies, {});
+  assertEquals(rev["_cookies"], {});
+  rev.cookies = { obj: {} };
+  rev.cookies.name = "john";
+  assertEquals(rev.cookies, { obj: {}, name: "john" });
 
   assertEquals(rev.originalUrl, "/");
 });
