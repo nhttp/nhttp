@@ -1,3 +1,4 @@
+import { STATUS_LIST } from "./constant.ts";
 import { TObject, TRet } from "./types.ts";
 
 /**
@@ -9,9 +10,13 @@ export class HttpError extends Error {
   status: number;
   constructor(status?: number, message?: TRet, name?: string) {
     super(message);
-    this.message = message || "Http Error";
-    this.status = status || 500;
-    this.name = name || "HttpError";
+    this.status = status ?? 500;
+    this.message = message ?? STATUS_LIST[this.status] ?? "Http Error";
+    this.name = name ??
+      (STATUS_LIST[this.status] ?? "Http").replace(/\s/g, "");
+    if (!name && !this.name.endsWith("Error")) {
+      this.name += "Error";
+    }
   }
 }
 

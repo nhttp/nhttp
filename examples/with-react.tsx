@@ -1,46 +1,27 @@
-import { NHttp } from "../mod.ts";
-import * as React from "https://jspm.dev/react@17.0.2";
-import * as ReactDOMServer from "https://jspm.dev/react-dom@17.0.2/server";
+import { NHttp, RequestEvent } from "../mod.ts";
+// @deno-types="npm:@types/react"
+import React, { ReactElement } from "npm:react";
+// @deno-types="npm:@types/react-dom/server"
+import { renderToString } from "npm:react-dom/server";
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      // deno-lint-ignore no-explicit-any
-      [k: string]: any;
-    }
-  }
-}
+type MyApp = RequestEvent & {
+  jsx: (el: ReactElement) => Response;
+};
 
-const app = new NHttp();
+const app = new NHttp<MyApp>();
 
 app.use((rev, next) => {
-  // deno-lint-ignore no-explicit-any
-  rev.jsx = (element: any, opts = {} as any) => {
-    // deno-fmt-ignore
-    return rev.response.type("text/html").send(
-            `<html>
-                <head>
-                    <title>${opts?.title || "No Title"}</title>
-                </head>
-                <body>
-                    <div>${ReactDOMServer.renderToStaticMarkup(element)}</div>
-                </body>
-            </html>`,
-    );
+  rev.jsx = (el) => {
+    rev.response.type("html");
+    return renderToString(el);
   };
   return next();
 });
 
-app.get("/hello", ({ jsx }) => {
-  jsx(
-    <>
-      <h1>Hello from react</h1>
-      <h2>Hello from react</h2>
-    </>,
-    {
-      title: "Hello title from react",
-    },
-  );
+app.get("/", ({ jsx }) => {
+  return jsx(<h1>Hello from react</h1>);
 });
 
-app.listen(3000);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
+});

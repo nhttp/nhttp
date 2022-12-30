@@ -47,4 +47,6 @@ app.get("/logout", ({ response }) => {
   return response.status(401).send("Logged out");
 });
 
-app.listen(3000);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
+});

@@ -2,10 +2,10 @@ import { NHttp } from "../mod.ts";
 
 const app = new NHttp();
 
-app.post("/hello", ({ body }) => {
+app.post("/", ({ body }) => {
   return body;
 });
 
-app.listen(3000, () => {
-  console.log("> Running on port 3000");
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
 });

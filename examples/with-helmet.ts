@@ -5,6 +5,8 @@ const app = new NHttp();
 
 app.use(helmet());
 
-app.get("/hello", () => "hello with helmet");
+app.get("/", () => "hello with helmet");
 
-app.listen(3000);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
+});

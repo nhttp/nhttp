@@ -41,4 +41,6 @@ app.get("/", ({ response }) => {
   return html;
 });
 
-app.listen(3000);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
+});

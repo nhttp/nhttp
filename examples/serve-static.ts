@@ -5,6 +5,6 @@ const app = new NHttp();
 
 app.use("/assets", staticFiles("public"));
 
-app.listen(3000, () => {
-  console.log("> Running on port 3000");
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info?.port}`);
 });

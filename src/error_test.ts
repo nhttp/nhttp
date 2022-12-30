@@ -5,14 +5,20 @@ Deno.test("error", async (t) => {
   await t.step("http error no params", () => {
     const err = new HttpError();
     assertEquals(err.status, 500);
-    assertEquals(err.message, "Http Error");
-    assertEquals(err.name, "HttpError");
+    assertEquals(err.message, "Internal Server Error");
+    assertEquals(err.name, "InternalServerError");
   });
   await t.step("http error", () => {
     const err = new HttpError(500, "noop error", "servererror");
     assertEquals(err.status, 500);
     assertEquals(err.message, "noop error");
     assertEquals(err.name, "servererror");
+  });
+  await t.step("http error wrong status", () => {
+    const err = new HttpError(1000);
+    assertEquals(err.status, 1000);
+    assertEquals(err.message, "Http Error");
+    assertEquals(err.name, "HttpError");
   });
 
   await t.step("getError without stack", () => {
