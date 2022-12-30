@@ -3,7 +3,7 @@
   "name": "nhttp",
   "entry": "./mod.ts",
   "unstable": false,
-  "description": "An Simple http framework for Deno and other Runtime like Bun, Coudflare Workers, etc.",
+  "description": "An Simple http framework for Deno and Friends",
   "homepage": "https://github.com/nhttp/nhttp",
   "version": "1.1.12",
   "files": [
@@ -12,6 +12,7 @@
     "./mod.ts",
     "./src/error.ts",
     "./src/body.ts",
+    "./src/constant.ts",
     "./src/multipart.ts",
     "./src/multipart_parser.ts",
     "./src/nhttp.ts",
