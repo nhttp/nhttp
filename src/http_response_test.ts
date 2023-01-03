@@ -28,7 +28,7 @@ Deno.test("HttpResponse", async (t) => {
   });
   await t.step("response", async (t) => {
     const res = new HttpResponse(
-      (r) => r as Response,
+      (r, init) => new Response(r, init),
       new Request("http://127.0.0.1:8000/"),
     );
     await t.step("header", () => {
@@ -126,7 +126,7 @@ Deno.test("HttpResponse", async (t) => {
 
     await t.step("headers", () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       res.headers.set("key", "value");
@@ -138,7 +138,7 @@ Deno.test("HttpResponse", async (t) => {
 
     await t.step("sendFile", async () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       const ret = await res.sendFile("dummy/test.txt") as Response;
@@ -146,7 +146,7 @@ Deno.test("HttpResponse", async (t) => {
     });
     await t.step("sendFile 404", async () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       try {
@@ -159,7 +159,7 @@ Deno.test("HttpResponse", async (t) => {
       const stat = await Deno.stat("dummy/test.txt");
       const etag = `W/"${stat.size}-${stat.mtime?.getTime()}"`;
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/", {
           headers: {
             "if-none-match": etag,
@@ -171,7 +171,7 @@ Deno.test("HttpResponse", async (t) => {
     });
     await t.step("download", async () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       const ret = await res.download("dummy/test.txt") as Response;
@@ -179,7 +179,7 @@ Deno.test("HttpResponse", async (t) => {
     });
     await t.step("download 404", async () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       try {
@@ -192,7 +192,7 @@ Deno.test("HttpResponse", async (t) => {
       const stat = await Deno.stat("dummy/test.txt");
       const etag = `W/"${stat.size}-${stat.mtime?.getTime()}"`;
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/", {
           headers: {
             "if-none-match": etag,
@@ -204,7 +204,7 @@ Deno.test("HttpResponse", async (t) => {
     });
     await t.step("set/get header", () => {
       const res = new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000/"),
       );
       res.setHeader("key", "value");

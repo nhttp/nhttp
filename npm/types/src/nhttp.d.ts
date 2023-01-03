@@ -1,4 +1,4 @@
-import { FetchEvent, Handlers, HttpRequest, ListenOptions, NextFunction, RetHandler, RouterOrWare, TApp, TObject, TRet } from "./types";
+import { FetchEvent, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
 import Router from "./router";
 import { RequestEvent } from "./request_event";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Router<Rev> {
@@ -16,7 +16,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *   event.respondWith(app.handleEvent(event))
      * });
      */
-    handleEvent: (event: FetchEvent) => TRet;
+    handleEvent: (event: FetchEvent, info?: TRet, ctx?: TRet) => TRet;
     /**
      * handle
      * @example
@@ -24,7 +24,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * // or
      * Bun.serve({ fetch: app.handle });
      */
-    handle: (request: HttpRequest) => TRet;
+    handle: (request: Request, info?: TRet, ctx?: TRet) => TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**
      * global error handling.
@@ -42,14 +42,8 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * })
      */
     on404(fn: (rev: Rev, next: NextFunction) => RetHandler): this;
-    /**
-     * add router or middlware.
-     * @example
-     * app.use(...middlewares);
-     * app.use('/api/v1', routers);
-     */
-    use<T>(prefix: string | RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[], ...routerOrMiddleware: Array<RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[]>): this;
     on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
+    private is404;
     private handleRequest;
     /**
      * listen the server
@@ -64,7 +58,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * }, callback);
      */
     listen(opts: number | ListenOptions, callback?: (err?: Error, opts?: ListenOptions) => void | Promise<void>): Promise<void>;
-    private pushRoutes;
     private _onError;
     private _on404;
     private handleConn;

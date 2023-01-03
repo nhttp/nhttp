@@ -1,13 +1,10 @@
 import {
   CustomHandler,
   FetchEvent,
-  Handler,
   Handlers,
-  HttpRequest,
   ListenOptions,
   NextFunction,
   RetHandler,
-  RouterOrWare,
   TApp,
   TBodyParser,
   TObject,
@@ -16,11 +13,7 @@ import {
 } from "./types.ts";
 import Router from "./router.ts";
 import {
-  concatRegexp,
-  findFn,
   findFns,
-  getReqCookies,
-  middAssets,
   parseQuery as parseQueryOri,
   sendBody,
   toPathx,
@@ -40,6 +33,7 @@ const defError = (
 };
 
 const delay = () => new Promise((ok) => setTimeout(ok));
+const noop = "++)] is not a function";
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
@@ -57,7 +51,7 @@ export class NHttp<
    *   event.respondWith(app.handleEvent(event))
    * });
    */
-  handleEvent: (event: FetchEvent) => TRet;
+  handleEvent: (event: FetchEvent, info?: TRet, ctx?: TRet) => TRet;
   /**
    * handle
    * @example
@@ -65,7 +59,7 @@ export class NHttp<
    * // or
    * Bun.serve({ fetch: app.handle });
    */
-  handle: (request: HttpRequest) => TRet;
+  handle: (request: Request, info?: TRet, ctx?: TRet) => TRet;
   constructor(
     { parseQuery, bodyParser, env, flash, stackError }: TApp = {},
   ) {
@@ -79,11 +73,11 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
-    this.handleEvent = (event: FetchEvent) => {
-      return this.handleRequest(event.request);
+    this.handleEvent = (event, info, ctx) => {
+      return this.handleRequest(event.request, info, ctx);
     };
-    this.handle = (request: TRet) => {
-      return this.handleRequest(request);
+    this.handle = (request, info, ctx) => {
+      return this.handleRequest(request, info, ctx);
     };
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
@@ -134,63 +128,46 @@ export class NHttp<
     };
     return this;
   }
-  /**
-   * add router or middlware.
-   * @example
-   * app.use(...middlewares);
-   * app.use('/api/v1', routers);
-   */
-  use<T>(
-    prefix: string | RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[],
-    ...routerOrMiddleware: Array<
-      RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[]
-    >
-  ) {
-    let args = routerOrMiddleware, str = "";
-    if (typeof prefix === "function" && args.length === 0) {
-      this.midds = this.midds.concat(findFn(prefix));
-      return this;
-    }
-    if (typeof prefix === "string") str = prefix === "/" ? "" : prefix;
-    else args = [prefix].concat(args);
-    const last = args[args.length - 1] as TObject;
-    if (
-      typeof last === "object" && (last.c_routes || last[0].c_routes)
-    ) {
-      this.pushRoutes(str, findFns(args) as Handler[], last);
-    } else if (str !== "") {
-      this.pmidds = this.pmidds ?? {};
-      this.pmidds[str] = middAssets(str).concat(findFns(args) as Handler[]);
-    } else {
-      this.midds = this.midds.concat(findFns(args) as Handler[]);
-    }
-    return this;
-  }
   on<T>(
     method: string,
     path: string | RegExp,
     ...handlers: Handlers<Rev & T>
   ): this {
-    const fns = findFns(handlers);
-    const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY");
+    let fns = findFns<Rev>(handlers);
+    if (typeof path == "string" && this.pmidds?.[path as string]) {
+      fns = this.pmidds[path as string].concat([
+        (rev: Rev, next: NextFunction) => {
+          rev.url = rev.__url;
+          rev.path = rev.__path;
+          return next();
+        },
+      ], fns);
+    }
+    fns = this.midds.concat(fns);
+    const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY") ??
+      {};
     if (pathx) {
-      this.route[method] = this.route[method] || [];
-      (this.route[method] as TObject[]).push({
+      this.route[method] = this.route[method] ?? [];
+      this.route[method].push({
         path: oriPath,
         pathx,
         fns,
         wild,
       });
     } else {
-      this.route[method + path] = { fns };
+      this.route[method + path] = fns;
     }
     return this;
   }
-  private handleRequest(req: HttpRequest) {
-    let i = 0, res: TRet;
-    const rev = new RequestEvent(req);
+  private is404(e: Error) {
+    return typeof e.message == "string" && e.name == "TypeError" &&
+      e.message.includes(noop);
+  }
+  private handleRequest(req: Request, info?: TRet, ctx?: TRet) {
+    let i = 0;
+    const rev = new RequestEvent(req, info, ctx);
     const method = req.method;
-    const { fns, params } = this.getRoute(method, rev.path) ??
+    const fns = this.route[method + rev.path] ??
       this.find(
         method,
         rev.path,
@@ -206,42 +183,36 @@ export class NHttp<
           return path;
         },
         this._on404,
+        (p) => {
+          rev.__params = p;
+        },
         () => updateLen(req.url),
       );
-    if (params) rev.params = params;
-    rev.respondWith = (r) => {
-      if (rev.__wm == void 0) return r as Response;
-      res = () => r;
-      return r as Response;
-    };
-    rev.getCookies = (d) => getReqCookies(req, d);
-    const next: NextFunction = (err) => {
+    const next: NextFunction = (err?: TRet) => {
       try {
         const ret = err
-          ? this._onError(err, <Rev> rev, next)
+          ? (err._$ ? err.v : this._onError(err, <Rev> rev, next))
           : fns[i++](<Rev> rev, next);
         if (typeof ret == "string") {
-          return rev.respondWith(new Response(ret, rev.res?.init));
+          return rev.resp(ret, rev.res?.init);
         }
         if (ret) {
           if (ret.then) {
             return (async () => {
               try {
-                const val = await ret;
-                if (val) return sendBody(rev.respondWith, rev.res?.init, val);
-                if (res) return res();
-                await delay();
-                return res?.();
+                const v = await ret;
+                return next({ _$: true, v } as TRet);
               } catch (e) {
+                if (this.is404(e)) return this._on404(<Rev> rev, next);
                 return err ? defError(e, rev, this.stackError) : next(e);
               }
             })();
           }
-          return sendBody(rev.respondWith, rev.res?.init, ret);
+          return sendBody(rev.resp.bind(rev), rev.res?.init, ret);
         }
-        if (res) return res();
-        return delay().finally(() => res?.());
+        return rev.c_res ?? delay().finally(() => rev.c_res);
       } catch (e) {
+        if (this.is404(e)) return this._on404(<Rev> rev, next);
         return err ? defError(e, rev, this.stackError) : next(e);
       }
     };
@@ -265,83 +236,69 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-  async listen(
+  listen(
     opts: number | ListenOptions,
     callback?: (
       err?: Error,
       opts?: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    let isTls = false, handler = this.handle;
-    if (typeof opts === "number") {
-      opts = { port: opts };
-    } else if (typeof opts === "object") {
-      isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
-        opts.alpnProtocols !== void 0;
-      handler = opts.handler ?? this.handle;
-    }
-    const runCallback = (err?: Error) => {
-      if (callback) {
-        const _opts = opts as ListenOptions;
-        callback(err, {
-          ..._opts,
-          hostname: _opts.hostname || "localhost",
-        });
+    return (async () => {
+      let isTls = false, handler = this.handle;
+      if (typeof opts === "number") {
+        opts = { port: opts };
+      } else if (typeof opts === "object") {
+        isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
+          opts.alpnProtocols !== void 0;
+        handler = opts.handler ?? this.handle;
       }
-    };
-    try {
-      if (this.flash) {
-        if ((Deno as TRet).serve == void 0) {
-          console.log("Deno flash is unstable. please add --unstable flag.");
-          return;
+      const runCallback = (err?: Error) => {
+        if (callback) {
+          const _opts = opts as ListenOptions;
+          callback(err, {
+            ..._opts,
+            hostname: _opts.hostname || "localhost",
+          });
         }
-        opts.onListen = opts.onListen ?? (() => {});
-        runCallback();
-        if (opts.test) return;
-        await (Deno as TRet).serve(opts as TRet, handler);
-      } else {
-        runCallback();
-        if (opts.signal) {
-          opts.signal.addEventListener("abort", () => {
+      };
+      try {
+        if (this.flash) {
+          if ((Deno as TRet).serve == void 0) {
+            console.log("Deno flash is unstable. please add --unstable flag.");
+            return;
+          }
+          opts.onListen = opts.onListen ?? (() => {});
+          runCallback();
+          if (opts.test) return;
+          await (Deno as TRet).serve(opts as TRet, handler);
+        } else {
+          runCallback();
+          if (opts.signal) {
+            opts.signal.addEventListener("abort", () => {
+              try {
+                this.server?.close();
+              } catch (_e) { /* noop */ }
+            }, { once: true });
+          }
+          if (opts.test) return;
+          this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
+          while (true) {
             try {
-              this.server?.close();
+              const conn = await this.server.accept();
+              if (conn) {
+                this.handleConn(conn, handler);
+              } else {
+                break;
+              }
             } catch (_e) { /* noop */ }
-          }, { once: true });
+          }
         }
-        if (opts.test) return;
-        this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
-        while (true) {
-          try {
-            const conn = await this.server.accept();
-            if (conn) {
-              this.handleConn(conn, handler);
-            } else {
-              break;
-            }
-          } catch (_e) { /* noop */ }
-        }
+      } catch (error) {
+        runCallback(error);
       }
-    } catch (error) {
-      runCallback(error);
-    }
+    })();
   }
 
-  private pushRoutes(str: string, wares: Handler[], last: TRet) {
-    last = Array.isArray(last) ? last : [last];
-    last.forEach((obj: TObject) => {
-      obj.c_routes.forEach((route: TObject) => {
-        const { method, path, fns } = route;
-        let _path: string | RegExp;
-        if (path instanceof RegExp) _path = concatRegexp(str, path);
-        else {
-          let mPath = path;
-          if (mPath === "/" && str !== "") mPath = "";
-          _path = str + mPath;
-        }
-        this.on(method, _path, [wares, fns]);
-      });
-    });
-  }
   private _onError(
     err: TObject,
     rev: Rev,
@@ -367,7 +324,7 @@ export class NHttp<
         try {
           const rev = await httpConn.nextRequest();
           if (rev) {
-            await rev.respondWith(handler(rev.request));
+            await rev.respondWith(handler(rev.request, conn));
           } else {
             break;
           }

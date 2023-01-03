@@ -1,21 +1,50 @@
 import { STATUS_LIST } from "./constant.ts";
-import { HttpResponse } from "./http_response.ts";
+import { HttpResponse, ResInit } from "./http_response.ts";
 import { TObject, TRet } from "./types.ts";
 import { getReqCookies, getUrl } from "./utils.ts";
 
 export type RespondWith = (
   r: Response | Promise<Response>,
 ) => Promise<void> | Response;
+export type TResp = (
+  r: TRet,
+  init?: ResInit,
+) => Promise<void> | Response;
 
 export class RequestEvent {
-  respondWith!: RespondWith;
-  constructor(public request: Request) {
+  // respondWith!: RespondWith;
+  constructor(
+    public request: Request,
+    public _info?: TRet,
+    public _ctx?: TRet,
+  ) {
     this.path = getUrl(request.url);
   }
 
   get response(): HttpResponse {
     return this.res ??
-      (this.res = new HttpResponse(this.respondWith, this.request));
+      (this.res = new HttpResponse(this.resp.bind(this), this.request));
+  }
+
+  respondWith(r: Response | Promise<Response>) {
+    return this.c_res = r as Response;
+  }
+
+  resp(data: TRet, init?: ResInit) {
+    return this.c_res = new Response(data, init);
+  }
+
+  /**
+   * lookup info like `Deno.Conn / server`.
+   */
+  get info() {
+    return this._info ?? (this._info = {});
+  }
+  /**
+   * lookup context for Cloudflare workers.
+   */
+  get context() {
+    return this._ctx ?? (this._ctx = {});
   }
 
   /**
@@ -45,6 +74,18 @@ export class RequestEvent {
   }
   set search(val: string | null) {
     this._search = val;
+  }
+  /**
+   * Http request method.
+   * @example
+   * const method = rev.method;
+   * console.log(method);
+   */
+  get method() {
+    return this._method ?? (this._method = this.request.method);
+  }
+  set method(val: string) {
+    this._method = val;
   }
   /**
    * file.
@@ -79,7 +120,7 @@ export class RequestEvent {
    * // => { name: "john", user: "john" }
    */
   get params() {
-    return this._params ?? (this._params = {});
+    return this._params ?? (this._params = this.__params?.() ?? {});
   }
   set params(val: TObject) {
     this._params = val;
@@ -152,7 +193,9 @@ export class RequestEvent {
    * const object = rev.getCookies();
    * const objectWithDecode = rev.getCookies(true);
    */
-  getCookies!: (decode?: boolean) => TObject;
+  getCookies(decode?: boolean) {
+    return getReqCookies(this.request, decode);
+  }
 
   [k: string]: TRet;
 }

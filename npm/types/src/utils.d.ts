@@ -1,5 +1,5 @@
 import { HttpResponse, ResInit } from "./http_response";
-import { RequestEvent, RespondWith } from "./request_event";
+import { RequestEvent, TResp } from "./request_event";
 import { Cookie, Handler, TObject, TRet } from "./types";
 export declare const encoder: TextEncoder;
 export declare const decoder: TextDecoder;
@@ -7,15 +7,11 @@ type EArr = [string, string | TObject];
 export declare const decURI: (str: string) => string;
 export declare const decURIComponent: (str: string) => string;
 export declare function findFn(fn: TRet): any;
-export declare function findFns(arr: TObject[]): Handler[];
+export declare function findFns<Rev extends RequestEvent = RequestEvent>(arr: TObject[]): Handler<Rev>[];
 export declare function toBytes(arg: string | number): number;
 export declare function toPathx(path: string | RegExp, isAny: boolean): {
     pathx: RegExp;
     wild: boolean;
-    path?: undefined;
-} | {
-    pathx?: undefined;
-    wild?: undefined;
     path?: undefined;
 } | {
     pathx: RegExp;
@@ -42,6 +38,7 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
  */
 export declare function expressMiddleware(...middlewares: TRet): TRet;
 export declare function middAssets(str: string): Handler<RequestEvent>[];
+export declare function pushRoutes(str: string, wares: Handler[], last: TObject, base: TObject): void;
 export declare function getUrl(url: string): string;
 export declare function updateLen(url: string): string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
@@ -53,5 +50,5 @@ export declare function createOptionFile(opts?: {
     readFile?: (pathFile: string) => TRet;
     stat?: (pathFile: string) => TRet;
 }): void;
-export declare function sendBody(resp: RespondWith, init: ResInit, body?: BodyInit | TObject | null): Promise<void> | Response;
+export declare function sendBody(resp: TResp, init: ResInit, body?: BodyInit | TObject | null): Promise<void> | Response;
 export {};

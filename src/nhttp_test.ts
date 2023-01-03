@@ -4,42 +4,54 @@ import { assertEquals, superdeno } from "./deps_test.ts";
 import { TRet } from "./types.ts";
 import { expressMiddleware } from "./utils.ts";
 import { mockConn } from "https://deno.land/std@0.170.0/http/_mock_conn.ts";
+import _ from "https://jspm.dev/npm:call-bind@1.0.2!cjs";
 
 const req = (method: string, url: string, body?: BodyInit) => {
   return new Request("http://127.0.0.1:8000" + url, { method, body });
 };
 Deno.test("nhttp", async (t) => {
-  await t.step("wildcard", () => {
+  await t.step("wildcard", async () => {
     const app = nhttp();
-    app.get("*", () => {});
-    app.any("/any/*", () => {});
-    app.post("/*/:id", () => {});
-    app.put("/:slug*", () => {});
-    app.patch("/:slug*/:id", () => {});
-    const find: TRet = (method: string, url: string) =>
-      app.find(method, url, () => url, () => url, () => url);
-    const m1 = find("GET", "/hello");
-    const m2 = find("GET", "/hello/");
-    const m3 = find("POST", "/hello/123");
-    const m4 = find("POST", "/hello/123/");
-    const m5 = find("PUT", "/hello/123");
-    const m6 = find("PUT", "/hello/123/");
-    const m7 = find("PATCH", "/hello/world/123");
-    const m8 = find("PATCH", "/hello/world/123/");
-    const m9 = find("ANY", "/any/hello");
-    assertEquals(m1.params, { wild: ["hello"] });
-    assertEquals(m2.params, { wild: ["hello"] });
-    assertEquals(m3.params, { wild: ["hello"], id: "123" });
-    assertEquals(m4.params, { wild: ["hello"], id: "123" });
-    assertEquals(m5.params, { slug: ["hello", "123"] });
-    assertEquals(m6.params, { slug: ["hello", "123"] });
-    assertEquals(m7.params, { slug: ["hello", "world"], id: "123" });
-    assertEquals(m8.params, { slug: ["hello", "world"], id: "123" });
-    assertEquals(m9.params, { wild: ["hello"] });
+    app.get("*", ({ params }) => params);
+    app.any("/any/*", ({ params }) => params);
+    app.post("/*/:id", ({ params }) => params);
+    app.put("/:slug*", ({ params }) => params);
+    app.patch("/:slug*/:id", ({ params }) => params);
+    await superdeno(app.handle).get("/hello").expect({
+      wild: ["hello"],
+    });
+    await superdeno(app.handle).get("/hello/").expect({
+      wild: ["hello"],
+    });
+    await superdeno(app.handle).post("/hello/123").expect({
+      wild: ["hello"],
+      id: "123",
+    });
+    await superdeno(app.handle).post("/hello/123/").expect({
+      wild: ["hello"],
+      id: "123",
+    });
+    await superdeno(app.handle).put("/hello/123").expect({
+      slug: ["hello", "123"],
+    });
+    await superdeno(app.handle).put("/hello/123/").expect({
+      slug: ["hello", "123"],
+    });
+    await superdeno(app.handle).patch("/hello/world/123").expect({
+      slug: ["hello", "world"],
+      id: "123",
+    });
+    await superdeno(app.handle).patch("/hello/world/123/").expect({
+      slug: ["hello", "world"],
+      id: "123",
+    });
+    await superdeno(app.handle).delete("/any/hello").expect({
+      wild: ["hello"],
+    });
   });
   await t.step("handle", async () => {
     const app = nhttp({ env: "production" });
-    app.get("/", ({ getCookies }) => getCookies());
+    app.get("/", (rev) => rev.getCookies());
     app.get("/promise", async () => await new Promise((res) => res("ok")));
     app.post("/post", () => "post");
     app.head("/", () => "head");
@@ -55,7 +67,7 @@ Deno.test("nhttp", async (t) => {
     const head = await app.handleEvent(
       { request: req("HEAD", "/") },
     );
-    const noop = await app.handle(req("GET", "/noop"));
+    const noop = await app.handle(req("GET", "/noop"), {}, {});
     const noop2 = await app.handle(req("GET", "/noop2"));
     assertEquals(await head.text(), "head");
     assertEquals(noop, undefined);
@@ -72,10 +84,16 @@ Deno.test("nhttp", async (t) => {
     };
     app.use(midd);
     app.use(midd, [midd, [midd]], midd);
-    app.use("/", ({ count }) => count);
-    app.use("/hello", ({ count }) => count);
-    await superdeno(app.handle).get("/").expect("5");
-    await superdeno(app.handle).get("/hello").expect("5");
+    app.use("/assets/hello", ({ count }) => count);
+    app.use("/hello", () => "hello");
+    app.use("/name", (rev, next) => {
+      rev.name = "john";
+      return next();
+    });
+    app.get("/name", ({ name }) => name);
+    await superdeno(app.handle).get("/assets/hello/doe/john").expect("5");
+    await superdeno(app.handle).get("/hello").expect("hello");
+    await superdeno(app.handle).get("/name").expect("john");
   });
   await t.step("assets", async () => {
     const app = nhttp();
@@ -85,13 +103,12 @@ Deno.test("nhttp", async (t) => {
     app.use("/assets", midd);
     await superdeno(app.handle).get("/assets/hello").expect("/hello");
   });
-  await t.step("assets 2", async () => {
+  await t.step("noop 404", async () => {
     const app = nhttp();
-    const midd: Handler = (rev, _next) => {
-      return rev.url;
-    };
-    app.use("/", midd);
-    await superdeno(app.handle).get("/assets/hello").expect("/assets/hello");
+    app.get("/", (_, next) => next());
+    app.get("/hello", async (_, next) => await next());
+    await superdeno(app.handle).get("/").expect(404);
+    await superdeno(app.handle).get("/hello").expect(404);
   });
   await t.step("middleware express", async () => {
     const app = nhttp();
@@ -109,10 +126,15 @@ Deno.test("nhttp", async (t) => {
       response.removeHeader("name");
       response.writeHead(200, { name: "john" });
       assertEquals(typeof getHeaders(), "object");
-      respond({ body: "hello" });
+      respond({ body: "base" });
+    });
+    app.get("/hello", async ({ respond }) => {
+      await respond({ body: "hello" });
     });
     const init = await app.handle(req("GET", "/"));
-    assertEquals(await init.text(), "hello");
+    const hello = await app.handle(req("GET", "/hello"));
+    assertEquals(await init.text(), "base");
+    assertEquals(await hello.text(), "hello");
   });
   await t.step("sub router", async () => {
     const app = nhttp();
@@ -121,14 +143,17 @@ Deno.test("nhttp", async (t) => {
     const book = new Router({ base: "/book" });
     const name = new Router({ base: "/" });
     const hobby = new Router();
-    item.get("/item", () => "item");
+    item.use("/item", (rev, next) => {
+      rev.name = "item";
+      return next();
+    });
+    item.get("/item", ({ name }) => name);
     user.get("/user", () => "user");
     book.get("/", () => "book");
     name.get("/name", () => "name");
     hobby.get(/\/hobby/, () => "hobby");
     app.use("/api/v1", user);
     app.use("/api/v2", [item, book, name, hobby]);
-
     await superdeno(app.handle).get("/api/v1/user").expect("user");
     await superdeno(app.handle).get("/api/v2/item").expect("item");
     await superdeno(app.handle).get("/api/v2/book").expect("book");
@@ -186,6 +211,12 @@ Deno.test("nhttp", async (t) => {
     app.get("/", ({ __parseQuery }) => __parseQuery("test"));
     const val = app.handle(req("GET", "/"));
     assertEquals(await val.text(), "test");
+  });
+  await t.step("params", async () => {
+    const app = nhttp();
+    app.get("/:name", ({ params }) => params);
+    const val = app.handle(req("GET", "/john"));
+    assertEquals(await val.text(), `{"name":"john"}`);
   });
   await t.step("conn", async () => {
     const conn = mockConn();

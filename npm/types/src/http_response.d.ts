@@ -1,4 +1,4 @@
-import { RespondWith } from "./request_event";
+import { TResp } from "./request_event";
 import { Cookie, TObject, TRet } from "./types";
 export declare const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
 export type ResInit = {
@@ -6,9 +6,9 @@ export type ResInit = {
     status?: number;
 };
 export declare class HttpResponse {
-    resp: RespondWith;
+    resp: TResp;
     request: Request;
-    constructor(resp: RespondWith, request: Request);
+    constructor(resp: TResp, request: Request);
     /**
      * set header or get header
      * @example

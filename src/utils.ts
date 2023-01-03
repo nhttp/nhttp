@@ -1,6 +1,6 @@
 import { MIME_LIST } from "./constant.ts";
 import { HttpResponse, JSON_TYPE_CHARSET, ResInit } from "./http_response.ts";
-import { RequestEvent, RespondWith } from "./request_event.ts";
+import { RequestEvent, TResp } from "./request_event.ts";
 import {
   Cookie,
   Handler,
@@ -63,13 +63,15 @@ export function findFn(fn: TRet) {
   return fn;
 }
 
-export function findFns(arr: TObject[]): Handler[] {
-  let ret: Handler[] = [], i = 0;
+export function findFns<Rev extends RequestEvent = RequestEvent>(
+  arr: TObject[],
+): Handler<Rev>[] {
+  let ret: Handler<Rev>[] = [], i = 0;
   const len = arr.length;
   for (; i < len; i++) {
     const fn: TRet = arr[i];
     if (Array.isArray(fn)) {
-      ret = ret.concat(findFns(fn as TObject[]));
+      ret = ret.concat(findFns<Rev>(fn as TObject[]));
     } else if (typeof fn === "function") {
       ret.push(findFn(fn));
     }
@@ -102,7 +104,7 @@ export function toBytes(arg: string | number) {
 export function toPathx(path: string | RegExp, isAny: boolean) {
   if (path instanceof RegExp) return { pathx: path, wild: true };
   if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
-    return {};
+    return;
   }
   let wild = false;
   const pathx = new RegExp(`^${
@@ -213,11 +215,38 @@ export function expressMiddleware(...middlewares: TRet): TRet {
 export function middAssets(str: string) {
   return [
     ((rev, next) => {
-      rev.url = rev.url.substring(str.length) || "/";
-      rev.path = rev.path.substring(str.length) || "/";
+      if (rev.path.startsWith(str)) {
+        rev.__url = rev.url;
+        rev.__path = rev.path;
+        rev.url = rev.url.substring(str.length) || "/";
+        rev.path = rev.path.substring(str.length) || "/";
+      }
       return next();
     }) as Handler,
   ];
+}
+
+export function pushRoutes(
+  str: string,
+  wares: Handler[],
+  last: TObject,
+  base: TObject,
+) {
+  str = str == "/" ? "" : str;
+  last = Array.isArray(last) ? last : [last];
+  last.forEach((obj: TObject) => {
+    obj.c_routes.forEach((route: TObject) => {
+      const { method, path, fns } = route;
+      let _path: string | RegExp;
+      if (path instanceof RegExp) _path = concatRegexp(str, path);
+      else {
+        let mPath = path;
+        if (mPath === "/" && str !== "") mPath = "";
+        _path = str + mPath;
+      }
+      base.on(method, _path, [wares, fns]);
+    });
+  });
 }
 
 function getPos(url: string, k = -1, l = 0) {
@@ -361,7 +390,7 @@ export function createOptionFile(
 }
 
 export function sendBody(
-  resp: RespondWith,
+  resp: TResp,
   init: ResInit,
   body?: BodyInit | TObject | null,
 ) {
@@ -372,7 +401,7 @@ export function sendBody(
       body instanceof ReadableStream ||
       body instanceof Blob
     ) {
-      return resp(new Response(body as BodyInit, init));
+      return resp(body, init);
     }
     if (!init) init = {};
     if (init.headers) {
@@ -382,7 +411,7 @@ export function sendBody(
         init.headers["content-type"] = JSON_TYPE_CHARSET;
       }
     } else init.headers = { "content-type": JSON_TYPE_CHARSET };
-    return resp(new Response(JSON.stringify(body), init));
+    return resp(JSON.stringify(body), init);
   }
-  return resp(new Response(body, init));
+  return resp(body, init);
 }

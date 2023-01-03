@@ -1,5 +1,5 @@
 import { MIME_LIST, STATUS_LIST } from "./constant.ts";
-import { RespondWith } from "./request_event.ts";
+import { TResp } from "./request_event.ts";
 import { Cookie, TObject, TRet } from "./types.ts";
 import {
   createOptionFile,
@@ -17,7 +17,7 @@ export type ResInit = {
 };
 
 export class HttpResponse {
-  constructor(public resp: RespondWith, public request: Request) {}
+  constructor(public resp: TResp, public request: Request) {}
   /**
    * set header or get header
    * @example
@@ -107,7 +107,11 @@ export class HttpResponse {
    * return response.sendStatus(500);
    */
   sendStatus(code: number) {
-    return this.status(code).send(STATUS_LIST[code]);
+    try {
+      return this.status(code).send(STATUS_LIST[code]);
+    } catch (_e) {
+      return this.status(400).send(STATUS_LIST[code]);
+    }
   }
   /**
    * setHeader
@@ -146,7 +150,7 @@ export class HttpResponse {
         this.type(this.header("content-type") ?? getContentType(pathFile));
         if (opts.etag && is304(this, stat)) return this.status(304).send();
         const file = await opts.readFile?.(pathFile);
-        return this.resp(new Response(file, this.init));
+        return this.resp(file, this.init);
       } catch (error) {
         if (error.name == "NotFound") error.status = 404;
         throw error;
@@ -177,7 +181,7 @@ export class HttpResponse {
         this.header("content-disposition", `attachment; filename=${filename}`);
         if (opts.etag && is304(this, stat)) return this.status(304).send();
         const file = await opts.readFile?.(pathFile);
-        return this.resp(new Response(file, this.init));
+        return this.resp(file, this.init);
       } catch (error) {
         if (error.name == "NotFound") error.status = 404;
         throw error;
@@ -224,7 +228,7 @@ export class HttpResponse {
     if (!this.init) this.init = {};
     if (this.init.headers) this.type(JSON_TYPE_CHARSET);
     else this.init.headers = { "content-type": JSON_TYPE_CHARSET };
-    return this.resp(new Response(JSON.stringify(body), this.init));
+    return this.resp(JSON.stringify(body), this.init);
   }
   /**
    * redirect url

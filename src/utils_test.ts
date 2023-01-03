@@ -52,7 +52,7 @@ Deno.test("utils", async (t) => {
   });
   await t.step("pathx", () => {
     const val = toPathx(/hello/, false);
-    assertEquals(val.pathx instanceof RegExp, true);
+    assertEquals(val?.pathx instanceof RegExp, true);
   });
   await t.step("concatRegex", () => {
     assertEquals(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
@@ -94,7 +94,7 @@ Deno.test("utils", async (t) => {
   await t.step("is304 lose size", () => {
     const bool = is304(
       new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000"),
       ),
       {},
@@ -104,7 +104,7 @@ Deno.test("utils", async (t) => {
   await t.step("is304 lose mtime", () => {
     const bool = is304(
       new HttpResponse(
-        (r) => r as Response,
+        (r, init) => new Response(r, init),
         new Request("http://127.0.0.1:8000"),
       ),
       { size: 10 },
@@ -112,7 +112,9 @@ Deno.test("utils", async (t) => {
     assertEquals(bool, false);
   });
   await t.step("sendBody Json Headers", () => {
-    const resp = sendBody((r) => r as Response, { headers: new Headers() }, {
+    const resp = sendBody((r, init) => new Response(r, init), {
+      headers: new Headers(),
+    }, {
       name: "john",
     });
     assertEquals(resp instanceof Response, true);

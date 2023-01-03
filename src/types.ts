@@ -123,11 +123,7 @@ export type RouterOrWare<
   Rev extends RequestEvent = RequestEvent,
 > = Handler<Rev> | Handler<Rev>[] | Router<Rev> | Router<Rev>[];
 
-export interface HttpRequest extends Request {
-  [k: string]: TRet;
-}
-
-export type CustomHandler = (request: HttpRequest) => TRet;
+export type CustomHandler = (request: Request, ...args: TRet) => TRet;
 
 export type ListenOptions = {
   port: number;

@@ -1,11 +1,23 @@
-import { HttpResponse } from "./http_response";
+import { HttpResponse, ResInit } from "./http_response";
 import { TObject, TRet } from "./types";
 export type RespondWith = (r: Response | Promise<Response>) => Promise<void> | Response;
+export type TResp = (r: TRet, init?: ResInit) => Promise<void> | Response;
 export declare class RequestEvent {
     request: Request;
-    respondWith: RespondWith;
-    constructor(request: Request);
+    _info?: TRet;
+    _ctx?: TRet;
+    constructor(request: Request, _info?: TRet, _ctx?: TRet);
     get response(): HttpResponse;
+    respondWith(r: Response | Promise<Response>): Response;
+    resp(data: TRet, init?: ResInit): Response;
+    /**
+     * lookup info like `Deno.Conn / server`.
+     */
+    get info(): any;
+    /**
+     * lookup context for Cloudflare workers.
+     */
+    get context(): any;
     /**
      * lookup info responseInit.
      * @example
@@ -21,6 +33,14 @@ export declare class RequestEvent {
      */
     get search(): string | null;
     set search(val: string | null);
+    /**
+     * Http request method.
+     * @example
+     * const method = rev.method;
+     * console.log(method);
+     */
+    get method(): string;
+    set method(val: string);
     /**
      * file.
      * @example
@@ -101,6 +121,6 @@ export declare class RequestEvent {
      * const object = rev.getCookies();
      * const objectWithDecode = rev.getCookies(true);
      */
-    getCookies: (decode?: boolean) => TObject;
+    getCookies(decode?: boolean): Record<string, string>;
     [k: string]: TRet;
 }

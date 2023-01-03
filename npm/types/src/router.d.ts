@@ -1,16 +1,11 @@
 import { RequestEvent } from "./request_event";
-import { Handler, Handlers, TObject, TRet } from "./types";
-export declare const decURI: (str: string) => string;
+import { Handler, Handlers, RouterOrWare, TObject } from "./types";
 export declare function concatRegexp(prefix: string | RegExp, path: RegExp): RegExp;
-export declare function wildcard(path: string | undefined, wild: boolean, match: TRet): any;
+export declare function findParams(el: TObject, url: string): any;
 export declare function base(url: string): string;
 type TRouter = {
     base?: string;
 };
-interface TRouteMatch<Rev extends RequestEvent = RequestEvent> {
-    fns: Handler<Rev>[];
-    params: TObject | undefined;
-}
 /**
  * Router
  * @example
@@ -24,7 +19,13 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
     pmidds: TObject | undefined;
     private base;
     constructor({ base }?: TRouter);
-    getRoute(method: string, path: string): TRouteMatch | undefined;
+    /**
+     * add middlware or router.
+     * @example
+     * app.use(...middlewares);
+     * app.use('/api/v1', routers);
+     */
+    use<T>(prefix: string | RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[], ...routerOrMiddleware: Array<RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[]>): this;
     /**
      * build handlers (app or router)
      * @example
@@ -91,6 +92,7 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    find(method: string, path: string, getPath: (path: string) => string, fn404: Handler<Rev>, mutate?: () => undefined | string): TRouteMatch<Rev>;
+    private extractAsset;
+    find(method: string, path: string, getPath: (path: string) => string, fn404: Handler<Rev>, setParam: (p: () => TObject) => void, mutate?: () => undefined | string): Handler<Rev>[];
 }
 export {};

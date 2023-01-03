@@ -1,6 +1,5 @@
-import Router, { concatRegexp, decURI, wildcard } from "./router.ts";
+import Router, { base, concatRegexp, findParams } from "./router.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TRet } from "./types.ts";
 
 Deno.test("router", async (t) => {
   await t.step("router regex", () => {
@@ -8,44 +7,35 @@ Deno.test("router", async (t) => {
     router.on("GET", /hello/, () => {});
     assertEquals(Array.isArray(router.c_routes), true);
   });
-  await t.step("decode uri", () => {
-    const val = decURI("/hello?name=sahimar");
-    assertEquals(val, "/hello?name=sahimar");
-
-    const val2 = decURI("%E0%A4%A");
-    assertEquals(val2, "%E0%A4%A");
-  });
   await t.step("concatRegex", () => {
     assertEquals(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
     assertEquals(concatRegexp("", /\/hello/) instanceof RegExp, true);
     assertEquals(concatRegexp(/\/hello\//, /\/hello/) instanceof RegExp, true);
   });
-  await t.step("single", () => {
-    const router = new Router();
-    router.route = {
-      "GET/": {
-        fns: [],
-        m: true,
-      },
-    };
-    const data = router["getRoute"]("GET", "/");
-    assertEquals(data, { fns: [], m: true } as TRet);
-  });
-
   await t.step("wild", () => {
-    const wild = wildcard("/", false, {});
-    const wild2 = wildcard(undefined, true, {});
-    const wild3 = wildcard("/", true, {});
+    const wild = findParams({ path: "/", wild: false, pathx: {} }, "/");
+    const wild2 = findParams({ path: undefined, wild: false, pathx: {} }, "/");
+    const wild3 = findParams({ path: "/", wild: true, pathx: {} }, "/");
     assertEquals(wild, {});
     assertEquals(wild2, {});
     assertEquals(wild3, {});
   });
   await t.step("router miss", () => {
+    assertEquals(base("/"), "/");
     const router = new Router();
+    router.use("/hello", () => {});
     router.options("/", () => {});
     router.connect("/", () => {});
     router.trace("/", () => {});
     router.delete("/", () => {});
-    assertEquals(Array.isArray(router.c_routes), true);
+    router.get("/hello", (rev) => {
+      assertEquals(rev.url, rev.__url);
+      assertEquals(rev.path, rev.__path);
+      return new Response("hello");
+    });
+    router.get("/:name", () => {});
+    const arr = router.c_routes;
+    assertEquals(Array.isArray(arr), true);
+    assertEquals(arr.find((el) => el.path == "/hello")?.fns.length, 3);
   });
 });
