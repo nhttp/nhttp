@@ -1,3 +1,5 @@
+import { TObject } from "./types.ts";
+
 export const STATUS_LIST: Record<number, string> = {
   100: "Continue",
   101: "Switching Protocols",
@@ -55,6 +57,8 @@ export const STATUS_LIST: Record<number, string> = {
   507: "Insufficient Storage",
   511: "Network Authentication Required",
 };
+
+export const ROUTE = <TObject> {};
 
 export const MIME_LIST: Record<string, string> = {
   aac: "audio/aac",

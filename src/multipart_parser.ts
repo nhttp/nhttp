@@ -1,6 +1,7 @@
 // Credit & Original : https://github.com/deligenius/multiparser
 
-import { decoder, encoder } from "./utils.ts";
+import { TObject } from "./types.ts";
+import { arrayBuffer, decoder, encoder, parseQuery } from "./utils.ts";
 
 const encode = {
   contentType: encoder.encode("Content-Type"),
@@ -16,19 +17,23 @@ interface FormFile {
   name: string;
   type: string;
   size: number;
-  lastModified: number;
-  arrayBuffer: () => Uint8Array | Promise<Uint8Array>;
+  arrayBuffer: () => Promise<ArrayBuffer>;
 }
 
 interface Form {
-  fields: Record<string, string>;
   files: Record<string, FormFile | FormFile[]>;
 }
 
-export async function multiParser(req: Request) {
-  const arrayBuf = await req.arrayBuffer();
-  const buf = new Uint8Array(arrayBuf);
-  const boundaryByte = getBoundary(req.headers.get("content-type") as string);
+export function getType(headers: TObject) {
+  return headers.get?.("content-type") ?? headers["content-type"];
+}
+
+export async function multiParser(request: TObject) {
+  const arrayBuf = await arrayBuffer(request);
+  const buf = arrayBuf instanceof Uint8Array
+    ? arrayBuf
+    : new Uint8Array(arrayBuf);
+  const boundaryByte = getBoundary(getType(request.headers));
   if (!boundaryByte) {
     return undefined;
   }
@@ -38,7 +43,8 @@ export async function multiParser(req: Request) {
 }
 
 function getForm(pieces: Uint8Array[]) {
-  const form: Form = { fields: {}, files: {} };
+  const form: Form = { files: {} };
+  const arr = [];
   for (const piece of pieces) {
     const { headerByte, contentByte } = splitPiece(piece);
     const headers = getHeaders(headerByte);
@@ -48,8 +54,7 @@ function getForm(pieces: Uint8Array[]) {
       if (contentByte.byteLength === 1 && contentByte[0] === 13) {
         continue;
       } else {
-        // headers = "field1"
-        form.fields[headers] = decoder.decode(contentByte);
+        arr.push(`${headers}=${decoder.decode(contentByte)}`);
       }
     } // it's a file field
     else {
@@ -57,9 +62,7 @@ function getForm(pieces: Uint8Array[]) {
         name: headers.filename,
         type: headers.contentType,
         size: contentByte.byteLength,
-        // just dummy
-        lastModified: Date.now() - 1000,
-        arrayBuffer: () => contentByte,
+        arrayBuffer: () => Promise.resolve(contentByte.buffer),
       };
 
       // array of files
@@ -74,7 +77,7 @@ function getForm(pieces: Uint8Array[]) {
       }
     }
   }
-  return { ...form.fields, ...form.files };
+  return { ...parseQuery(arr.join("&")), ...form.files };
 }
 
 function getHeaders(headerByte: Uint8Array) {
@@ -182,16 +185,13 @@ function getBoundary(contentType: string): Uint8Array | undefined {
   }
 }
 
-function byteIndexOf(
+export function byteIndexOf(
   source: string | Uint8Array,
   pattern: string | Uint8Array,
   fromIndex = 0,
 ) {
   if (fromIndex >= source.length) {
     return -1;
-  }
-  if (fromIndex < 0) {
-    fromIndex = Math.max(0, source.length + fromIndex);
   }
   const s = pattern[0];
   for (let i = fromIndex; i < source.length; i++) {

@@ -1,68 +1,165 @@
-import { STATUS_LIST } from "./constant.ts";
-import { HttpResponse, ResInit } from "./http_response.ts";
-import { TObject, TRet } from "./types.ts";
-import { getReqCookies, getUrl } from "./utils.ts";
+import { ROUTE } from "./constant.ts";
+import { HttpResponse, JSON_TYPE_CHARSET } from "./http_response.ts";
+import { findParams } from "./router.ts";
+import {
+  s_body,
+  s_body_used,
+  s_cookies,
+  s_file,
+  s_headers,
+  s_params,
+  s_path,
+  s_query,
+  s_res,
+  s_response,
+  s_route,
+  s_search,
+  s_url,
+} from "./symbol.ts";
+import { MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
+import { getReqCookies, getUrl, toPathx } from "./utils.ts";
+import { HttpError } from "./error.ts";
 
-export type RespondWith = (
-  r: Response | Promise<Response>,
-) => Promise<void> | Response;
 export type TResp = (
   r: TRet,
-  init?: ResInit,
-) => Promise<void> | Response;
-
+) => Promise<void> | undefined | Response | void;
+type TInfo = {
+  conn: Partial<Deno.Conn>;
+  env: TObject;
+  context: TObject;
+};
 export class RequestEvent {
-  // respondWith!: RespondWith;
   constructor(
+    /**
+     * Original {@linkcode Request}.
+     * The request from the client in the form of the web platform {@linkcode Request}.
+     */
     public request: Request,
-    public _info?: TRet,
-    public _ctx?: TRet,
+    private _info?: TObject,
+    private _ctx?: TObject,
   ) {
-    this.path = getUrl(request.url);
+    this.method = request.method;
   }
-
+  /**
+   * response as HttpResponse
+   */
   get response(): HttpResponse {
-    return this.res ??
-      (this.res = new HttpResponse(this.resp.bind(this), this.request));
-  }
-
-  respondWith(r: Response | Promise<Response>) {
-    return this.c_res = r as Response;
-  }
-
-  resp(data: TRet, init?: ResInit) {
-    return this.c_res = new Response(data, init);
+    if (this._ctx && typeof this._ctx === "function") {
+      return this[s_res] ??= (this._ctx as TRet)(
+        this._info,
+        this.send.bind(this),
+      );
+    }
+    return this[s_res] ??= new HttpResponse(this.send.bind(this));
   }
 
   /**
-   * lookup info like `Deno.Conn / server`.
+   * lookup self route
    */
-  get info() {
-    return this._info ?? (this._info = {});
+  get route(): MatchRoute {
+    if (this[s_route]) return this[s_route];
+    let path = this.path;
+    if (path !== "/" && path[path.length - 1] === "/") {
+      path = path.slice(0, -1);
+    }
+    const ret = ROUTE[this.method]?.find((o: TObject) =>
+      o.pattern?.test(path) || o.path === path
+    );
+    if (ret) {
+      if (!ret.pattern) {
+        Object.assign(ret, toPathx(ret.path, true));
+      }
+      ret.method = this.method;
+      ret.query = this.query;
+      ret.params = findParams(ret, path);
+    }
+    return this[s_route] ??= ret ?? {};
   }
   /**
-   * lookup context for Cloudflare workers.
+   * lookup Object info like `conn / env / context`.
    */
-  get context() {
-    return this._ctx ?? (this._ctx = {});
+  get info(): TInfo {
+    const flag = typeof this._ctx === "function";
+    const info = flag ? {} : (this._info ?? {});
+    const context = flag ? {} : (this._ctx ?? {});
+    return { conn: info, env: info, context };
   }
-
   /**
-   * lookup info responseInit.
+   * This method tells the event dispatcher that work is ongoing.
+   * It can also be used to detect whether that work was successful.
    * @example
-   * const { headers, status, statusText } = rev.responseInit;
-   * console.log(headers, status, statusText);
+   * const cache = await caches.open("my-cache");
+   * app.get("/", async (rev) => {
+   *   let resp = await cache.match(rev.request);
+   *   if (!resp) {
+   *     const init = rev.response.init;
+   *     resp = new Response("Hello, World", init);
+   *     resp.headers.set("Cache-Control", "max-age=86400, public");
+   *     rev.waitUntil(cache.put(rev.request, resp.clone()));
+   *   }
+   *   rev.respondWith(resp);
+   * });
+   */
+  waitUntil(promise: Promise<TRet>) {
+    if (promise instanceof Promise) {
+      promise.catch(console.error);
+      return;
+    }
+    throw new HttpError(500, `${promise} is not a Promise.`);
+  }
+  /**
+   * The method to be used to respond to the event. The response needs to
+   * either be an instance of {@linkcode Response} or a promise that resolves
+   * with an instance of `Response`.
+   */
+  respondWith(r: Response | PromiseLike<Response>): void | Promise<void> {
+    this[s_response] = r;
+  }
+  /**
+   * send body
+   * @example
+   * rev.send("hello");
+   * rev.send({ name: "john" });
+   * // or
+   * rev.response.send("hello");
+   * rev.response.send({ name: "john" });
+   */
+  send(body?: TSendBody): void {
+    if (typeof body === "string") {
+      this[s_response] = new Response(body, this[s_res]?.init);
+    } else if (body instanceof Response) {
+      this[s_response] = body;
+    } else if (typeof body === "object") {
+      if (
+        body === null ||
+        body instanceof Uint8Array ||
+        body instanceof ReadableStream ||
+        body instanceof Blob
+      ) {
+        this[s_response] = new Response(<TRet> body, this[s_res]?.init);
+      } else {
+        const init = this[s_res]?.init ?? {};
+        if (init.headers) {
+          if (init.headers instanceof Headers) {
+            init.headers.set("content-type", JSON_TYPE_CHARSET);
+          } else {
+            init.headers["content-type"] = JSON_TYPE_CHARSET;
+          }
+        } else {
+          init.headers = { "content-type": JSON_TYPE_CHARSET };
+        }
+        this[s_response] = new Response(JSON.stringify(body), init);
+      }
+    } else {
+      this[s_response] = new Response(<TRet> body, this[s_res]?.init);
+    }
+  }
+  /**
+   * Lookup responseInit.
    */
   get responseInit(): ResponseInit {
-    const init = this.res?.init ?? {};
-    const status = init.status ?? 200;
-    const headers = init.headers instanceof Headers
-      ? init.headers
-      : new Headers(init.headers ?? {});
-    const statusText = STATUS_LIST[status];
-    return { headers, status, statusText };
+    return this[s_res]?.init ?? {};
   }
-
   /**
    * search.
    * @example
@@ -70,72 +167,48 @@ export class RequestEvent {
    * console.log(search);
    */
   get search() {
-    return this._search ?? null;
+    return this[s_search] ?? null;
   }
   set search(val: string | null) {
-    this._search = val;
+    this[s_search] = val;
   }
   /**
-   * Http request method.
+   * bodyUsed.
    * @example
-   * const method = rev.method;
-   * console.log(method);
+   * const bodyUsed = rev.bodyUsed;
+   * console.log(bodyUsed);
    */
-  get method() {
-    return this._method ?? (this._method = this.request.method);
+  get bodyUsed() {
+    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
   }
-  set method(val: string) {
-    this._method = val;
+  set bodyUsed(val: boolean) {
+    this[s_body_used] = val;
   }
   /**
-   * file.
+   * bodyValid.
    * @example
-   * const file = rev.file;
-   * console.log(file);
+   * const bodyValid = rev.bodyValid;
+   * console.log(bodyValid);
    */
-  get file() {
-    return this._file ?? (this._file = {});
-  }
-  set file(val: TObject) {
-    this._file = val;
-  }
-  /**
-   * get cookies from request.
-   * @example
-   * const cookie = rev.cookies;
-   * console.log(cookie);
-   */
-  get cookies() {
-    return this._cookies ?? (this._cookies = getReqCookies(this.request, true));
-  }
-  set cookies(val: TObject) {
-    this._cookies = val;
+  get bodyValid() {
+    if (this.request.url[0] !== "/") {
+      if (this.request.body) return true;
+      return false;
+    }
+    return true;
   }
   /**
    * params as json object.
    * @example
-   * // get "/hello/:name/:user"
+   * // get "/hello/john/john"
    * const params = rev.params;
    * console.log(params);
-   * // => { name: "john", user: "john" }
    */
   get params() {
-    return this._params ?? (this._params = this.__params?.() ?? {});
+    return this[s_params] ??= this.__params?.() ?? {};
   }
   set params(val: TObject) {
-    this._params = val;
-  }
-  /**
-   * body as json object.
-   * @example
-   * const body = rev.body;
-   * console.log(body);
-   */
-  get body() {
-    return this._body ?? (this._body = {});
-  }
-  set body(val: TObject) {
-    this._body = val;
+    this[s_params] = val;
   }
   /**
    * url
@@ -146,10 +219,10 @@ export class RequestEvent {
    * // => /hello?name=john
    */
   get url() {
-    return this._url ?? (this._url = getUrl(this.request.url));
+    return this[s_url] ??= this.originalUrl;
   }
   set url(val: string) {
-    this._url = val;
+    this[s_url] = val;
   }
   /**
    * originalUrl
@@ -160,7 +233,10 @@ export class RequestEvent {
    * // => /hello?name=john
    */
   get originalUrl() {
-    return getUrl(this.request.url);
+    if (this.request.url[0] !== "/") {
+      return getUrl(this.request.url);
+    }
+    return this.request.url;
   }
   /**
    * lookup path
@@ -170,7 +246,12 @@ export class RequestEvent {
    * console.log(path);
    * // => /hello
    */
-  path: string;
+  get path() {
+    return this[s_path] ??= this.url;
+  }
+  set path(val: string) {
+    this[s_path] = val;
+  }
   /**
    * lookup query parameter
    * @example
@@ -180,22 +261,105 @@ export class RequestEvent {
    * // => { name: "john" }
    */
   get query() {
-    return this._query ?? (this._query = {});
+    return this[s_query] ??= this.__parseQuery?.(this.search?.substring(1)) ??
+      {};
   }
   set query(val: TObject) {
-    this._query = val;
+    this[s_query] = val;
+  }
+  /**
+   * body as json object.
+   * @example
+   * const body = rev.body;
+   * console.log(body);
+   */
+  get body() {
+    return this[s_body] ??= {};
+  }
+  set body(val: TObject) {
+    this[s_body] = val;
+  }
+  /**
+   * headers.
+   * @example
+   * const type = rev.headers.get("content-type");
+   * console.log(type);
+   */
+  get headers() {
+    return this[s_headers] ??= this.request.headers;
+  }
+  set headers(val: Headers) {
+    this[s_headers] = val;
+  }
+  /**
+   * Http request method.
+   * @example
+   * const method = rev.method;
+   * console.log(method);
+   */
+  method: string;
+  /**
+   * file.
+   * @example
+   * const file = rev.file;
+   * console.log(file);
+   */
+  get file() {
+    return this[s_file] ??= {};
+  }
+  set file(val: TObject) {
+    this[s_file] = val;
+  }
+  /**
+   * get cookies from request.
+   * @example
+   * const cookie = rev.cookies;
+   * console.log(cookie);
+   */
+  get cookies() {
+    return this[s_cookies] ??= getReqCookies(this.request.headers, true);
+  }
+  set cookies(val: TObject) {
+    this[s_cookies] = val;
   }
   /**
    * get cookies from request
    * @deprecated
-   * Use `rev.cookies` instead. `rev.cookies`, auto decode when cookie is encode.
+   * Use `rev.cookies` instead. `rev.cookies`, auto decode if cookie is encode.
    * @example
    * const object = rev.getCookies();
    * const objectWithDecode = rev.getCookies(true);
    */
   getCookies(decode?: boolean) {
-    return getReqCookies(this.request, decode);
+    return getReqCookies(this.headers, decode);
   }
 
-  [k: string]: TRet;
+  [Symbol.for("Deno.customInspect")](inspect: TRet) {
+    const ret = {
+      body: this.body,
+      bodyUsed: this.bodyUsed,
+      bodyValid: this.bodyValid,
+      cookies: this.cookies,
+      file: this.file,
+      headers: this.headers,
+      info: this.info,
+      method: this.method,
+      originalUrl: this.originalUrl,
+      params: this.params,
+      path: this.path,
+      query: this.query,
+      request: this.request,
+      responseInit: this.responseInit,
+      respondWith: this.respondWith,
+      response: this.response,
+      route: this.route,
+      search: this.search,
+      send: this.send,
+      url: this.url,
+      waitUntil: this.waitUntil,
+    };
+    return `${this.constructor.name} ${inspect(ret)}`;
+  }
+
+  [k: string | symbol]: TRet;
 }

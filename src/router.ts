@@ -1,23 +1,24 @@
+import { ROUTE } from "./constant.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Handler, Handlers, RouterOrWare, TObject, TRet } from "./types.ts";
 import {
+  Handler,
+  Handlers,
+  NextFunction,
+  RouterOrWare,
+  TObject,
+  TRet,
+} from "./types.ts";
+import {
+  concatRegexp,
   decURIComponent,
-  findFn,
   findFns,
   middAssets,
   pushRoutes,
+  toPathx,
 } from "./utils.ts";
 
-export function concatRegexp(prefix: string | RegExp, path: RegExp) {
-  if (prefix == "") return path;
-  prefix = new RegExp(prefix);
-  let flags = prefix.flags + path.flags;
-  flags = Array.from(new Set(flags.split(""))).join();
-  return new RegExp(prefix.source + path.source, flags);
-}
-
 export function findParams(el: TObject, url: string) {
-  const match = el.pathx.exec?.(decURIComponent(url));
+  const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
   if (!el.wild || !el.path) return params;
   const path = el.path;
@@ -47,7 +48,16 @@ export function base(url: string) {
   return url;
 }
 
-type TRouter = { base?: string };
+export type TRouter = { base?: string };
+export const ANY_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "OPTIONS",
+  "HEAD",
+] as const;
 /**
  * Router
  * @example
@@ -59,7 +69,7 @@ export default class Router<
 > {
   route: TObject = {};
   c_routes: TObject[] = [];
-  midds: Handler<Rev>[] = [];
+  midds: TRet[] = [];
   pmidds: TObject | undefined;
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
@@ -80,21 +90,31 @@ export default class Router<
     >
   ) {
     let args = routerOrMiddleware, str = "";
-    if (typeof prefix == "function" && !args.length) {
-      this.midds = this.midds.concat(findFn(prefix));
+    if (typeof prefix === "function" && !args.length) {
+      this.midds = this.midds.concat(findFns([prefix]));
       return this;
     }
-    if (typeof prefix == "string") str = prefix;
+    if (typeof prefix === "string") str = prefix;
     else args = [prefix].concat(args) as TRet;
     const last = args[args.length - 1] as TObject;
-    if (typeof last == "object" && (last.c_routes || last[0].c_routes)) {
+    if (
+      typeof last === "object" && (last.c_routes || last[0]?.c_routes)
+    ) {
       pushRoutes(str, findFns(args), last, this);
       return this;
     }
-    if (str != "" && str != "*" && str != "/*") {
+    if (str !== "" && str !== "*" && str !== "/*") {
       const path = this.base + str;
-      this.pmidds = this.pmidds ?? {};
-      this.pmidds[path] = this.pmidds[path] ?? middAssets(path);
+      this.pmidds ??= {};
+      if (!this.pmidds[path]) {
+        this.pmidds[path] = middAssets(path);
+        if ((this as TRet)["handle"]) {
+          ANY_METHODS.forEach((method) => {
+            const { pattern, wild } = toPathx(path, true);
+            (ROUTE[method] ??= []).push({ path, pattern, wild });
+          });
+        }
+      }
       this.pmidds[path] = this.pmidds[path].concat(findFns<Rev>(args));
       return this;
     }
@@ -109,15 +129,12 @@ export default class Router<
   on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>) {
     if (path instanceof RegExp) path = concatRegexp(this.base, path);
     else {
-      if (path == "/" && this.base != "") path = "";
+      if (path === "/" && this.base != "") path = "";
       path = this.base + path;
     }
     let fns = findFns<Rev>(handlers);
-    if (typeof path == "string" && this.pmidds?.[path as string]) {
-      fns = this.pmidds[path as string].concat(fns);
-    }
     fns = this.midds.concat(fns);
-    this.c_routes.push({ method, path, fns });
+    this.c_routes.push({ method, path, fns, pmidds: this.pmidds });
     return this;
   }
   /**
@@ -200,10 +217,10 @@ export default class Router<
   connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
     return this.on("CONNECT", path, ...handlers);
   }
-  private extractAsset(path: string) {
-    const arr = path.split("/");
-    arr.shift();
-    return arr.reduce((acc, curr, i, arr) => {
+  private findPathAssets(path: string) {
+    const paths = path.split("/");
+    paths.shift();
+    return paths.reduce((acc, curr, i, arr) => {
       if (this.pmidds?.[acc + "/" + curr]) {
         arr.splice(i);
       }
@@ -212,40 +229,32 @@ export default class Router<
   }
   find(
     method: string,
-    path: string,
+    url: string,
     getPath: (path: string) => string,
-    fn404: Handler<Rev>,
     setParam: (p: () => TObject) => void,
+    notFound: (rev: Rev, next: NextFunction) => TRet,
     mutate?: () => undefined | string,
   ): Handler<Rev>[] {
-    path = getPath(path);
-    if (this.route[method + path] && path != "") {
-      return this.route[method + path];
-    }
-    let arr = this.route[method] ?? [];
-    if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
-    const r = arr.find((el: TObject) => el.pathx?.test(path));
+    const path = getPath(url);
+    if (this.route[method + path]) return this.route[method + path];
+    const r = this.route[method]?.find((el: TObject) => el.pattern?.test(path));
     if (r) {
       setParam(() => findParams(r, path));
       return r.fns;
     }
-    if (path[path.length - 1] == "/") {
-      if (path != "/") {
-        const _url = path.slice(0, -1);
-        if (this.route[method + _url]) {
-          return this.route[method + _url];
-        }
-      }
+    if (path !== "/" && path[path.length - 1] === "/") {
+      const k = method + path.slice(0, -1);
+      if (this.route[k]) return this.route[k];
     }
-    const url = mutate?.();
-    if (url) return this.find(method, url, getPath, fn404, setParam, void 0);
+    const mut = mutate?.();
+    if (mut) return this.find(method, mut, getPath, setParam, notFound, void 0);
     if (this.pmidds) {
       let p = this.pmidds[path] ? path : base(path);
-      if (path.startsWith(p) && !this.pmidds[p]) p = this.extractAsset(path);
+      if (!this.pmidds[p] && path.startsWith(p)) p = this.findPathAssets(path);
       if (this.pmidds[p]) {
-        return this.midds.concat(this.pmidds[p], [fn404]);
+        return this.midds.concat(this.pmidds[p], [notFound]);
       }
     }
-    return this.midds.concat([fn404]);
+    return this.midds.concat([notFound]);
   }
 }

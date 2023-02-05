@@ -1,11 +1,11 @@
 import { RequestEvent } from "./request_event";
-import { Handler, Handlers, RouterOrWare, TObject } from "./types";
-export declare function concatRegexp(prefix: string | RegExp, path: RegExp): RegExp;
+import { Handler, Handlers, NextFunction, RouterOrWare, TObject, TRet } from "./types";
 export declare function findParams(el: TObject, url: string): any;
 export declare function base(url: string): string;
-type TRouter = {
+export type TRouter = {
     base?: string;
 };
+export declare const ANY_METHODS: readonly ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"];
 /**
  * Router
  * @example
@@ -15,7 +15,7 @@ type TRouter = {
 export default class Router<Rev extends RequestEvent = RequestEvent> {
     route: TObject;
     c_routes: TObject[];
-    midds: Handler<Rev>[];
+    midds: TRet[];
     pmidds: TObject | undefined;
     private base;
     constructor({ base }?: TRouter);
@@ -92,7 +92,6 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    private extractAsset;
-    find(method: string, path: string, getPath: (path: string) => string, fn404: Handler<Rev>, setParam: (p: () => TObject) => void, mutate?: () => undefined | string): Handler<Rev>[];
+    private findPathAssets;
+    find(method: string, url: string, getPath: (path: string) => string, setParam: (p: () => TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet, mutate?: () => undefined | string): Handler<Rev>[];
 }
-export {};

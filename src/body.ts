@@ -1,8 +1,9 @@
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
 import { multiParser } from "./multipart_parser.ts";
-import { Handler, TBodyParser, TQueryFunc } from "./types.ts";
+import { Handler, TBodyParser, TObject, TQueryFunc } from "./types.ts";
 import {
+  arrayBuffer,
   decoder,
   decURIComponent,
   parseQuery as parseQueryOri,
@@ -12,10 +13,10 @@ import {
 const defautl_size = "3mb";
 
 async function verifyBody(
-  request: Request,
+  req: TObject,
   limit: number | string = defautl_size,
 ) {
-  const arrBuff = await request.arrayBuffer();
+  const arrBuff = await arrayBuffer(req);
   if (limit && (arrBuff.byteLength > toBytes(limit))) {
     throw new HttpError(
       400,
@@ -26,10 +27,15 @@ async function verifyBody(
   const body = decURIComponent(decoder.decode(arrBuff));
   return body;
 }
-
-function acceptContentType(headers: Headers, cType: string) {
-  const type = headers.get("content-type");
-  return type === cType || type?.startsWith(cType);
+type CType =
+  | "application/json"
+  | "application/x-www-form-urlencoded"
+  | "multipart/form-data"
+  | "text/plain";
+export function acceptContentType(headers: Headers, cType: CType) {
+  const type = headers.get?.("content-type") ??
+    (headers as TObject)["content-type"];
+  return type === cType || type?.includes(cType);
 }
 
 export function bodyParser(
@@ -37,26 +43,30 @@ export function bodyParser(
   parseQuery?: TQueryFunc,
   parseMultipart?: TQueryFunc,
 ) {
-  const ret: Handler = async (rev, next) => {
-    if (!rev.body) rev.body = {};
+  const ret: Handler = (rev, next) => {
     if (
-      rev.request.body && rev.request.bodyUsed == false &&
-      typeof opts != "boolean"
-    ) {
-      if (opts == void 0) opts = {};
-      const headers = rev.request.headers;
+      rev.method === "GET" ||
+      rev.method === "HEAD" ||
+      opts === false ||
+      !rev.bodyValid ||
+      rev.bodyUsed
+    ) return next();
+    if (opts === void 0 || opts === true) opts = {};
+    const headers = rev.headers;
+    return (async () => {
       if (acceptContentType(headers, "application/json")) {
-        if (opts.json == false || opts.json == 0) return next();
+        if (opts.json === false || opts.json === 0) return next();
         try {
           const body = await verifyBody(rev.request, opts.json as number);
           rev.body = JSON.parse(body);
+          rev.bodyUsed = true;
         } catch (error) {
           return next(error);
         }
       } else if (
         acceptContentType(headers, "application/x-www-form-urlencoded")
       ) {
-        if (opts.urlencoded == false || opts.urlencoded == 0) return next();
+        if (opts.urlencoded === false || opts.urlencoded === 0) return next();
         try {
           const body = await verifyBody(
             rev.request,
@@ -64,6 +74,7 @@ export function bodyParser(
           );
           const parse = parseQuery || parseQueryOri;
           rev.body = parse(body);
+          rev.bodyUsed = true;
         } catch (error) {
           return next(error);
         }
@@ -76,13 +87,14 @@ export function bodyParser(
           } catch (_err) {
             rev.body = { _raw: body };
           }
+          rev.bodyUsed = true;
         } catch (error) {
           return next(error);
         }
       } else if (acceptContentType(headers, "multipart/form-data")) {
-        if (opts.multipart == false || opts.multipart == 0) return next();
+        if (opts.multipart === false || opts.multipart === 0) return next();
         try {
-          if (rev.request.formData) {
+          if (typeof rev.request.formData === "function") {
             const formData = await rev.request.formData();
             rev.body = await multipart.createBody(formData, {
               parse: parseMultipart,
@@ -90,13 +102,13 @@ export function bodyParser(
           } else {
             rev.body = (await multiParser(rev.request)) || {};
           }
+          rev.bodyUsed = true;
         } catch (error) {
           return next(error);
         }
       }
-    }
-    return next();
+      return next();
+    })();
   };
-
   return ret;
 }

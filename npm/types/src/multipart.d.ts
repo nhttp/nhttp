@@ -6,7 +6,7 @@ export type TMultipartUpload = {
     accept?: string;
     callback?: (file: File & {
         filename: string;
-    }) => void;
+    }) => void | Promise<void>;
     dest?: string;
     required?: boolean;
     /**
@@ -19,6 +19,7 @@ export type TMultipartUpload = {
      * });
      * app.post("/hello", upload, (rev) => {
      *    console.log(rev.file);
+     *    console.log(rev.body);
      *    return "success upload";
      * });
      */
@@ -34,11 +35,13 @@ declare class Multipart {
     private validate;
     private privUpload;
     /**
-     * upload handler multipart/form-data
+     * upload handler multipart/form-data.
      * @example
-     * app.post("/hello", multipart.upload({ name: "image" }), ({ response, body, file }) => {
-     *    console.log("file", file.image);
-     *    console.log(body);
+     * const upload = multipart.upload({ name: "image" });
+     *
+     * app.post("/save", upload, (rev) => {
+     *    console.log("file", rev.file.image);
+     *    console.log(rev.body);
      *    return "success upload";
      * });
      */

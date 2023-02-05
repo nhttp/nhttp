@@ -1,13 +1,13 @@
-import { FetchEvent, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
-import Router from "./router";
+import { EngineOptions, FetchEvent, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
+import Router, { TRouter } from "./router";
 import { RequestEvent } from "./request_event";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Router<Rev> {
     private parseQuery;
-    private multipartParseQuery?;
-    private bodyParser;
     private env;
     private flash?;
     private stackError;
+    private bodyParser?;
+    private parseMultipart?;
     server: TRet;
     /**
      * handleEvent
@@ -16,40 +16,50 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *   event.respondWith(app.handleEvent(event))
      * });
      */
-    handleEvent: (event: FetchEvent, info?: TRet, ctx?: TRet) => TRet;
+    handleEvent: (event: FetchEvent) => TRet;
     /**
      * handle
      * @example
-     * await Deno.serve(app.handle, { port: 3000 });
+     * Deno.serve(app.handle);
      * // or
      * Bun.serve({ fetch: app.handle });
      */
-    handle: (request: Request, info?: TRet, ctx?: TRet) => TRet;
+    handle: (request: Request, conn?: TRet, ctx?: TRet) => TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**
      * global error handling.
      * @example
-     * app.onError((error, rev) => {
-     *     return rev.response.send(error.message);
+     * app.onError((err, { res }) => {
+     *    response.send(err.message);
      * })
      */
     onError(fn: (err: TObject, rev: Rev, next: NextFunction) => RetHandler): this;
     /**
      * global not found error handling.
      * @example
-     * app.on404((rev) => {
-     *     return rev.response.send(`route ${rev.url} not found`);
+     * app.on404(({ response, url }) => {
+     *    response.send(`route ${url} not found`);
      * })
      */
     on404(fn: (rev: Rev, next: NextFunction) => RetHandler): this;
     on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    private is404;
+    /**
+     * engine - add template engine.
+     * @example
+     * app.engine(ejs.renderFile, { base: "public", ext: "ejs" });
+     *
+     * app.get("/", async ({ response }) => {
+     *   await response.render("index", { title: "hello ejs" });
+     * });
+     */
+    engine(renderFile: (...args: TRet) => TRet, opts?: EngineOptions): void;
+    matchFns(rev: RequestEvent, url: string): import("./types").Handler<Rev>[];
     private handleRequest;
     /**
      * listen the server
      * @example
-     * app.listen(3000);
-     * app.listen({ port: 3000, hostname: 'localhost' });
+     * app.listen(8000);
+     * app.listen({ port: 8000, hostname: 'localhost' });
      * app.listen({
      *    port: 443,
      *    cert: "./path/to/localhost.crt",
@@ -57,7 +67,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *    alpnProtocols: ["h2", "http/1.1"]
      * }, callback);
      */
-    listen(opts: number | ListenOptions, callback?: (err?: Error, opts?: ListenOptions) => void | Promise<void>): Promise<void>;
+    listen(opts: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>): Promise<void>;
     private _onError;
     private _on404;
     private handleConn;
@@ -68,3 +78,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
  * const app = nhttp();
  */
 export declare function nhttp<Rev extends RequestEvent = RequestEvent>(opts?: TApp): NHttp<Rev>;
+export declare namespace nhttp {
+    var Router: <Rev extends RequestEvent = RequestEvent>(opts?: TRouter) => Router<Rev>;
+}

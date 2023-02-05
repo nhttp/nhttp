@@ -1,7 +1,7 @@
-import { HttpError, NHttp } from "../mod.ts";
+import { HttpError, nhttp } from "../mod.ts";
 import { body, validationResult } from "npm:express-validator";
 
-const app = new NHttp();
+const app = nhttp({ bodyParser: true });
 
 app.post(
   "/",
@@ -18,5 +18,5 @@ app.post(
 );
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

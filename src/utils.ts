@@ -1,6 +1,4 @@
-import { MIME_LIST } from "./constant.ts";
-import { HttpResponse, JSON_TYPE_CHARSET, ResInit } from "./http_response.ts";
-import { RequestEvent, TResp } from "./request_event.ts";
+import { RequestEvent } from "./request_event.ts";
 import {
   Cookie,
   Handler,
@@ -12,7 +10,7 @@ import {
 
 export const encoder = new TextEncoder();
 export const decoder = new TextDecoder();
-const build_date = new Date();
+
 type EArr = [string, string | TObject];
 
 export const decURI = (str: string) => {
@@ -33,30 +31,24 @@ export const decURIComponent = (str: string) => {
 export function findFn(fn: TRet) {
   if (fn.length === 3) {
     const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
-      const res = rev.response;
-      rev.method = rev.request.method;
+      const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        rev.getHeaders = () =>
-          Object.fromEntries(rev.request.headers.entries());
-        res.append = (a: string, b: string) => res.headers.append(a, b);
-        res.set = res.header;
-        res.get = (a: string) => res.header(a);
-        res.hasHeader = (a: string) => res.header(a) !== undefined;
-        res.removeHeader = (a: string) => res.headers.delete(a);
-        res.end = res.send;
-        res.writeHead = (a: number, ...b: TRet) => {
-          res.status(a);
+        response.append ??= (a: string, b: string) =>
+          response.header().append(a, b);
+        response.set ??= response.header;
+        response.get ??= (a: string) => response.header(a);
+        response.hasHeader ??= (a: string) => response.header(a) !== undefined;
+        response.removeHeader ??= (a: string) => response.header().delete(a);
+        response.end ??= response.send;
+        response.writeHead ??= (a: number, ...b: TRet) => {
+          response.status(a);
           for (let i = 0; i < b.length; i++) {
-            if (typeof b[i] === "object") res.header(b[i]);
+            if (typeof b[i] === "object") response.header(b[i]);
           }
         };
-        rev.respond = ({ body, status, headers }: TObject) =>
-          rev.respondWith(
-            new Response(body as BodyInit, { status, headers } as TObject),
-          );
       }
-      return fn(rev, res, next);
+      return fn(rev, response, next);
     };
     return newFn;
   }
@@ -73,7 +65,11 @@ export function findFns<Rev extends RequestEvent = RequestEvent>(
     if (Array.isArray(fn)) {
       ret = ret.concat(findFns<Rev>(fn as TObject[]));
     } else if (typeof fn === "function") {
-      ret.push(findFn(fn));
+      if (fn.prototype?.use) {
+        ret.push(findFn(fn.prototype.use));
+      } else {
+        ret.push(findFn(fn));
+      }
     }
   }
   return ret;
@@ -101,13 +97,13 @@ export function toBytes(arg: string | number) {
   return Math.floor(sizeList[unt] as number * val);
 }
 
-export function toPathx(path: string | RegExp, isAny: boolean) {
-  if (path instanceof RegExp) return { pathx: path, wild: true };
-  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
-    return;
+export function toPathx(path: string | RegExp, flag?: boolean) {
+  if (path instanceof RegExp) return { pattern: path, wild: true, path };
+  if (/\?|\*|\.|\:/.test(path) === false && !flag) {
+    return {};
   }
   let wild = false;
-  const pathx = new RegExp(`^${
+  const pattern = new RegExp(`^${
     path
       .replace(/\/$/, "")
       .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3")
@@ -117,7 +113,7 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
       })
       .replace(/\.(?=[\w(])/, "\\.")
   }/*$`);
-  return { pathx, path, wild };
+  return { pattern, path, wild };
 }
 
 export function needPatch(
@@ -155,7 +151,9 @@ export function myParse(arr: EArr[]) {
         red[field] = [red[field], value];
       }
     } else {
-      let [_, prefix, keys]: TRet = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      let [_, prefix, keys]: TRet = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ??
+        [];
+      prefix = prefix ?? field;
       if (keys) {
         keys = Array.from(
           keys.matchAll(/\[([^\]]*)\]/g),
@@ -171,14 +169,14 @@ export function myParse(arr: EArr[]) {
 }
 
 export function parseQuery(query: unknown | string) {
-  if (query === null) return {};
+  if (!query) return {};
   if (typeof query === "string") {
     let i = 0;
     const arr = query.split("&") as EArr;
     const data = [] as EArr[], len = arr.length;
     while (i < len) {
       const el = arr[i].split("=");
-      data.push([decURI(el[0]), decURI(el[1] || "")]);
+      data.push([decURIComponent(el[0]), decURIComponent(el[1] || "")]);
       i++;
     }
     return myParse(data);
@@ -197,7 +195,7 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
 /**
  * Wrapper middleware for framework express like (req, res, next)
  * @deprecated
- * auto added to Nhttp.use
+ * auto added to `NHttp.use`
  * @example
  * ...
  * import cors from "https://esm.sh/cors?no-check";
@@ -232,17 +230,18 @@ export function pushRoutes(
   last: TObject,
   base: TObject,
 ) {
-  str = str == "/" ? "" : str;
+  str = str === "/" ? "" : str;
   last = Array.isArray(last) ? last : [last];
   last.forEach((obj: TObject) => {
     obj.c_routes.forEach((route: TObject) => {
-      const { method, path, fns } = route;
+      const { method, path, fns, pmidds } = route;
       let _path: string | RegExp;
       if (path instanceof RegExp) _path = concatRegexp(str, path);
-      else {
-        let mPath = path;
-        if (mPath === "/" && str !== "") mPath = "";
-        _path = str + mPath;
+      else _path = str + path;
+      if (pmidds) {
+        const obj = {} as TObject;
+        for (const k in pmidds) obj[str + k] = pmidds[k];
+        base.pmidds = obj;
       }
       base.on(method, _path, [wares, fns]);
     });
@@ -256,13 +255,13 @@ function getPos(url: string, k = -1, l = 0) {
   }
   return k;
 }
-
 let c_len: number | undefined;
 export function getUrl(url: string) {
-  return url.substring(c_len ?? (c_len = getPos(url)));
+  return url.substring(c_len ??= getPos(url));
 }
 
 export function updateLen(url: string) {
+  if (url[0] === "/") return;
   const pos = getPos(url);
   if (c_len && c_len != pos) {
     c_len = pos;
@@ -334,8 +333,9 @@ function tryDecode(str: string) {
   }
 }
 
-export function getReqCookies(req: Request, decode?: boolean, i = 0) {
-  const str = req.headers.get("Cookie");
+export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
+  if (!(headers instanceof Headers)) headers = new Headers(headers);
+  const str = headers.get("Cookie");
   if (str === null) return {};
   const ret = {} as Record<string, string>;
   const arr = str.split(";");
@@ -360,58 +360,29 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
   }
   return ret;
 }
-
-export function getContentType(path: string) {
-  const iof = path.lastIndexOf(".");
-  if (iof <= 0) return MIME_LIST.arc;
-  const ext = path.substring(path.lastIndexOf(".") + 1);
-  return MIME_LIST[ext];
-}
-
-export function is304(res: HttpResponse, stat: TObject) {
-  if (!stat.size) return false;
-  const mtime = stat.mtime ?? build_date;
-  res.header("last-modified", mtime.toUTCString());
-  res.header("etag", `W/"${stat.size}-${mtime.getTime()}"`);
-  return res.request.headers.get("if-none-match") == res.header("ETag");
-}
-
-export function createOptionFile(
-  opts: {
-    etag?: boolean;
-    readFile?: (pathFile: string) => TRet;
-    stat?: (pathFile: string) => TRet;
-  } = {},
-) {
-  opts.etag = opts.etag ?? true;
-  opts.readFile = opts.readFile ?? Deno.readTextFile;
-  opts.stat = opts.stat ??
-    (typeof Deno != "undefined" ? Deno.stat : ((_p) => ({})));
-}
-
-export function sendBody(
-  resp: TResp,
-  init: ResInit,
-  body?: BodyInit | TObject | null,
-) {
-  if (typeof body == "object") {
-    if (body instanceof Response) return body;
-    if (
-      body instanceof Uint8Array ||
-      body instanceof ReadableStream ||
-      body instanceof Blob
-    ) {
-      return resp(body, init);
-    }
-    if (!init) init = {};
-    if (init.headers) {
-      if (init.headers instanceof Headers) {
-        init.headers.set("content-type", JSON_TYPE_CHARSET);
-      } else {
-        init.headers["content-type"] = JSON_TYPE_CHARSET;
-      }
-    } else init.headers = { "content-type": JSON_TYPE_CHARSET };
-    return resp(JSON.stringify(body), init);
+const concatUint8Array = (arr: TRet[]) => {
+  if (arr.length === 1) return arr[0];
+  let len = 0;
+  arr.forEach((el) => (len += el.length));
+  const merged = new Uint8Array(len);
+  let i = 0;
+  arr.forEach((el) => {
+    merged.set(el, i);
+    i += el.length;
+  });
+  return merged;
+};
+export function arrayBuffer(request: TObject): Promise<ArrayBuffer> {
+  if (typeof request.arrayBuffer === "function") {
+    return request.arrayBuffer();
   }
-  return resp(body, init);
+  if (typeof request.on === "function") {
+    return new Promise((ok, no) => {
+      const body: Uint8Array[] = [];
+      request.on("data", (buf: Uint8Array) => body.push(buf))
+        .on("end", () => ok(concatUint8Array(body)))
+        .on("error", (err: Error) => no(err));
+    });
+  }
+  return Promise.resolve(new ArrayBuffer(0));
 }

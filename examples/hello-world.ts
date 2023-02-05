@@ -1,9 +1,9 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
 app.get("/", () => "Hello World");
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

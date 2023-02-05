@@ -2,9 +2,10 @@ import { multipart, TMultipartUpload } from "./multipart.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
 import { myParse } from "./utils.ts";
+import { RequestEvent } from "./request_event.ts";
 
 Deno.test("multipart upload", async (t) => {
-  const req = (body: BodyInit) =>
+  const req = (body: TRet) =>
     new Request("http://127.0.0.1:8000/", { method: "POST", body });
   await t.step("upload file with option", async () => {
     const upload = multipart.upload({
@@ -20,9 +21,7 @@ Deno.test("multipart upload", async (t) => {
     });
     const form = new FormData();
     form.set("myfile", new File(["hello world"], "text.txt"));
-    const rev: TRet = {
-      request: req(form),
-    };
+    const rev = new RequestEvent(req(form));
     const data = await upload(rev, (err) => err);
     const ok = data === undefined;
     assertEquals(ok, true);
@@ -34,9 +33,7 @@ Deno.test("multipart upload", async (t) => {
     });
     const form = new FormData();
     form.set("myfile", new File(["hello world"], "text.txt"));
-    const rev: TRet = {
-      request: req(form),
-    };
+    const rev = new RequestEvent(req(form));
     const data = await upload(rev, (err) => err);
     const ok = data === undefined;
     assertEquals(ok, true);
@@ -47,7 +44,7 @@ Deno.test("multipart upload", async (t) => {
         name: "myfile",
         required: true,
         accept: "txt",
-        dest: "dummy",
+        dest: "/dummy",
         maxSize: "2 mb",
         writeFile: () => {},
       },
@@ -63,9 +60,7 @@ Deno.test("multipart upload", async (t) => {
     const form = new FormData();
     form.set("myfile", new File(["hello world"], "text.txt"));
     form.set("myfile2", new File(["html {color: black}"], "text.css"));
-    const rev: TRet = {
-      request: req(form),
-    };
+    const rev = new RequestEvent(req(form));
     const data = await upload(rev, (err) => err);
     const ok = data === undefined;
     assertEquals(ok, true);
@@ -92,9 +87,7 @@ Deno.test("multipart upload", async (t) => {
       const upload = multipart.upload(opts);
       const form = new FormData();
       form.set("myfile", new File(["hello world"], "text.txt"));
-      const rev: TRet = {
-        request: req(form),
-      };
+      const rev = new RequestEvent(req(form));
       await handler(rev, upload, "myfile to large, maxSize = 1");
     });
     await t.step("verify maxCount", async () => {
@@ -102,36 +95,28 @@ Deno.test("multipart upload", async (t) => {
       const form = new FormData();
       form.set("myfile", new File(["hello world"], "text.txt"));
       form.append("myfile", new File(["hello world"], "text.txt"));
-      const rev: TRet = {
-        request: req(form),
-      };
+      const rev = new RequestEvent(req(form));
       await handler(rev, upload, "myfile no more than 1 file");
     });
     await t.step("verify required single", async () => {
       const upload = multipart.upload({ ...opts, maxSize: "3mb" });
       const form = new FormData();
       form.set("data", new File(["hello world"], "text.txt"));
-      const rev: TRet = {
-        request: req(form),
-      };
+      const rev = new RequestEvent(req(form));
       await handler(rev, upload, "Field myfile is required");
     });
     await t.step("verify required array", async () => {
       const upload = multipart.upload([{ ...opts, maxSize: "3mb" }]);
       const form = new FormData();
       form.set("data", new File(["hello world"], "text.txt"));
-      const rev: TRet = {
-        request: req(form),
-      };
+      const rev = new RequestEvent(req(form));
       await handler(rev, upload, "Field myfile is required");
     });
     await t.step("verify accept", async () => {
       const upload = multipart.upload([{ ...opts, maxSize: "3mb" }]);
       const form = new FormData();
       form.set("myfile", new File(["hello world"], "text.css"));
-      const rev: TRet = {
-        request: req(form),
-      };
+      const rev = new RequestEvent(req(form));
       await handler(rev, upload, "myfile only accept txt");
     });
   });
@@ -182,9 +167,7 @@ Deno.test("multipart upload", async (t) => {
       writeFile: () => {},
     });
     const form = new FormData();
-    const rev: TRet = {
-      request: req(form),
-    };
+    const rev = new RequestEvent(req(form));
     const data = await upload(rev, (err) => err);
     const ok = data === undefined;
     assertEquals(ok, true);

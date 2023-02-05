@@ -1,4 +1,4 @@
-import Router, { base, concatRegexp, findParams } from "./router.ts";
+import Router, { base, findParams } from "./router.ts";
 import { assertEquals } from "./deps_test.ts";
 
 Deno.test("router", async (t) => {
@@ -7,15 +7,13 @@ Deno.test("router", async (t) => {
     router.on("GET", /hello/, () => {});
     assertEquals(Array.isArray(router.c_routes), true);
   });
-  await t.step("concatRegex", () => {
-    assertEquals(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
-    assertEquals(concatRegexp("", /\/hello/) instanceof RegExp, true);
-    assertEquals(concatRegexp(/\/hello\//, /\/hello/) instanceof RegExp, true);
-  });
   await t.step("wild", () => {
-    const wild = findParams({ path: "/", wild: false, pathx: {} }, "/");
-    const wild2 = findParams({ path: undefined, wild: false, pathx: {} }, "/");
-    const wild3 = findParams({ path: "/", wild: true, pathx: {} }, "/");
+    const wild = findParams({ path: "/", wild: false, pattern: {} }, "/");
+    const wild2 = findParams(
+      { path: undefined, wild: false, pattern: {} },
+      "/",
+    );
+    const wild3 = findParams({ path: "/", wild: true, pattern: {} }, "/");
     assertEquals(wild, {});
     assertEquals(wild2, {});
     assertEquals(wild3, {});
@@ -36,6 +34,6 @@ Deno.test("router", async (t) => {
     router.get("/:name", () => {});
     const arr = router.c_routes;
     assertEquals(Array.isArray(arr), true);
-    assertEquals(arr.find((el) => el.path == "/hello")?.fns.length, 3);
+    assertEquals(arr.find((el) => el.path == "/hello")?.fns.length, 1);
   });
 });

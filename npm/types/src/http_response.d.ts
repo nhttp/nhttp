@@ -1,14 +1,14 @@
 import { TResp } from "./request_event";
-import { Cookie, TObject, TRet } from "./types";
+import { Cookie, TObject, TRet, TSendBody } from "./types";
 export declare const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
+export declare const HTML_TYPE_CHARSET = "text/html; charset=UTF-8";
 export type ResInit = {
     headers?: TObject;
     status?: number;
 };
 export declare class HttpResponse {
-    resp: TResp;
-    request: Request;
-    constructor(resp: TResp, request: Request);
+    private _send;
+    constructor(_send: TResp);
     /**
      * set header or get header
      * @example
@@ -20,26 +20,15 @@ export declare class HttpResponse {
      * const type = response.header("content-type");
      *
      * // delete header
-     * response.headers.delete("content-type");
+     * response.header().delete("content-type");
      *
      * // append header
-     * response.headers.append("key", "other-value");
+     * response.header().append("key", "other-value");
      */
     header(key: string, value: string | string[]): this;
     header(key: string): string;
     header(key: TObject): this;
     header(): Headers;
-    /**
-     * headers instanceof Headers
-     * @example
-     * // delete
-     * response.headers.delete("key");
-     *
-     * // append
-     * response.headers.append("key", "val");
-     */
-    get headers(): Headers;
-    set headers(val: Headers);
     /**
      * set status or get status
      * @example
@@ -54,9 +43,17 @@ export declare class HttpResponse {
     /**
      * sendStatus
      * @example
-     * return response.sendStatus(500);
+     * response.sendStatus(204);
      */
-    sendStatus(code: number): Promise<void> | Response;
+    sendStatus(code: number): void;
+    /**
+     * attachment. create header content-disposition
+     * @example
+     * response.attachment("my_file.txt");
+     * // or
+     * response.attachment();
+     */
+    attachment(filename?: string): this;
     /**
      * setHeader
      * @example
@@ -70,28 +67,6 @@ export declare class HttpResponse {
      */
     getHeader(key: string): string;
     /**
-     * sendFile
-     * @example
-     * return response.sendFile("folder/file.txt");
-     * return response.sendFile("folder/file.txt", { etag: false });
-     */
-    sendFile(pathFile: string, opts?: {
-        etag?: boolean;
-        readFile?: (pathFile: string) => TRet;
-        stat?: (pathFile: string) => TRet;
-    }): Promise<void | Response>;
-    /**
-     * download
-     * @example
-     * return response.download("folder/file.txt");
-     * return response.download("folder/file.txt", "filename.txt", { etag: false });
-     */
-    download(pathFile: string, filename?: string, opts?: {
-        etag?: boolean;
-        readFile?: (pathFile: string) => TRet;
-        stat?: (pathFile: string) => TRet;
-    }): Promise<void | Response>;
-    /**
      * set/get statusCode
      * @example
      * // set status
@@ -103,31 +78,52 @@ export declare class HttpResponse {
     get statusCode(): number;
     set statusCode(val: number);
     /**
+     * params as json object for `response.render`.
+     * @example
+     * app.get("/", async ({ response } ) => {
+     *   response.params = { title: "Home" };
+     *   await response.render("index");
+     * });
+     */
+    get params(): TObject;
+    set params(val: TObject);
+    /**
      * shorthand for content-type headers
      * @example
-     * return response.type("html").send("<h1>hello, world</h1>");
+     * response.type("html").send("<h1>hello, world</h1>");
      */
     type(contentType: string): this;
     /**
+     * render `requires app.engine configs`
+     * @example
+     * await response.render("index.html");
+     * await response.render("index.ejs", {
+     *   key: "value"
+     * });
+     * await response.render(<h1>Hello Jsx</h1>);
+     */
+    render: (fileOrElem: TRet, params?: TObject, ...args: TRet) => Promise<void | Response>;
+    /**
      * send response body
      * @example
-     * return response.send("hello");
+     * response.send("hello");
+     * response.send({ name: "john" });
      */
-    send(body?: BodyInit | TObject | null): Promise<void> | Response;
+    send(body?: TSendBody): void;
     /**
      * shorthand for send json body
      * @example
-     * return response.json({ name: "john" });
+     * response.json({ name: "john" });
      */
-    json(body: TObject | null): Promise<void> | Response;
+    json(body: TObject): void;
     /**
      * redirect url
      * @example
-     * return response.redirect("/home");
-     * return response.redirect("/home", 301);
-     * return response.redirect("http://google.com");
+     * response.redirect("/home");
+     * response.redirect("/home", 301);
+     * response.redirect("http://google.com");
      */
-    redirect(url: string, status?: number): Promise<void> | Response;
+    redirect(url: string, status?: number): void;
     /**
      * cookie
      * @example
@@ -142,7 +138,7 @@ export declare class HttpResponse {
      * response.clearCookie("name");
      */
     clearCookie(name: string, opts?: Cookie): void;
-    [k: string]: TRet;
+    [k: string | symbol]: TRet;
 }
 export declare class JsonResponse extends Response {
     constructor(body: TObject | null, resInit?: ResponseInit);

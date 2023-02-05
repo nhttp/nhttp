@@ -1,11 +1,12 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
 app.get("/", ({ response }) => {
-  return response.download("./public/test.css");
+  response.type("css").attachment();
+  return Deno.readFile("./public/test.css");
 });
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

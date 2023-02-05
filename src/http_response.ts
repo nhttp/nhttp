@@ -1,15 +1,11 @@
 import { MIME_LIST, STATUS_LIST } from "./constant.ts";
 import { TResp } from "./request_event.ts";
-import { Cookie, TObject, TRet } from "./types.ts";
-import {
-  createOptionFile,
-  getContentType,
-  is304,
-  sendBody,
-  serializeCookie,
-} from "./utils.ts";
+import { s_params } from "./symbol.ts";
+import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
+import { serializeCookie } from "./utils.ts";
 
 export const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
+export const HTML_TYPE_CHARSET = "text/html; charset=UTF-8";
 
 export type ResInit = {
   headers?: TObject;
@@ -17,7 +13,7 @@ export type ResInit = {
 };
 
 export class HttpResponse {
-  constructor(public resp: TResp, public request: Request) {}
+  constructor(private _send: TResp) {}
   /**
    * set header or get header
    * @example
@@ -29,10 +25,10 @@ export class HttpResponse {
    * const type = response.header("content-type");
    *
    * // delete header
-   * response.headers.delete("content-type");
+   * response.header().delete("content-type");
    *
    * // append header
-   * response.headers.append("key", "other-value");
+   * response.header().append("key", "other-value");
    */
   header(key: string, value: string | string[]): this;
   header(key: string): string;
@@ -48,7 +44,7 @@ export class HttpResponse {
         this.init.headers = Object.fromEntries(this.init.headers.entries());
       }
     } else this.init.headers = {};
-    if (typeof key == "string") {
+    if (typeof key === "string") {
       key = key.toLowerCase();
       if (!value) {
         return this.init.headers[key];
@@ -56,30 +52,12 @@ export class HttpResponse {
       this.init.headers[key] = value;
       return this;
     }
-    if (typeof key == "object") {
+    if (typeof key === "object") {
       if (key instanceof Headers) key = Object.fromEntries(key.entries());
       for (const k in key) this.init.headers[k.toLowerCase()] = key[k];
       return this;
     }
     return (this.init.headers = new Headers(this.init.headers));
-  }
-  /**
-   * headers instanceof Headers
-   * @example
-   * // delete
-   * response.headers.delete("key");
-   *
-   * // append
-   * response.headers.append("key", "val");
-   */
-  get headers() {
-    if (!this.init) this.init = {};
-    if (this.init.headers instanceof Headers) return this.init.headers;
-    return (this.init.headers = new Headers(this.init.headers));
-  }
-  set headers(val: Headers) {
-    if (!this.init) this.init = {};
-    this.init.headers = val;
   }
   /**
    * set status or get status
@@ -93,25 +71,38 @@ export class HttpResponse {
   status(code: number): this;
   status(): number;
   status(code?: number): this | number {
-    if (!this.init) this.init = {};
     if (code) {
+      this.init ??= {};
       this.init.statusText = STATUS_LIST[code];
       this.init.status = code;
       return this;
     }
-    return (this.init.status || 200);
+    return (this.init?.status || 200);
   }
   /**
    * sendStatus
    * @example
-   * return response.sendStatus(500);
+   * response.sendStatus(204);
    */
   sendStatus(code: number) {
+    if (code > 511) code = 500;
+    const status = STATUS_LIST[code];
     try {
-      return this.status(code).send(STATUS_LIST[code]);
+      this.status(code).send(status);
     } catch (_e) {
-      return this.status(400).send(STATUS_LIST[code]);
+      this.status(code).send(null);
     }
+  }
+  /**
+   * attachment. create header content-disposition
+   * @example
+   * response.attachment("my_file.txt");
+   * // or
+   * response.attachment();
+   */
+  attachment(filename?: string) {
+    const c_dis = filename ? `attachment; filename=${filename}` : "attachment;";
+    return this.header("content-disposition", c_dis);
   }
   /**
    * setHeader
@@ -130,65 +121,6 @@ export class HttpResponse {
     return this.header(key);
   }
   /**
-   * sendFile
-   * @example
-   * return response.sendFile("folder/file.txt");
-   * return response.sendFile("folder/file.txt", { etag: false });
-   */
-  sendFile(
-    pathFile: string,
-    opts: {
-      etag?: boolean;
-      readFile?: (pathFile: string) => TRet;
-      stat?: (pathFile: string) => TRet;
-    } = {},
-  ) {
-    return (async () => {
-      try {
-        createOptionFile(opts);
-        const stat = await opts.stat?.(pathFile);
-        this.type(this.header("content-type") ?? getContentType(pathFile));
-        if (opts.etag && is304(this, stat)) return this.status(304).send();
-        const file = await opts.readFile?.(pathFile);
-        return this.resp(file, this.init);
-      } catch (error) {
-        if (error.name == "NotFound") error.status = 404;
-        throw error;
-      }
-    })();
-  }
-  /**
-   * download
-   * @example
-   * return response.download("folder/file.txt");
-   * return response.download("folder/file.txt", "filename.txt", { etag: false });
-   */
-  download(
-    pathFile: string,
-    filename?: string,
-    opts: {
-      etag?: boolean;
-      readFile?: (pathFile: string) => TRet;
-      stat?: (pathFile: string) => TRet;
-    } = {},
-  ) {
-    filename = filename ?? pathFile.substring(pathFile.lastIndexOf("/") + 1);
-    return (async () => {
-      try {
-        createOptionFile(opts);
-        const stat = await opts.stat?.(pathFile);
-        this.type(this.header("content-type") ?? getContentType(pathFile));
-        this.header("content-disposition", `attachment; filename=${filename}`);
-        if (opts.etag && is304(this, stat)) return this.status(304).send();
-        const file = await opts.readFile?.(pathFile);
-        return this.resp(file, this.init);
-      } catch (error) {
-        if (error.name == "NotFound") error.status = 404;
-        throw error;
-      }
-    })();
-  }
-  /**
    * set/get statusCode
    * @example
    * // set status
@@ -204,41 +136,67 @@ export class HttpResponse {
     this.status(val);
   }
   /**
+   * params as json object for `response.render`.
+   * @example
+   * app.get("/", async ({ response } ) => {
+   *   response.params = { title: "Home" };
+   *   await response.render("index");
+   * });
+   */
+  get params() {
+    return this[s_params] ??= {};
+  }
+  set params(val: TObject) {
+    this[s_params] = val;
+  }
+  /**
    * shorthand for content-type headers
    * @example
-   * return response.type("html").send("<h1>hello, world</h1>");
+   * response.type("html").send("<h1>hello, world</h1>");
    */
   type(contentType: string) {
     return this.header("content-type", MIME_LIST[contentType] ?? contentType);
   }
   /**
+   * render `requires app.engine configs`
+   * @example
+   * await response.render("index.html");
+   * await response.render("index.ejs", {
+   *   key: "value"
+   * });
+   * await response.render(<h1>Hello Jsx</h1>);
+   */
+  render!: (
+    fileOrElem: TRet,
+    params?: TObject,
+    ...args: TRet
+  ) => Promise<void | Response>;
+  /**
    * send response body
    * @example
-   * return response.send("hello");
+   * response.send("hello");
+   * response.send({ name: "john" });
    */
-  send(body?: BodyInit | TObject | null) {
-    return sendBody(this.resp, this.init, body);
+  send(body?: TSendBody) {
+    this._send(body);
   }
   /**
    * shorthand for send json body
    * @example
-   * return response.json({ name: "john" });
+   * response.json({ name: "john" });
    */
-  json(body: TObject | null) {
-    if (!this.init) this.init = {};
-    if (this.init.headers) this.type(JSON_TYPE_CHARSET);
-    else this.init.headers = { "content-type": JSON_TYPE_CHARSET };
-    return this.resp(JSON.stringify(body), this.init);
+  json(body: TObject) {
+    this.send(body);
   }
   /**
    * redirect url
    * @example
-   * return response.redirect("/home");
-   * return response.redirect("/home", 301);
-   * return response.redirect("http://google.com");
+   * response.redirect("/home");
+   * response.redirect("/home", 301);
+   * response.redirect("http://google.com");
    */
   redirect(url: string, status?: number) {
-    return this.header("Location", url).status(status ?? 302).send();
+    this.header("Location", url).status(status ?? 302).send();
   }
   /**
    * cookie
@@ -261,7 +219,7 @@ export class HttpResponse {
     value = typeof value === "object"
       ? "j:" + JSON.stringify(value)
       : String(value);
-    this.headers.append(
+    this.header().append(
       "Set-Cookie",
       serializeCookie(name, value, opts),
     );
@@ -274,12 +232,32 @@ export class HttpResponse {
    */
   clearCookie(name: string, opts: Cookie = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.headers.append(
+    this.header().append(
       "Set-Cookie",
       serializeCookie(name, "", { ...opts, expires: new Date(0) }),
     );
   }
-  [k: string]: TRet;
+  [Symbol.for("Deno.customInspect")](inspect: TRet) {
+    const ret = {
+      clearCookie: this.clearCookie,
+      cookie: this.cookie,
+      getHeader: this.getHeader,
+      header: this.header,
+      json: this.json,
+      params: this.params,
+      statusCode: this.statusCode,
+      redirect: this.redirect,
+      attachment: this.attachment,
+      render: this.render,
+      send: this.send,
+      sendStatus: this.sendStatus,
+      setHeader: this.setHeader,
+      status: this.status,
+      type: this.type,
+    };
+    return `${this.constructor.name} ${inspect(ret)}`;
+  }
+  [k: string | symbol]: TRet;
 }
 
 export class JsonResponse extends Response {

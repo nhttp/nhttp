@@ -1,11 +1,11 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp({ bodyParser: true });
 
-app.post("/", ({ body }) => {
-  return body;
+app.post("/", (rev) => {
+  return rev.body;
 });
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

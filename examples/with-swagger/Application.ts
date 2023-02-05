@@ -1,4 +1,4 @@
-import { addControllers, DocumentBuilder, NHttp, swagger } from "./deps.ts";
+import { DocumentBuilder, NHttp, swagger } from "./deps.ts";
 import UserController from "./UserController.ts";
 
 export default class Application extends NHttp {
@@ -6,9 +6,7 @@ export default class Application extends NHttp {
     super();
     this.use(
       "/api/v1",
-      addControllers([
-        UserController,
-      ]),
+      new UserController(),
     );
     const document = new DocumentBuilder()
       .setInfo({

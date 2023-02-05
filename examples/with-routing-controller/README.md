@@ -1,12 +1,12 @@
 ## Run
 
 ```bash
-denon run --allow-net server.ts
+deno run --allow-net server.ts
 ```
 
 ## Api
 
 ```ts
-GET http://localhost:3000/api/v1/users
-GET http://localhost:3000/api/v1/users/:id
+GET http://localhost:8000/api/v1/user
+GET http://localhost:8000/api/v1/user/:id
 ```

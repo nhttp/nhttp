@@ -3,8 +3,18 @@ import Router from "./router.ts";
 
 // deno-lint-ignore no-explicit-any
 export type TRet = any;
-export type NextFunction = (err?: Error) => TRet;
 export type TObject = { [k: string]: TRet };
+export type TSendBody =
+  | string
+  | Response
+  | ReadableStream
+  | Blob
+  | TObject
+  | null
+  | number;
+export type NextFunction = (
+  err?: Error,
+) => TRet;
 export type RetHandler =
   | Promise<void | string | TObject>
   | void
@@ -77,8 +87,11 @@ export type TApp = {
    */
   bodyLimit?: TBodyParser;
   /**
-   * custom bodyParser..
+   * bodyParser.
    * @example
+   * const app = nhttp({ bodyParser: true });
+   *
+   * // or
    * const app = nhttp({
    *   bodyParser: {
    *      // disable json body
@@ -121,7 +134,13 @@ export type FetchEvent = TRet;
 
 export type RouterOrWare<
   Rev extends RequestEvent = RequestEvent,
-> = Handler<Rev> | Handler<Rev>[] | Router<Rev> | Router<Rev>[];
+> =
+  | Handler<Rev>
+  | Handler<Rev>[]
+  | Router<Rev>
+  | Router<Rev>[]
+  | TObject
+  | TObject[];
 
 export type CustomHandler = (request: Request, ...args: TRet) => TRet;
 
@@ -137,4 +156,24 @@ export type ListenOptions = {
   handler?: CustomHandler;
   signal?: AbortSignal;
   [k: string]: TRet;
+};
+
+export type EngineOptions = {
+  /**
+   * Extension
+   */
+  ext?: string;
+  /**
+   * Base folder views engine
+   */
+  base?: string;
+};
+
+export type MatchRoute = {
+  method: string;
+  params: TObject;
+  path: string | RegExp;
+  query: TObject;
+  pattern: RegExp;
+  wild: boolean;
 };

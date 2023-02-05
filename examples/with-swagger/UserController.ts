@@ -3,10 +3,9 @@ import {
   ApiOperation,
   ApiParameter,
   ApiResponse,
-  BaseController,
   Controller,
   Get,
-  Inject,
+  RequestEvent,
 } from "./deps.ts";
 import UserService from "./UserService.ts";
 
@@ -14,14 +13,13 @@ import UserService from "./UserService.ts";
   name: "Doc user 1.0",
   description: "doc user description",
 })
-@Controller("/users")
-class UserController extends BaseController {
-  @Inject(UserService)
-  private readonly service!: UserService;
+@Controller("/user")
+class UserController {
+  private readonly service = new UserService();
 
   @ApiResponse(200, { description: "OK" })
   @ApiOperation({ summary: "get all users" })
-  @Get()
+  @Get("/")
   findAll() {
     return this.service.findAll();
   }
@@ -30,8 +28,8 @@ class UserController extends BaseController {
   @ApiResponse(200, { description: "OK" })
   @ApiOperation({ summary: "find user by ID" })
   @Get("/:id")
-  findById() {
-    const { params } = this.requestEvent;
+  findById(rev: RequestEvent) {
+    const params = rev.params;
     return this.service.findById(params.id);
   }
 }

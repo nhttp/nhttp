@@ -1,24 +1,21 @@
 import { Handler } from "../mod.ts";
-import { MIME_LIST } from "./constant.ts";
 import { assertEquals } from "./deps_test.ts";
-import { HttpResponse } from "./http_response.ts";
 import { TObject, TRet } from "./types.ts";
 import {
+  arrayBuffer,
   concatRegexp,
   decURI,
   decURIComponent,
   findFn,
   findFns,
-  getContentType,
   getReqCookies,
-  is304,
   middAssets,
   needPatch,
   parseQuery,
-  sendBody,
   serializeCookie,
   toBytes,
   toPathx,
+  updateLen,
 } from "./utils.ts";
 
 Deno.test("utils", async (t) => {
@@ -51,8 +48,8 @@ Deno.test("utils", async (t) => {
     assertEquals(typeof fns2[1], "function");
   });
   await t.step("pathx", () => {
-    const val = toPathx(/hello/, false);
-    assertEquals(val?.pathx instanceof RegExp, true);
+    const val = toPathx(/hello/);
+    assertEquals(val?.pattern instanceof RegExp, true);
   });
   await t.step("concatRegex", () => {
     assertEquals(concatRegexp("/hello", /\/hello/) instanceof RegExp, true);
@@ -87,38 +84,6 @@ Deno.test("utils", async (t) => {
     const obj = needPatch(void 0 as unknown as TObject, [1], "2");
     assertEquals(typeof obj, "object");
   });
-  await t.step("getContentType <=0", () => {
-    const str = getContentType("./filename");
-    assertEquals(str, MIME_LIST.arc);
-  });
-  await t.step("is304 lose size", () => {
-    const bool = is304(
-      new HttpResponse(
-        (r, init) => new Response(r, init),
-        new Request("http://127.0.0.1:8000"),
-      ),
-      {},
-    );
-    assertEquals(bool, false);
-  });
-  await t.step("is304 lose mtime", () => {
-    const bool = is304(
-      new HttpResponse(
-        (r, init) => new Response(r, init),
-        new Request("http://127.0.0.1:8000"),
-      ),
-      { size: 10 },
-    );
-    assertEquals(bool, false);
-  });
-  await t.step("sendBody Json Headers", () => {
-    const resp = sendBody((r, init) => new Response(r, init), {
-      headers: new Headers(),
-    }, {
-      name: "john",
-    });
-    assertEquals(resp instanceof Response, true);
-  });
   await t.step("middAssets", () => {
     const midd: Handler = (rev, next) => {
       assertEquals(rev.url, "/");
@@ -126,6 +91,35 @@ Deno.test("utils", async (t) => {
       return next();
     };
     middAssets("/")[midd as TRet];
+  });
+  await t.step("updateUrl", () => {
+    const pos = updateLen("/");
+    assertEquals(pos, undefined);
+  });
+  await t.step("miss arrayBuffer", () => {
+    const buf = arrayBuffer({} as TRet);
+    assertEquals(buf instanceof Promise, true);
+    const req = (arr: Array<TRet>) => ({
+      buf: new Uint8Array(),
+      on(type: string, cb: TRet) {
+        if (type === "data") {
+          const buf = this.buf;
+          arr.forEach(() => cb(buf));
+          return this;
+        } else if (type === "end") {
+          cb();
+          return this;
+        } else if (type === "error") {
+          cb("noop");
+          return this;
+        }
+        return this;
+      },
+    } as TRet);
+    const buf2 = arrayBuffer(req([1]));
+    assertEquals(buf2 instanceof Promise, true);
+    const buf3 = arrayBuffer(req([1, 1]));
+    assertEquals(buf3 instanceof Promise, true);
   });
   await t.step("serialize cookie", () => {
     const now = Date.now();
@@ -143,27 +137,21 @@ Deno.test("utils", async (t) => {
     });
     serializeCookie("__Host", "value");
     const obj = getReqCookies(
-      new Request("http://127.0.0.1:8000/", {
-        headers: new Headers({ "Cookie": cookie }),
-      }),
+      new Headers({ "Cookie": cookie }),
       true,
     );
     const obj2 = getReqCookies(
-      new Request("http://127.0.0.1:8000/", {
-        headers: new Headers({
-          "Cookie": serializeCookie("test", 'j:{ "name": "john" }', {
-            encode: true,
-          }),
+      {
+        "Cookie": serializeCookie("test", 'j:{ "name": "john" }', {
+          encode: true,
         }),
-      }),
+      },
       true,
     );
     const obj3 = getReqCookies(
-      new Request("http://127.0.0.1:8000/", {
-        headers: new Headers({
-          "Cookie": serializeCookie("test", 'j:[{ "name": "john" }]', {
-            encode: true,
-          }),
+      new Headers({
+        "Cookie": serializeCookie("test", 'j:[{ "name": "john" }]', {
+          encode: true,
         }),
       }),
       true,

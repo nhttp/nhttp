@@ -1,11 +1,6 @@
-interface FormFile {
-    name: string;
-    type: string;
-    size: number;
-    lastModified: number;
-    arrayBuffer: () => Uint8Array | Promise<Uint8Array>;
-}
-export declare function multiParser(req: Request): Promise<{
-    [x: string]: string | FormFile | FormFile[];
+import { TObject } from "./types";
+export declare function getType(headers: TObject): any;
+export declare function multiParser(request: TObject): Promise<{
+    [x: string]: any;
 }>;
-export {};
+export declare function byteIndexOf(source: string | Uint8Array, pattern: string | Uint8Array, fromIndex?: number): number;

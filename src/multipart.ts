@@ -1,14 +1,18 @@
+import { acceptContentType } from "./body.ts";
 import { HttpError } from "./error.ts";
 import { multiParser } from "./multipart_parser.ts";
 import { Handler, TObject, TQueryFunc, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
+const uid = () =>
+  `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
+    .replace(".", "");
 export type TMultipartUpload = {
   name: string;
   maxCount?: number;
   maxSize?: number | string;
   accept?: string;
-  callback?: (file: File & { filename: string }) => void;
+  callback?: (file: File & { filename: string }) => void | Promise<void>;
   dest?: string;
   required?: boolean;
   /**
@@ -21,6 +25,7 @@ export type TMultipartUpload = {
    * });
    * app.post("/hello", upload, (rev) => {
    *    console.log(rev.file);
+   *    console.log(rev.body);
    *    return "success upload";
    * });
    */
@@ -107,53 +112,47 @@ class Multipart {
     let i = 0;
     const len = files.length;
     while (i < len) {
-      const file = files[i] as File & { filename: string; path: string };
-      if (opts?.callback) opts.callback(file);
-      let dest = opts.dest || "";
-      if (dest.lastIndexOf("/") === -1) {
-        dest += "/";
+      const file = <File & { filename: string; path: string }> files[i];
+      if (opts.callback) {
+        await opts.callback(file);
       }
-      if (dest[0] === "/") {
-        dest = dest.substring(1);
+      opts.dest ??= "";
+      if (opts.dest) {
+        if (opts.dest.lastIndexOf("/") === -1) opts.dest += "/";
+        if (opts.dest[0] === "/") opts.dest = opts.dest.substring(1);
       }
-      if (!file.filename) {
-        const prefix = Date.now() + file.lastModified.toString() + "_";
-        file.filename = prefix + file.name;
-      }
-      if (!file.path) {
-        file.path = dest + file.filename;
-      }
+      file.filename ??= uid() + "_" + file.name;
+      file.path ??= opts.dest + file.filename;
+      opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
-      const data = new Uint8Array(arrBuff);
-      if (!opts.writeFile) {
-        opts.writeFile = Deno.writeFile;
-      }
-      await opts.writeFile(file.path, data);
+      await opts.writeFile(file.path, new Uint8Array(arrBuff));
       i++;
     }
   }
   /**
-   * upload handler multipart/form-data
+   * upload handler multipart/form-data.
    * @example
-   * app.post("/hello", multipart.upload({ name: "image" }), ({ response, body, file }) => {
-   *    console.log("file", file.image);
-   *    console.log(body);
+   * const upload = multipart.upload({ name: "image" });
+   *
+   * app.post("/save", upload, (rev) => {
+   *    console.log("file", rev.file.image);
+   *    console.log(rev.body);
    *    return "success upload";
    * });
    */
   public upload(options: TMultipartUpload | TMultipartUpload[]): Handler {
     return async (rev, next) => {
-      if (rev.body === void 0) rev.body = {};
-      if (rev.file === void 0) rev.file = {};
-      if (
-        rev.request.body &&
-        rev.request.headers.get("content-type")?.includes("multipart/form-data")
-      ) {
-        if (rev.request.bodyUsed === false) {
-          if (rev.request.formData) {
+      const headers = rev.headers;
+      if (rev.bodyValid) {
+        const isMultipart = acceptContentType(headers, "multipart/form-data");
+        if (
+          rev.bodyUsed === false &&
+          isMultipart
+        ) {
+          if (typeof rev.request.formData === "function") {
             const formData = await rev.request.formData();
             rev.body = await this.createBody(formData, {
-              parse: rev.__parseQuery as TQueryFunc,
+              parse: rev.__parseMultipart as TQueryFunc,
             });
           } else {
             rev.body = (await multiParser(rev.request)) || {};

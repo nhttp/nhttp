@@ -1,6 +1,6 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
 app.get("/", () => {
   return "Hello deploy";

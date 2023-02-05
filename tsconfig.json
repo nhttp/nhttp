@@ -12,6 +12,7 @@
     ]
   },
   "include": [
-    "./npm/src/**/*.ts"
+    "./npm/src/**/*.ts",
+    "./npm/lib/**/*.ts"
   ]
 }

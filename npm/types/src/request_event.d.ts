@@ -1,28 +1,72 @@
-import { HttpResponse, ResInit } from "./http_response";
-import { TObject, TRet } from "./types";
-export type RespondWith = (r: Response | Promise<Response>) => Promise<void> | Response;
-export type TResp = (r: TRet, init?: ResInit) => Promise<void> | Response;
+import { HttpResponse } from "./http_response";
+import { MatchRoute, TObject, TRet, TSendBody } from "./types";
+export type TResp = (r: TRet) => Promise<void> | undefined | Response | void;
+type TInfo = {
+    conn: Partial<Deno.Conn>;
+    env: TObject;
+    context: TObject;
+};
 export declare class RequestEvent {
+    /**
+     * Original {@linkcode Request}.
+     * The request from the client in the form of the web platform {@linkcode Request}.
+     */
     request: Request;
-    _info?: TRet;
-    _ctx?: TRet;
-    constructor(request: Request, _info?: TRet, _ctx?: TRet);
+    private _info?;
+    private _ctx?;
+    constructor(
+    /**
+     * Original {@linkcode Request}.
+     * The request from the client in the form of the web platform {@linkcode Request}.
+     */
+    request: Request, _info?: TObject, _ctx?: TObject);
+    /**
+     * response as HttpResponse
+     */
     get response(): HttpResponse;
-    respondWith(r: Response | Promise<Response>): Response;
-    resp(data: TRet, init?: ResInit): Response;
     /**
-     * lookup info like `Deno.Conn / server`.
+     * lookup self route
      */
-    get info(): any;
+    get route(): MatchRoute;
     /**
-     * lookup context for Cloudflare workers.
+     * lookup Object info like `conn / env / context`.
      */
-    get context(): any;
+    get info(): TInfo;
     /**
-     * lookup info responseInit.
+     * This method tells the event dispatcher that work is ongoing.
+     * It can also be used to detect whether that work was successful.
      * @example
-     * const { headers, status, statusText } = rev.responseInit;
-     * console.log(headers, status, statusText);
+     * const cache = await caches.open("my-cache");
+     * app.get("/", async (rev) => {
+     *   let resp = await cache.match(rev.request);
+     *   if (!resp) {
+     *     const init = rev.response.init;
+     *     resp = new Response("Hello, World", init);
+     *     resp.headers.set("Cache-Control", "max-age=86400, public");
+     *     rev.waitUntil(cache.put(rev.request, resp.clone()));
+     *   }
+     *   rev.respondWith(resp);
+     * });
+     */
+    waitUntil(promise: Promise<TRet>): void;
+    /**
+     * The method to be used to respond to the event. The response needs to
+     * either be an instance of {@linkcode Response} or a promise that resolves
+     * with an instance of `Response`.
+     */
+    respondWith(r: Response | PromiseLike<Response>): void | Promise<void>;
+    /**
+     * send body
+     * @example
+     * rev.send("hello");
+     * rev.send({ name: "john" });
+     * // or
+     * rev.response.send("hello");
+     * rev.response.send({ name: "john" });
+     */
+    send(body?: TSendBody): void;
+    /**
+     * Lookup responseInit.
      */
     get responseInit(): ResponseInit;
     /**
@@ -34,47 +78,29 @@ export declare class RequestEvent {
     get search(): string | null;
     set search(val: string | null);
     /**
-     * Http request method.
+     * bodyUsed.
      * @example
-     * const method = rev.method;
-     * console.log(method);
+     * const bodyUsed = rev.bodyUsed;
+     * console.log(bodyUsed);
      */
-    get method(): string;
-    set method(val: string);
+    get bodyUsed(): boolean;
+    set bodyUsed(val: boolean);
     /**
-     * file.
+     * bodyValid.
      * @example
-     * const file = rev.file;
-     * console.log(file);
+     * const bodyValid = rev.bodyValid;
+     * console.log(bodyValid);
      */
-    get file(): TObject;
-    set file(val: TObject);
-    /**
-     * get cookies from request.
-     * @example
-     * const cookie = rev.cookies;
-     * console.log(cookie);
-     */
-    get cookies(): TObject;
-    set cookies(val: TObject);
+    get bodyValid(): boolean;
     /**
      * params as json object.
      * @example
-     * // get "/hello/:name/:user"
+     * // get "/hello/john/john"
      * const params = rev.params;
      * console.log(params);
-     * // => { name: "john", user: "john" }
      */
     get params(): TObject;
     set params(val: TObject);
-    /**
-     * body as json object.
-     * @example
-     * const body = rev.body;
-     * console.log(body);
-     */
-    get body(): TObject;
-    set body(val: TObject);
     /**
      * url
      * @example
@@ -102,7 +128,8 @@ export declare class RequestEvent {
      * console.log(path);
      * // => /hello
      */
-    path: string;
+    get path(): string;
+    set path(val: string);
     /**
      * lookup query parameter
      * @example
@@ -114,13 +141,53 @@ export declare class RequestEvent {
     get query(): TObject;
     set query(val: TObject);
     /**
+     * body as json object.
+     * @example
+     * const body = rev.body;
+     * console.log(body);
+     */
+    get body(): TObject;
+    set body(val: TObject);
+    /**
+     * headers.
+     * @example
+     * const type = rev.headers.get("content-type");
+     * console.log(type);
+     */
+    get headers(): Headers;
+    set headers(val: Headers);
+    /**
+     * Http request method.
+     * @example
+     * const method = rev.method;
+     * console.log(method);
+     */
+    method: string;
+    /**
+     * file.
+     * @example
+     * const file = rev.file;
+     * console.log(file);
+     */
+    get file(): TObject;
+    set file(val: TObject);
+    /**
+     * get cookies from request.
+     * @example
+     * const cookie = rev.cookies;
+     * console.log(cookie);
+     */
+    get cookies(): TObject;
+    set cookies(val: TObject);
+    /**
      * get cookies from request
      * @deprecated
-     * Use `rev.cookies` instead. `rev.cookies`, auto decode when cookie is encode.
+     * Use `rev.cookies` instead. `rev.cookies`, auto decode if cookie is encode.
      * @example
      * const object = rev.getCookies();
      * const objectWithDecode = rev.getCookies(true);
      */
     getCookies(decode?: boolean): Record<string, string>;
-    [k: string]: TRet;
+    [k: string | symbol]: TRet;
 }
+export {};

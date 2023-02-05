@@ -1,8 +1,8 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
-app.use(({ response, request }, next) => {
+app.use(({ request, response }, next) => {
   // example header
   response.header({
     "Access-Control-Allow-Origin": "*",
@@ -10,15 +10,13 @@ app.use(({ response, request }, next) => {
     "Access-Control-Allow-Headers": "*",
   });
   if (request.method == "OPTIONS") {
-    return response.send();
+    return response.sendStatus(204);
   }
   return next();
 });
 
-app.get("/", ({ response }) => {
-  return response.send("Hello Cors");
-});
+app.get("/", () => "Hello Cors");
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

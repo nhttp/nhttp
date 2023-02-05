@@ -1,5 +1,4 @@
-import { HttpResponse, ResInit } from "./http_response";
-import { RequestEvent, TResp } from "./request_event";
+import { RequestEvent } from "./request_event";
 import { Cookie, Handler, TObject, TRet } from "./types";
 export declare const encoder: TextEncoder;
 export declare const decoder: TextDecoder;
@@ -9,12 +8,16 @@ export declare const decURIComponent: (str: string) => string;
 export declare function findFn(fn: TRet): any;
 export declare function findFns<Rev extends RequestEvent = RequestEvent>(arr: TObject[]): Handler<Rev>[];
 export declare function toBytes(arg: string | number): number;
-export declare function toPathx(path: string | RegExp, isAny: boolean): {
-    pathx: RegExp;
+export declare function toPathx(path: string | RegExp, flag?: boolean): {
+    pattern: RegExp;
     wild: boolean;
+    path: RegExp;
+} | {
+    pattern?: undefined;
+    wild?: undefined;
     path?: undefined;
 } | {
-    pathx: RegExp;
+    pattern: RegExp;
     path: string;
     wild: boolean;
 };
@@ -25,7 +28,7 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
 /**
  * Wrapper middleware for framework express like (req, res, next)
  * @deprecated
- * auto added to Nhttp.use
+ * auto added to `NHttp.use`
  * @example
  * ...
  * import cors from "https://esm.sh/cors?no-check";
@@ -42,13 +45,6 @@ export declare function pushRoutes(str: string, wares: Handler[], last: TObject,
 export declare function getUrl(url: string): string;
 export declare function updateLen(url: string): string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
-export declare function getReqCookies(req: Request, decode?: boolean, i?: number): Record<string, string>;
-export declare function getContentType(path: string): string;
-export declare function is304(res: HttpResponse, stat: TObject): boolean;
-export declare function createOptionFile(opts?: {
-    etag?: boolean;
-    readFile?: (pathFile: string) => TRet;
-    stat?: (pathFile: string) => TRet;
-}): void;
-export declare function sendBody(resp: TResp, init: ResInit, body?: BodyInit | TObject | null): Promise<void> | Response;
+export declare function getReqCookies(headers: TObject, decode?: boolean, i?: number): Record<string, string>;
+export declare function arrayBuffer(request: TObject): Promise<ArrayBuffer>;
 export {};

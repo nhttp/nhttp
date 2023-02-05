@@ -1,14 +1,14 @@
 ## Run
 
 ```bash
-denon run -A server.ts
+deno run -A server.ts
 ```
 
 ## Api
 
 ```ts
-GET http://localhost:8000/api/v1/users
-GET http://localhost:8000/api/v1/users/:id
+GET http://localhost:8000/api/v1/user
+GET http://localhost:8000/api/v1/user/:id
 ```
 
 ## Doc

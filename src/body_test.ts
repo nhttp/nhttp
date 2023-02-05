@@ -1,5 +1,6 @@
-import { bodyParser } from "./body.ts";
+import { acceptContentType, bodyParser } from "./body.ts";
 import { assertEquals } from "./deps_test.ts";
+import { RequestEvent } from "./request_event.ts";
 import { TRet } from "./types.ts";
 import { encoder } from "./utils.ts";
 
@@ -9,13 +10,15 @@ Deno.test("body parser", async (t) => {
     type: string,
     lose?: boolean,
     lose2?: boolean,
+    method = "POST",
   ) => ({
     [lose ? "noop" : "formData"]: () => lose2 ? new Error("noop") : content,
     arrayBuffer: () => encoder.encode(content as string),
-    method: "POST",
+    method,
     headers: new Headers({ "content-type": type }),
     bodyUsed: false,
     body: "noop",
+    url: "http://127.0.0.1:8000/",
   });
   await t.step("content-type", async (t) => {
     const createBody = async (
@@ -24,9 +27,7 @@ Deno.test("body parser", async (t) => {
       lose?: boolean,
       lose2?: boolean,
     ) => {
-      const rev: TRet = {
-        request: request(content, type, lose, lose2) as TRet,
-      };
+      const rev = new RequestEvent(request(content, type, lose, lose2) as TRet);
       await bodyParser()(rev, (err?: Error) => err?.message || "noop");
       return rev.body;
     };
@@ -84,9 +85,7 @@ Deno.test("body parser", async (t) => {
   await t.step("body disable", async (t) => {
     await t.step("disable value 0", async (t) => {
       const createBody = async (content: string | FormData, type: string) => {
-        const rev: TRet = {
-          request: request(content, type) as TRet,
-        };
+        const rev = new RequestEvent(request(content, type) as TRet);
         await bodyParser({
           json: 0,
           urlencoded: 0,
@@ -122,9 +121,7 @@ Deno.test("body parser", async (t) => {
     });
     await t.step("disable value false", async (t) => {
       const createBody = async (content: string | FormData, type: string) => {
-        const rev: TRet = {
-          request: request(content, type) as TRet,
-        };
+        const rev = new RequestEvent(request(content, type) as TRet);
         await bodyParser({
           json: false,
           urlencoded: false,
@@ -133,6 +130,7 @@ Deno.test("body parser", async (t) => {
         })(rev, (err?: Error) => err?.message || "noop");
         return rev.body;
       };
+
       await t.step("disable value false json", async () => {
         const ret = await createBody(`{"name": "john"}`, "application/json");
         assertEquals(ret, {});
@@ -165,9 +163,7 @@ Deno.test("body parser", async (t) => {
   });
   await t.step("verify body", async (t) => {
     const createBody = async (content: string | FormData, type: string) => {
-      const rev: TRet = {
-        request: request(content, type) as TRet,
-      };
+      const rev = new RequestEvent(request(content, type) as TRet);
       return await bodyParser({
         json: 1,
         raw: 1,
@@ -194,5 +190,28 @@ Deno.test("body parser", async (t) => {
       const ret = await createBody(`my name john`, "text/plain");
       assertEquals(ret, errMessage);
     });
+  });
+  await t.step("GET body", async () => {
+    const createBody = async (
+      content: string | FormData,
+      type: string,
+      lose?: boolean,
+      lose2?: boolean,
+    ) => {
+      const rev = new RequestEvent(
+        request(content, type, lose, lose2, "GET") as TRet,
+      );
+      await bodyParser()(rev, (err?: Error) => err?.message || "noop");
+      return rev.body;
+    };
+    const ret = await createBody(`{"name": "john"}`, "application/json");
+    assertEquals(ret, {});
+  });
+  await t.step("acceptContentType", () => {
+    const isAccept = acceptContentType(
+      { "content-type": "noop" } as TRet,
+      "application/json",
+    );
+    assertEquals(isAccept, false);
   });
 });

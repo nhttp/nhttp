@@ -10,12 +10,9 @@ app.get("/contact", () => "contact");
 app.get("/product", () => "product");
 app.get("/blog/:title", () => "blog");
 
-const midd: Handler = (_, next) => {
-  return next();
-};
 const midds = <Handler[]> [];
 for (let i = 0; i < 100; i++) {
-  midds.push(midd);
+  midds.push((_, next) => next());
 }
 
 // perform with 100 middleware

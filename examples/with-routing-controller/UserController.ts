@@ -1,19 +1,18 @@
-import { BaseController, Controller, Get, Inject } from "./deps.ts";
+import { Controller, Get, RequestEvent } from "./deps.ts";
 import UserService from "./UserService.ts";
 
-@Controller("/users")
-class UserController extends BaseController {
-  @Inject(UserService)
-  private readonly service!: UserService;
+@Controller("/user")
+class UserController {
+  private readonly service = new UserService();
 
-  @Get()
+  @Get("/")
   findAll() {
     return this.service.findAll();
   }
 
   @Get("/:id")
-  findById() {
-    const { params } = this.requestEvent;
+  findById(rev: RequestEvent) {
+    const params = rev.params;
     return this.service.findById(params.id);
   }
 }

@@ -5,7 +5,7 @@
   <h1 align="center">NHttp</h1>
 </p>
 <p align="center">
-An Simple http framework for <a href="https://deno.land/">Deno</a> and Friends.
+An Simple <i>Http Route</i> framework for <a href="https://deno.land/">Deno</a> and Friends.
 </p>
 <p align="center">
    <a href="https://github.com/nhttp/nhttp"><img src="https://github.com/nhttp/nhttp/workflows/ci/badge.svg" alt="ci" /></a>
@@ -16,6 +16,7 @@ An Simple http framework for <a href="https://deno.land/">Deno</a> and Friends.
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fcache-size%2Fhttps%2Fdeno.land%2Fx%2Fnhttp%2Fmod.ts" alt="size" /></a>
    <a href="http://badges.mit-license.org"><img src="https://img.shields.io/:license-mit-blue.svg" alt="licence" /></a>
    <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-blue.svg" alt="prs" /></a>
+   <a href="https://nest.land/package/nhttp"><img src="https://nest.land/badge.svg" alt="nestland" /></a>
 </p>
 <hr/>
 
@@ -23,11 +24,10 @@ An Simple http framework for <a href="https://deno.land/">Deno</a> and Friends.
 
 - Simple Performance.
 - Middleware support.
-- Router support.
-- Handle support.
-- Includes body parser (json, urlencoded, raw, multipart).
+- Sub Router support.
 - Return directly on handlers.
-- Express middleware compatibility.
+- Includes body parser with verify body.
+- Cross Runtime support (Deno, Bun, Node, etc).
 
 [See examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
@@ -36,7 +36,13 @@ An Simple http framework for <a href="https://deno.land/">Deno</a> and Friends.
 ### deno.land
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+```
+
+### nest.land
+
+```ts
+import { nhttp } from "https://x.nest.land/nhttp@1.1.12/mod.ts";
 ```
 
 ### npm/yarn
@@ -49,23 +55,31 @@ npm i nhttp-land
 yarn add nhttp-land
 ```
 
+```ts
+import { nhttp } from "nhttp-land";
+```
+
 ## Usage
 
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { nhttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
 
-const app = new NHttp();
-
-// or
-// const app = nhttp();
+const app = nhttp();
 
 app.get("/", (rev) => {
-  return "Hello, World";
+  rev.send("Hello, John");
+  // or json
+  // rev.send({ name: "john" });
+});
 
-  // or
-  // return { hello: "world" };
-  // return new Response("Hello, World");
-  // return rev.response.send("Hello, World");
+app.get("/cat", () => {
+  return "Hello, Cat";
+  // or json
+  // return { name: "cat" };
+});
+
+app.get("/hello", (rev) => {
+  rev.respondWith(new Response("Hello, World"));
 });
 
 app.listen(8000, () => {
@@ -73,14 +87,10 @@ app.listen(8000, () => {
 });
 ```
 
-METHOD => `get | post | put | patch | delete | any | head | options`.
-
-`app[METHOD](path: string | RegExp, ...handlers);`
-
 ## Run
 
 ```bash
-deno run --allow-net yourfile.ts
+deno run -A myapp.ts
 ```
 
 ## Deno Flash
@@ -88,298 +98,69 @@ deno run --allow-net yourfile.ts
 > requires `--unstable` flag.
 
 ```ts
-const app = new NHttp({ flash: true });
-```
-
-## Route Paths
-
-```ts
-...
-
-// normal path
-app.get("/", () => {...});
-
-// with parameter
-app.get("/users/:userId/books/:bookId", (rev) => {
-  return rev.params;
-});
-
-// with query. /users?name=john&foo[bar]=baz
-app.get("/users", (rev) => {
-  return rev.query;
-});
-
-// with optional parameter. match for /books and /books/bookname 
-app.get("/books/:name?", (rev) => {
-  return rev.params;
-});
-
-// with extension. match for .png and .jpg only
-app.get("/image/:filename.(png|jpg)", (rev) => {
-  return rev.params;
-});
-
-// exact/wild. /users/123
-app.any("*", (rev) => {
-  return rev.params;
-  // => { wild: ["users", "123"] }
-});
-
-// exact wild named slug. /users/123
-app.any("/:slug*", (rev) => {
-  return rev.params;
-  // => { slug: ["users", "123"] }
-});
-
-// RegExp. match for path includes hello.
-app.get(/hello/, (rev) => {
-  return rev.path;
-});
-
-// RegExp. match for path endsWith ball. ex: /dragonball and /football
-app.get(/.*ball$/, (rev) => {
-  return rev.path;
-});
-
-...
-```
-
-## Custom Server
-
-```ts
-import { NHttp } from "nhttp-land";
-
-const app = new NHttp();
-
-app.get("/", () => {
-  return "hello custom";
-});
-
-// With Bun
-Bun.serve({ fetch: app.handle });
-
-// With CF Workers
-addEventListener("fetch", (event) => {
-  event.respondWith(app.handle(event.request));
-});
+const app = nhttp({ flash: true });
 ```
 
 ## Middleware
 
-`app.use(...handlers)` or `app.use([fn1, fn2])`
-
 ```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-const app = new NHttp();
+const app = nhttp();
 
 app.use((rev, next) => {
-  rev.foo = "foo";
+  rev.foo = "bar";
   return next();
 });
 
-app.get("/", (rev) => {
-  return rev.foo;
-});
-
-app.listen(8000);
-```
-
-### Express Middleware
-
-> not all are supported
-
-```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-import helmet from "npm:helmet";
-
-const app = new NHttp();
-
-app.use(helmet());
-
-app.get("/", () => {
-  return "hello with helmet";
-});
-
-app.listen(8000);
-```
-
-## Header
-
-Example cors in middleware
-
-```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-const app = new NHttp();
-
-app.use(({ response, request }, next) => {
-  // example header
-  response.header({
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "*",
-    "Access-Control-Allow-Headers": "*",
-  });
-  if (request.method == "OPTIONS") {
-    return response.send();
-  }
-  return next();
-});
-
-app.get("/", () => {
-  return "Hello world with cors";
-});
-
-app.listen(8000);
-```
-
-## Status Code
-
-```ts
-import { NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-const app = new NHttp();
-
-// post with status 201
-app.post("/", ({ response }) => {
-  // set status
-  response.status(201);
-
-  // get status
-  const status = response.status();
-  console.log("current status is " + status);
-
-  return "Hello from status " + status;
-});
-
-app.listen(8000);
+app.get("/", ({ foo }) => foo);
 ```
 
 ## Body Parser
 
-NHttp auto parse the body. Support json, urlencoded, multipart, raw.
+Support `json / urlencoded / multipart / text`.
+
+> note: nhttp automatically parses the body.
 
 ```ts
-...
+const app = nhttp();
 
-const app = new NHttp();
+// if want disable bodyParser
+// const app = nhttp({ bodyParser: false });
 
-app.post("/post", (rev) => {
+app.post("/save", (rev) => {
   console.log(rev.body);
-  return rev.body;
+  return "success save";
 });
 
-...
+// inline bodyParser
+// app.post("/save", bodyParser(), (rev) => {...});
 ```
 
-## Upload
-
-Simple multipart upload.
+## Other Runtime (Bun / Node)
 
 ```ts
-import { multipart, NHttp } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
+import { multipart, nhttp } from "nhttp-land";
 
+const app = nhttp();
+
+app.get("/", () => "hello, world");
+
+// example upload
 const upload = multipart.upload({
-  // required field name
   name: "image",
-  dest: "public/images/",
-
-  // optionals
-  accept: "png|jpg",
-  maxSize: "2 mb",
-  required: true,
+  writeFile: Bun.write, /* or fs.writeFileSync */
+});
+app.post("/upload", upload, (rev) => {
+  console.log(rev.file);
+  console.log(rev.body);
+  return "success upload";
 });
 
-const app = new NHttp();
-
-app.post("/upload", upload, ({ body, file }) => {
-  console.log(file.image);
-  console.log(body);
-  return "Success upload";
+app.listen(8000, () => {
+  console.log("> Running on port 8000");
 });
 
-app.listen(8000);
-```
-
-## Sub Router
-
-`app.use(router | router[])` or `app.use(basePath, router | router[])`
-
-```ts
-import { NHttp, Router } from "https://deno.land/x/nhttp@1.1.12/mod.ts";
-
-//user router example with base
-const user = new Router({ base: "/user" }); // base optional
-user.get("/", ...handlers);
-
-//item router example without base
-const item = new Router();
-item.get("/item", ...handlers);
-
-const app = new NHttp();
-
-// register router
-app.use("/api/v1", [user, item]);
-
-...
-```
-
-## RequestEvent & Types
-
-```ts
-...
-
-const app = new NHttp();
-
-type TUser = {
-  token: string;
-};
-
-app.use<TUser>((rev, next) => {
-  // rev.token must be string.
-  rev.token = "1234";
-  return next();
-});
-
-app.get<TUser>("/hello", ({ token }) => {
-  return token;
-});
-
-...
-```
-
-## Recipe
-
-### Upload With Bun
-
-Simple upload files with Bun.
-
-```ts
-import { multipart, NHttp } from "nhttp-land";
-
-const upload = multipart.upload({
-  // required field name
-  name: "image",
-  dest: "public/images/",
-
-  // optionals
-  accept: "png|jpg",
-  maxSize: "2 mb",
-  required: true,
-
-  // custom write file
-  writeFile: Bun.write,
-});
-
-const app = new NHttp();
-
-app.post("/upload", upload, ({ body, file }) => {
-  console.log(file.image);
-  console.log(body);
-  return "Success upload";
-});
-
-Bun.serve({ fetch: app.handle });
+// if cfw or other runtime, just invoke app.handle
+// export default { fetch: app.handle };
 ```
 
 ## License

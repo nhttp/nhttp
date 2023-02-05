@@ -1,6 +1,6 @@
 /* Simple realtime ChatApps */
 
-import { Handler, HttpError, NHttp } from "../mod.ts";
+import { Handler, HttpError, nhttp } from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `
@@ -40,9 +40,9 @@ const html = `
     </html>
 `;
 
-const wsHandler: Handler = ({ request }, next) => {
+const wsHandler: Handler = ({ request }) => {
   if (request.headers.get("upgrade") != "websocket") {
-    return next(new HttpError(400, "Bad Websocket"));
+    throw new HttpError(400, "Bad Websocket");
   }
   const { socket, response } = Deno.upgradeWebSocket(request);
   const channel = new BroadcastChannel("chat");
@@ -53,15 +53,14 @@ const wsHandler: Handler = ({ request }, next) => {
   return response;
 };
 const htmlHandler: Handler = ({ response }) => {
-  response.type("html");
-  return html;
+  response.type("html").send(html);
 };
 
-const app = new NHttp();
+const app = nhttp();
 
 app.get("/", htmlHandler);
 app.get("/ws", wsHandler);
 
 app.listen(8000, (_err, info) => {
-  console.log(`Running on port ${info?.port}`);
+  console.log(`Running on port ${info.port}`);
 });

@@ -1,9 +1,15 @@
-export async function replaceTs(source: string, prefix?: string) {
-  const str = await Deno.readTextFile(source);
-  await Deno.writeTextFile(
-    "npm/src/" + source,
-    (prefix || "") + str.replaceAll(".ts", ""),
-  );
+export async function replaceTs(source: string, dest: string, prefix?: string) {
+  try {
+    const stat = await Deno.stat(source);
+    if (stat.isFile) {
+      const str = await Deno.readTextFile(source);
+      await Deno.writeTextFile(
+        dest,
+        (prefix || "") + str.replaceAll(".ts", "").replaceAll("npm:", ""),
+      );
+    }
+  } catch (_error) {
+  }
 }
 
 export async function getNames(currentPath: string) {
@@ -16,5 +22,5 @@ export async function getNames(currentPath: string) {
       names.push(arr as unknown as string);
     }
   }
-  return names;
+  return names.flat();
 }
