@@ -64,5 +64,16 @@
         "./types/lib/class-validator.d.ts"
       ]
     }
-  }
+  },
+  "keywords": [
+    "nhttp",
+    "nhttp-land",
+    "deno",
+    "nodejs",
+    "bun",
+    "cloudflare-workers",
+    "router",
+    "middleware",
+    "framework"
+  ]
 }

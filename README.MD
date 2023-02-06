@@ -163,6 +163,24 @@ app.listen(8000, () => {
 // export default { fetch: app.handle };
 ```
 
+## tsconfig
+
+```json
+{
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "experimentalDecorators": true,
+    "moduleResolution": "nodenext",
+    "target": "ES5",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ]
+  }
+}
+```
+
 ## License
 
 [MIT](LICENSE)

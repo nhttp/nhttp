@@ -157,6 +157,17 @@ for (let i = 0; i < EXP.length; i++) {
     }
   }
 }
+pkg["keywords"] = [
+  "nhttp",
+  "nhttp-land",
+  "deno",
+  "nodejs",
+  "bun",
+  "cloudflare-workers",
+  "router",
+  "middleware",
+  "framework",
+];
 await Deno.writeTextFile(
   "npm/package.json",
   JSON.stringify(pkg, null, 2),
