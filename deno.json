@@ -18,6 +18,7 @@
         "bench.ts",
         "dev.js",
         "cf_workers/",
+        "node_modules/",
         "npm/",
         "scripts/",
         "dummy/",
@@ -29,10 +30,12 @@
   "fmt": {
     "files": {
       "exclude": [
+        "dev.js",
         "mod.js",
         "dev.ts",
         "dev.tsx",
         "cf_workers/",
+        "node_modules/",
         "npm/",
         "dummy/",
         "bench.ts",

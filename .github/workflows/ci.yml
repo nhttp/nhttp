@@ -41,4 +41,4 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v2
         with:
-          path-to-lcov: cov_profile.lcov
+          files: cov_profile.lcov
