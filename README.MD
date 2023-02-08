@@ -168,10 +168,8 @@ app.listen(8000, () => {
 ```json
 {
   "compilerOptions": {
-    "types": ["bun-types"],
-    "experimentalDecorators": true,
-    "moduleResolution": "nodenext",
-    "target": "ES5",
+    // if bun
+    // "types": ["bun-types"],
     "lib": [
       "DOM",
       "DOM.Iterable",

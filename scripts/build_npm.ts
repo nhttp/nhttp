@@ -33,6 +33,9 @@ const defObj: esbuild.BuildOptions = {
   absWorkingDir: dir,
   bundle: true,
   // minify: true,
+  target: [
+    "node16",
+  ],
   entryPoints: ["npm/src/index.ts"],
 };
 
@@ -131,6 +134,20 @@ const pkg = {
   "bugs": {
     "url": "https://github.com/nhttp/nhttp/issues",
   },
+  "engines": {
+    "node": ">=16.0.0",
+  },
+  "keywords": [
+    "nhttp",
+    "nhttp-land",
+    "deno",
+    "nodejs",
+    "bun",
+    "cloudflare-workers",
+    "router",
+    "middleware",
+    "framework",
+  ],
 } as any;
 const EXP = await getNames("npm/dist/esm/lib");
 pkg["exports"] = {};
@@ -157,17 +174,6 @@ for (let i = 0; i < EXP.length; i++) {
     }
   }
 }
-pkg["keywords"] = [
-  "nhttp",
-  "nhttp-land",
-  "deno",
-  "nodejs",
-  "bun",
-  "cloudflare-workers",
-  "router",
-  "middleware",
-  "framework",
-];
 await Deno.writeTextFile(
   "npm/package.json",
   JSON.stringify(pkg, null, 2),

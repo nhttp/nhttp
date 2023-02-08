@@ -35,8 +35,8 @@ async function beforeFile(opts, pathFile) {
     pathFile = pathFile.substring(0, iof);
   }
   try {
-    opts.readFile ?? (opts.readFile = Deno.readFile);
-    opts.stat ?? (opts.stat = Deno.stat);
+    opts.readFile ??= Deno.readFile;
+    opts.stat ??= Deno.stat;
     stat = await opts.stat(pathFile);
   } catch (_e) {
   }
@@ -55,17 +55,18 @@ function is304(nonMatch, response, stat, weak, subfix = "", cd) {
   return nonMatch && nonMatch === etag2;
 }
 async function sendFile(rev, pathFile, opts = {}) {
+  var _a, _b, _c;
   try {
     const weak = opts.weak !== false;
     const { response, request } = rev;
-    const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
+    const nonMatch = ((_b = (_a = request.headers) == null ? void 0 : _a.get) == null ? void 0 : _b.call(_a, "if-none-match")) ?? request.headers["if-none-match"];
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
     response.type(response.header("content-type") ?? getContentType(path));
     const cd = response.header("content-disposition");
     if (is304(nonMatch, response, stat, weak, subfix, cd)) {
       return response.status(304).send();
     }
-    const file = await opts.readFile?.(path);
+    const file = await ((_c = opts.readFile) == null ? void 0 : _c.call(opts, path));
     if (!file) {
       throw new Error("File error. please add options readFile");
     }
@@ -79,10 +80,11 @@ const etag = (opts = {}) => {
     const weak = opts.weak !== false;
     const send = rev.send.bind(rev);
     rev.send = (body) => {
+      var _a, _b;
       if (body) {
         const { response, request } = rev;
         if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob)) {
-          const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
+          const nonMatch = ((_b = (_a = request.headers) == null ? void 0 : _a.get) == null ? void 0 : _b.call(_a, "if-none-match")) ?? request.headers["if-none-match"];
           if (typeof body === "object" && !(body instanceof Uint8Array || body instanceof Response)) {
             try {
               body = JSON.stringify(body);

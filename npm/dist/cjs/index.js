@@ -1,9 +1,26 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   for (var name in all)
@@ -202,19 +219,19 @@ function findFn(fn) {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        response.append ?? (response.append = (a, b) => response.header().append(a, b));
-        response.set ?? (response.set = response.header);
-        response.get ?? (response.get = (a) => response.header(a));
-        response.hasHeader ?? (response.hasHeader = (a) => response.header(a) !== void 0);
-        response.removeHeader ?? (response.removeHeader = (a) => response.header().delete(a));
-        response.end ?? (response.end = response.send);
-        response.writeHead ?? (response.writeHead = (a, ...b) => {
+        response.append ??= (a, b) => response.header().append(a, b);
+        response.set ??= response.header;
+        response.get ??= (a) => response.header(a);
+        response.hasHeader ??= (a) => response.header(a) !== void 0;
+        response.removeHeader ??= (a) => response.header().delete(a);
+        response.end ??= response.send;
+        response.writeHead ??= (a, ...b) => {
           response.status(a);
           for (let i = 0; i < b.length; i++) {
             if (typeof b[i] === "object")
               response.header(b[i]);
           }
-        });
+        };
       }
       return fn(rev, response, next);
     };
@@ -223,6 +240,7 @@ function findFn(fn) {
   return fn;
 }
 function findFns(arr) {
+  var _a;
   let ret = [], i = 0;
   const len = arr.length;
   for (; i < len; i++) {
@@ -230,7 +248,7 @@ function findFns(arr) {
     if (Array.isArray(fn)) {
       ret = ret.concat(findFns(fn));
     } else if (typeof fn === "function") {
-      if (fn.prototype?.use) {
+      if ((_a = fn.prototype) == null ? void 0 : _a.use) {
         ret.push(findFn(fn.prototype.use));
       } else {
         ret.push(findFn(fn));
@@ -387,7 +405,7 @@ function getPos(url, k = -1, l = 0) {
 }
 var c_len;
 function getUrl(url) {
-  return url.substring(c_len ?? (c_len = getPos(url)));
+  return url.substring(c_len ??= getPos(url));
 }
 function updateLen(url) {
   if (url[0] === "/")
@@ -511,8 +529,9 @@ function arrayBuffer(request) {
 
 // npm/src/src/router.ts
 function findParams(el, url) {
-  const match = el.pattern.exec?.(decURIComponent(url));
-  const params = match?.groups ?? {};
+  var _a, _b;
+  const match = (_b = (_a = el.pattern).exec) == null ? void 0 : _b.call(_a, decURIComponent(url));
+  const params = (match == null ? void 0 : match.groups) ?? {};
   if (!el.wild || !el.path)
     return params;
   const path = el.path;
@@ -520,7 +539,7 @@ function findParams(el, url) {
     match.shift();
     const wild = match.filter((el2) => el2 !== void 0).filter((el2) => el2.startsWith("/")).join("").split("/");
     wild.shift();
-    const ret = { ...params, wild: wild.filter((el2) => el2 !== "") };
+    const ret = __spreadProps(__spreadValues({}, params), { wild: wild.filter((el2) => el2 !== "") });
     if (path === "*" || path.indexOf("/*") !== -1)
       return ret;
     let wn = path.split("/").find((el2) => el2.startsWith(":") && el2.endsWith("*"));
@@ -559,6 +578,7 @@ var Router = class {
       this.base = "";
   }
   use(prefix, ...routerOrMiddleware) {
+    var _a;
     let args = routerOrMiddleware, str = "";
     if (typeof prefix === "function" && !args.length) {
       this.midds = this.midds.concat(findFns([prefix]));
@@ -569,20 +589,19 @@ var Router = class {
     else
       args = [prefix].concat(args);
     const last = args[args.length - 1];
-    if (typeof last === "object" && (last.c_routes || last[0]?.c_routes)) {
+    if (typeof last === "object" && (last.c_routes || ((_a = last[0]) == null ? void 0 : _a.c_routes))) {
       pushRoutes(str, findFns(args), last, this);
       return this;
     }
     if (str !== "" && str !== "*" && str !== "/*") {
       const path = this.base + str;
-      this.pmidds ?? (this.pmidds = {});
+      this.pmidds ??= {};
       if (!this.pmidds[path]) {
         this.pmidds[path] = middAssets(path);
         if (this["handle"]) {
           ANY_METHODS.forEach((method) => {
-            var _a;
             const { pattern, wild } = toPathx(path, true);
-            ((_a = ROUTE)[method] ?? (_a[method] = [])).push({ path, pattern, wild });
+            (ROUTE[method] ??= []).push({ path, pattern, wild });
           });
         }
       }
@@ -639,17 +658,22 @@ var Router = class {
     const paths = path.split("/");
     paths.shift();
     return paths.reduce((acc, curr, i, arr) => {
-      if (this.pmidds?.[acc + "/" + curr]) {
+      var _a;
+      if ((_a = this.pmidds) == null ? void 0 : _a[acc + "/" + curr]) {
         arr.splice(i);
       }
       return acc + "/" + curr;
     }, "");
   }
   find(method, url, getPath, setParam, notFound, mutate) {
+    var _a;
     const path = getPath(url);
     if (this.route[method + path])
       return this.route[method + path];
-    const r = this.route[method]?.find((el) => el.pattern?.test(path));
+    const r = (_a = this.route[method]) == null ? void 0 : _a.find((el) => {
+      var _a2;
+      return (_a2 = el.pattern) == null ? void 0 : _a2.test(path);
+    });
     if (r) {
       setParam(() => findParams(r, path));
       return r.fns;
@@ -659,7 +683,7 @@ var Router = class {
       if (this.route[k])
         return this.route[k];
     }
-    const mut = mutate?.();
+    const mut = mutate == null ? void 0 : mutate();
     if (mut)
       return this.find(method, mut, getPath, setParam, notFound, void 0);
     if (this.pmidds) {
@@ -715,7 +739,8 @@ var encode = {
   carriageReturn: encoder.encode("\r")
 };
 function getType(headers) {
-  return headers.get?.("content-type") ?? headers["content-type"];
+  var _a;
+  return ((_a = headers.get) == null ? void 0 : _a.call(headers, "content-type")) ?? headers["content-type"];
 }
 async function multiParser(request) {
   const arrayBuf = await arrayBuffer(request);
@@ -756,7 +781,7 @@ function getForm(pieces) {
       }
     }
   }
-  return { ...parseQuery(arr.join("&")), ...form.files };
+  return __spreadValues(__spreadValues({}, parseQuery(arr.join("&"))), form.files);
 }
 function getHeaders(headerByte) {
   const contentTypeIndex = byteIndexOf(headerByte, encode.contentType);
@@ -900,7 +925,7 @@ var Multipart = class {
   validate(files, opts) {
     let j = 0;
     const len = files.length;
-    if (opts?.maxCount) {
+    if (opts == null ? void 0 : opts.maxCount) {
       if (len > opts.maxCount) {
         throw new HttpError(400, `${opts.name} no more than ${opts.maxCount} file`, "BadRequestError");
       }
@@ -908,12 +933,12 @@ var Multipart = class {
     while (j < len) {
       const file = files[j];
       const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
-      if (opts?.accept) {
+      if (opts == null ? void 0 : opts.accept) {
         if (!opts.accept.includes(ext)) {
           throw new HttpError(400, `${opts.name} only accept ${opts.accept}`, "BadRequestError");
         }
       }
-      if (opts?.maxSize) {
+      if (opts == null ? void 0 : opts.maxSize) {
         if (file.size > toBytes(opts.maxSize)) {
           throw new HttpError(400, `${opts.name} to large, maxSize = ${opts.maxSize}`, "BadRequestError");
         }
@@ -929,16 +954,16 @@ var Multipart = class {
       if (opts.callback) {
         await opts.callback(file);
       }
-      opts.dest ?? (opts.dest = "");
+      opts.dest ??= "";
       if (opts.dest) {
         if (opts.dest.lastIndexOf("/") === -1)
           opts.dest += "/";
         if (opts.dest[0] === "/")
           opts.dest = opts.dest.substring(1);
       }
-      file.filename ?? (file.filename = uid() + "_" + file.name);
-      file.path ?? (file.path = opts.dest + file.filename);
-      opts.writeFile ?? (opts.writeFile = Deno.writeFile);
+      file.filename ??= uid() + "_" + file.name;
+      file.path ??= opts.dest + file.filename;
+      opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
       await opts.writeFile(file.path, new Uint8Array(arrBuff));
       i++;
@@ -1020,8 +1045,9 @@ async function verifyBody(req, limit = defautl_size) {
   return body;
 }
 function acceptContentType(headers, cType) {
-  const type = headers.get?.("content-type") ?? headers["content-type"];
-  return type === cType || type?.includes(cType);
+  var _a;
+  const type = ((_a = headers.get) == null ? void 0 : _a.call(headers, "content-type")) ?? headers["content-type"];
+  return type === cType || (type == null ? void 0 : type.includes(cType));
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
   const ret = (rev, next) => {
@@ -1141,13 +1167,14 @@ var HttpResponse = class {
     return this.init.headers = new Headers(this.init.headers);
   }
   status(code) {
+    var _a;
     if (code) {
-      this.init ?? (this.init = {});
+      this.init ??= {};
       this.init.statusText = STATUS_LIST[code];
       this.init.status = code;
       return this;
     }
-    return this.init?.status || 200;
+    return ((_a = this.init) == null ? void 0 : _a.status) || 200;
   }
   sendStatus(code) {
     if (code > 511)
@@ -1176,8 +1203,7 @@ var HttpResponse = class {
     this.status(val);
   }
   get params() {
-    var _a;
-    return this[_a = s_params] ?? (this[_a] = {});
+    return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
@@ -1207,7 +1233,7 @@ var HttpResponse = class {
   }
   clearCookie(name, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append("Set-Cookie", serializeCookie(name, "", { ...opts, expires: new Date(0) }));
+    this.header().append("Set-Cookie", serializeCookie(name, "", __spreadProps(__spreadValues({}, opts), { expires: new Date(0) })));
   }
   [Symbol.for("Deno.customInspect")](inspect) {
     const ret = {
@@ -1252,11 +1278,10 @@ var RequestEvent = class {
     this.method = request.method;
   }
   get response() {
-    var _a, _b;
     if (this._ctx && typeof this._ctx === "function") {
-      return this[_a = s_res] ?? (this[_a] = this._ctx(this._info, this.send.bind(this)));
+      return this[s_res] ??= this._ctx(this._info, this.send.bind(this));
     }
-    return this[_b = s_res] ?? (this[_b] = new HttpResponse(this.send.bind(this)));
+    return this[s_res] ??= new HttpResponse(this.send.bind(this));
   }
   get route() {
     var _a;
@@ -1266,7 +1291,10 @@ var RequestEvent = class {
     if (path !== "/" && path[path.length - 1] === "/") {
       path = path.slice(0, -1);
     }
-    const ret = ROUTE[this.method]?.find((o) => o.pattern?.test(path) || o.path === path);
+    const ret = (_a = ROUTE[this.method]) == null ? void 0 : _a.find((o) => {
+      var _a2;
+      return ((_a2 = o.pattern) == null ? void 0 : _a2.test(path)) || o.path === path;
+    });
     if (ret) {
       if (!ret.pattern) {
         Object.assign(ret, toPathx(ret.path, true));
@@ -1275,7 +1303,7 @@ var RequestEvent = class {
       ret.query = this.query;
       ret.params = findParams(ret, path);
     }
-    return this[_a = s_route] ?? (this[_a] = ret ?? {});
+    return this[s_route] ??= ret ?? {};
   }
   get info() {
     const flag = typeof this._ctx === "function";
@@ -1294,15 +1322,16 @@ var RequestEvent = class {
     this[s_response] = r;
   }
   send(body) {
+    var _a, _b, _c, _d;
     if (typeof body === "string") {
-      this[s_response] = new Response(body, this[s_res]?.init);
+      this[s_response] = new Response(body, (_a = this[s_res]) == null ? void 0 : _a.init);
     } else if (body instanceof Response) {
       this[s_response] = body;
     } else if (typeof body === "object") {
       if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob) {
-        this[s_response] = new Response(body, this[s_res]?.init);
+        this[s_response] = new Response(body, (_b = this[s_res]) == null ? void 0 : _b.init);
       } else {
-        const init = this[s_res]?.init ?? {};
+        const init = ((_c = this[s_res]) == null ? void 0 : _c.init) ?? {};
         if (init.headers) {
           if (init.headers instanceof Headers) {
             init.headers.set("content-type", JSON_TYPE_CHARSET);
@@ -1315,11 +1344,12 @@ var RequestEvent = class {
         this[s_response] = new Response(JSON.stringify(body), init);
       }
     } else {
-      this[s_response] = new Response(body, this[s_res]?.init);
+      this[s_response] = new Response(body, (_d = this[s_res]) == null ? void 0 : _d.init);
     }
   }
   get responseInit() {
-    return this[s_res]?.init ?? {};
+    var _a;
+    return ((_a = this[s_res]) == null ? void 0 : _a.init) ?? {};
   }
   get search() {
     return this[s_search] ?? null;
@@ -1328,7 +1358,8 @@ var RequestEvent = class {
     this[s_search] = val;
   }
   get bodyUsed() {
-    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
+    var _a;
+    return this[s_body_used] ?? ((_a = this.request) == null ? void 0 : _a.bodyUsed) ?? false;
   }
   set bodyUsed(val) {
     this[s_body_used] = val;
@@ -1343,14 +1374,13 @@ var RequestEvent = class {
   }
   get params() {
     var _a;
-    return this[_a = s_params] ?? (this[_a] = this.__params?.() ?? {});
+    return this[s_params] ??= ((_a = this.__params) == null ? void 0 : _a.call(this)) ?? {};
   }
   set params(val) {
     this[s_params] = val;
   }
   get url() {
-    var _a;
-    return this[_a = s_url] ?? (this[_a] = this.originalUrl);
+    return this[s_url] ??= this.originalUrl;
   }
   set url(val) {
     this[s_url] = val;
@@ -1362,43 +1392,38 @@ var RequestEvent = class {
     return this.request.url;
   }
   get path() {
-    var _a;
-    return this[_a = s_path] ?? (this[_a] = this.url);
+    return this[s_path] ??= this.url;
   }
   set path(val) {
     this[s_path] = val;
   }
   get query() {
-    var _a;
-    return this[_a = s_query] ?? (this[_a] = this.__parseQuery?.(this.search?.substring(1)) ?? {});
+    var _a, _b;
+    return this[s_query] ??= ((_b = this.__parseQuery) == null ? void 0 : _b.call(this, (_a = this.search) == null ? void 0 : _a.substring(1))) ?? {};
   }
   set query(val) {
     this[s_query] = val;
   }
   get body() {
-    var _a;
-    return this[_a = s_body] ?? (this[_a] = {});
+    return this[s_body] ??= {};
   }
   set body(val) {
     this[s_body] = val;
   }
   get headers() {
-    var _a;
-    return this[_a = s_headers] ?? (this[_a] = this.request.headers);
+    return this[s_headers] ??= this.request.headers;
   }
   set headers(val) {
     this[s_headers] = val;
   }
   get file() {
-    var _a;
-    return this[_a = s_file] ?? (this[_a] = {});
+    return this[s_file] ??= {};
   }
   set file(val) {
     this[s_file] = val;
   }
   get cookies() {
-    var _a;
-    return this[_a = s_cookies] ?? (this[_a] = getReqCookies(this.request.headers, true));
+    return this[s_cookies] ??= getReqCookies(this.request.headers, true);
   }
   set cookies(val) {
     this[s_cookies] = val;
@@ -1514,13 +1539,14 @@ var NHttp = class extends Router {
     return this;
   }
   on(method, path, ...handlers) {
+    var _a;
     let fns = findFns(handlers);
     if (typeof path === "string") {
       if (path !== "/" && path.endsWith("/")) {
         path = path.slice(0, -1);
       }
       for (const k in this.pmidds) {
-        if (k === path || toPathx(k).pattern?.test(path)) {
+        if (k === path || ((_a = toPathx(k).pattern) == null ? void 0 : _a.test(path))) {
           fns = this.pmidds[k].concat([(rev, next) => {
             if (rev.__url && rev.__path) {
               rev.url = rev.__url;
@@ -1534,9 +1560,8 @@ var NHttp = class extends Router {
     fns = this.midds.concat(fns);
     const { path: oriPath, pattern, wild } = toPathx(path);
     const invoke = (m) => {
-      var _a, _b, _c;
       if (pattern) {
-        const idx = ((_a = this.route)[m] ?? (_a[m] = [])).findIndex(({ path: path2 }) => path2 === oriPath);
+        const idx = (this.route[m] ??= []).findIndex(({ path: path2 }) => path2 === oriPath);
         if (idx != -1) {
           this.route[m][idx].fns = this.route[m][idx].fns.concat(fns);
         } else {
@@ -1546,7 +1571,7 @@ var NHttp = class extends Router {
             fns,
             wild
           });
-          ((_b = ROUTE)[m] ?? (_b[m] = [])).push({ path, pattern, wild });
+          (ROUTE[m] ??= []).push({ path, pattern, wild });
         }
       } else {
         const key = m + path;
@@ -1554,7 +1579,7 @@ var NHttp = class extends Router {
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns;
-          ((_c = ROUTE)[m] ?? (_c[m] = [])).push({ path });
+          (ROUTE[m] ??= []).push({ path });
         }
       }
     };
@@ -1583,7 +1608,7 @@ var NHttp = class extends Router {
             elem = opts.base + elem;
           }
         }
-        params ?? (params = response.params);
+        params ??= response.params;
         response.type(HTML_TYPE_CHARSET);
         const ret = renderFile(elem, params, ...args);
         if (ret) {
@@ -1647,10 +1672,9 @@ var NHttp = class extends Router {
       const runCallback = (err) => {
         if (callback) {
           const _opts = opts;
-          callback(err, {
-            ..._opts,
+          callback(err, __spreadProps(__spreadValues({}, _opts), {
             hostname: _opts.hostname ?? "localhost"
-          });
+          }));
           return true;
         }
         return;
@@ -1665,7 +1689,7 @@ var NHttp = class extends Router {
             opts.onListen = () => {
             };
           }
-          opts.handler ?? (opts.handler = handler);
+          opts.handler ??= handler;
           if (opts.test)
             return;
           await Deno.serve(opts);
@@ -1673,8 +1697,9 @@ var NHttp = class extends Router {
           runCallback();
           if (opts.signal) {
             opts.signal.addEventListener("abort", () => {
+              var _a;
               try {
-                this.server?.close();
+                (_a = this.server) == null ? void 0 : _a.close();
               } catch (_e) {
               }
             }, { once: true });
@@ -1734,6 +1759,7 @@ nhttp.Router = function(opts = {}) {
 
 // npm/src/index.ts
 function buildRes(response, send) {
+  var _a;
   const _res = new HttpResponse(send);
   _res.header = function header(key, value) {
     if (typeof key === "string") {
@@ -1774,7 +1800,7 @@ function buildRes(response, send) {
   response.params = _res.params;
   response.redirect = _res.redirect.bind(_res);
   response.attachment = _res.attachment.bind(_res);
-  response.render = _res.render?.bind(_res);
+  response.render = (_a = _res.render) == null ? void 0 : _a.bind(_res);
   response.send = _res.send.bind(_res);
   response.sendStatus = _res.sendStatus.bind(_res);
   response.type = _res.type.bind(_res);
@@ -1810,18 +1836,18 @@ var NHttp2 = class extends NHttp {
       const runCallback = (err) => {
         if (callback) {
           const _opts = opts2;
-          callback(err, {
-            ..._opts,
+          callback(err, __spreadProps(__spreadValues({}, _opts), {
             hostname: _opts.hostname || "localhost"
-          });
+          }));
         }
       };
       try {
         if (opts2.signal) {
           opts2.signal.addEventListener("abort", () => {
+            var _a, _b, _c, _d;
             try {
-              this.server?.close?.();
-              this.server?.stop?.();
+              (_b = (_a = this.server) == null ? void 0 : _a.close) == null ? void 0 : _b.call(_a);
+              (_d = (_c = this.server) == null ? void 0 : _c.stop) == null ? void 0 : _d.call(_c);
             } catch (_e) {
             }
           }, { once: true });
