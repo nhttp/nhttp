@@ -1,15 +1,15 @@
-import { multipart, NHttp } from "../mod.ts";
+import { multipart, nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
-const myUpload = multipart.upload({ name: "image", required: true });
+const upload = multipart.upload({ name: "image", required: true });
 
-app.post("/upload", myUpload, ({ body, file }) => {
-  console.log(file.image);
-  console.log(body);
+app.post("/upload", upload, (rev) => {
+  console.log(rev.file.image);
+  console.log(rev.body);
   return "Success upload file";
 });
 
-app.listen(3000, () => {
-  console.log("> Running on port 3000");
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
 });

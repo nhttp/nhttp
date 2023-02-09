@@ -1,7 +1,16 @@
 dev.ts
+dev.js
+dev.tsx
+bench.ts
+dev.tsx
+deno.lock
 note.txt
 backup_api.txt
 /public
+/package.json
+/package-lock.json
+/bun.lockb
+node_modules
 .vscode
 *.lcov
 cov_profile

@@ -1,25 +1,22 @@
-import { expressMiddleware, Handler, HttpError, NHttp } from "../mod.ts";
-import { body, validationResult } from "https://esm.sh/express-validator";
+import { HttpError, nhttp } from "../mod.ts";
+import { body, validationResult } from "npm:express-validator";
 
-const validator: Handler[] = [
-  expressMiddleware([
-    body("username").isString(),
-    body("password").isLength({ min: 6 }),
-    body("email").isEmail(),
-  ]),
-  (rev, next) => {
+const app = nhttp({ bodyParser: true });
+
+app.post(
+  "/",
+  body("username").isString(),
+  body("password").isLength({ min: 6 }),
+  body("email").isEmail(),
+  function (rev) {
     const errors = validationResult(rev);
     if (!errors.isEmpty()) {
       throw new HttpError(422, errors.array());
     }
-    return next();
+    return rev.body;
   },
-];
+);
 
-const app = new NHttp();
-
-app.post("/user", validator, ({ response, body }) => {
-  return response.send(body);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
 });
-
-app.listen(3000);

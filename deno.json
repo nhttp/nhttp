@@ -1,10 +1,26 @@
 {
+  "tasks": {
+    "bench": "deno bench -A bench/benchmark.ts",
+    "build:npm": "deno run -A ./scripts/build_npm.ts",
+    "rm:cov": "deno run -A scripts/rm_cov.ts",
+    "test": "deno test --coverage=cov_profile -A --unstable",
+    "genhtml": "genhtml -o cov_profile/html cov_profile.lcov",
+    "cov": "deno coverage cov_profile --lcov --output=cov_profile.lcov",
+    "cov:serve": "file_server cov_profile/html",
+    "test:dev": "deno task rm:cov && deno task test && deno task cov && deno task genhtml && deno task cov:serve"
+  },
   "lint": {
     "files": {
       "exclude": [
         "mod.js",
         "dev.ts",
+        "dev.tsx",
+        "bench.ts",
+        "dev.js",
         "cf_workers/",
+        "node_modules/",
+        "npm/",
+        "scripts/",
         "dummy/",
         "cov_profile",
         "cov_profile.lcov"
@@ -14,10 +30,15 @@
   "fmt": {
     "files": {
       "exclude": [
+        "dev.js",
         "mod.js",
         "dev.ts",
+        "dev.tsx",
         "cf_workers/",
+        "node_modules/",
+        "npm/",
         "dummy/",
+        "bench.ts",
         "cov_profile",
         "cov_profile.lcov"
       ]

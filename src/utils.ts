@@ -1,4 +1,3 @@
-import { HttpResponse } from "./http_response.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Cookie,
@@ -9,8 +8,9 @@ import {
   TSizeList,
 } from "./types.ts";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+export const encoder = new TextEncoder();
+export const decoder = new TextDecoder();
+
 type EArr = [string, string | TObject];
 
 export const decURI = (str: string) => {
@@ -28,12 +28,49 @@ export const decURIComponent = (str: string) => {
   }
 };
 
-export function findFns(arr: TObject[]): Array<unknown> {
-  let ret: Array<unknown>[] = [], i = 0;
+export function findFn(fn: TRet) {
+  if (fn.length === 3) {
+    const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
+      const response = rev.response;
+      if (!rev.__wm) {
+        rev.__wm = true;
+        response.append ??= (a: string, b: string) =>
+          response.header().append(a, b);
+        response.set ??= response.header;
+        response.get ??= (a: string) => response.header(a);
+        response.hasHeader ??= (a: string) => response.header(a) !== undefined;
+        response.removeHeader ??= (a: string) => response.header().delete(a);
+        response.end ??= response.send;
+        response.writeHead ??= (a: number, ...b: TRet) => {
+          response.status(a);
+          for (let i = 0; i < b.length; i++) {
+            if (typeof b[i] === "object") response.header(b[i]);
+          }
+        };
+      }
+      return fn(rev, response, next);
+    };
+    return newFn;
+  }
+  return fn;
+}
+
+export function findFns<Rev extends RequestEvent = RequestEvent>(
+  arr: TObject[],
+): Handler<Rev>[] {
+  let ret: Handler<Rev>[] = [], i = 0;
   const len = arr.length;
   for (; i < len; i++) {
-    if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i] as TObject[]));
-    else if (typeof arr[i] === "function") ret.push(arr[i] as Array<unknown>);
+    const fn: TRet = arr[i];
+    if (Array.isArray(fn)) {
+      ret = ret.concat(findFns<Rev>(fn as TObject[]));
+    } else if (typeof fn === "function") {
+      if (fn.prototype?.use) {
+        ret.push(findFn(fn.prototype.use));
+      } else {
+        ret.push(findFn(fn));
+      }
+    }
   }
   return ret;
 }
@@ -60,13 +97,13 @@ export function toBytes(arg: string | number) {
   return Math.floor(sizeList[unt] as number * val);
 }
 
-export function toPathx(path: string | RegExp, isAny: boolean) {
-  if (path instanceof RegExp) return { pathx: path, wild: true };
-  if (/\?|\*|\.|\:/.test(path) === false && isAny === false) {
+export function toPathx(path: string | RegExp, flag?: boolean) {
+  if (path instanceof RegExp) return { pattern: path, wild: true, path };
+  if (/\?|\*|\.|:/.test(path) === false && !flag) {
     return {};
   }
   let wild = false;
-  const pathx = new RegExp(`^${
+  const pattern = new RegExp(`^${
     path
       .replace(/\/$/, "")
       .replace(/:(\w+)(\?)?(\.)?/g, "$2(?<$1>[^/]+)$2$3")
@@ -76,7 +113,7 @@ export function toPathx(path: string | RegExp, isAny: boolean) {
       })
       .replace(/\.(?=[\w(])/, "\\.")
   }/*$`);
-  return { pathx, path, wild };
+  return { pattern, path, wild };
 }
 
 export function needPatch(
@@ -114,7 +151,9 @@ export function myParse(arr: EArr[]) {
         red[field] = [red[field], value];
       }
     } else {
-      let [_, prefix, keys]: TRet = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/);
+      const arr = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ?? [];
+      const prefix = arr[1] ?? field;
+      let keys: TRet = <TRet> arr[2];
       if (keys) {
         keys = Array.from(
           keys.matchAll(/\[([^\]]*)\]/g),
@@ -130,14 +169,14 @@ export function myParse(arr: EArr[]) {
 }
 
 export function parseQuery(query: unknown | string) {
-  if (query === null) return {};
+  if (!query) return {};
   if (typeof query === "string") {
     let i = 0;
     const arr = query.split("&") as EArr;
     const data = [] as EArr[], len = arr.length;
     while (i < len) {
       const el = arr[i].split("=");
-      data.push([decURI(el[0]), decURI(el[1] || "")]);
+      data.push([decURIComponent(el[0]), decURIComponent(el[1] || "")]);
       i++;
     }
     return myParse(data);
@@ -155,6 +194,8 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
 
 /**
  * Wrapper middleware for framework express like (req, res, next)
+ * @deprecated
+ * auto added to `NHttp.use`
  * @example
  * ...
  * import cors from "https://esm.sh/cors?no-check";
@@ -166,57 +207,67 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
  * ]));
  */
 export function expressMiddleware(...middlewares: TRet): TRet {
-  const midds = middlewares;
-  const opts = midds.length && midds[midds.length - 1];
-  const beforeWrap = (typeof opts === "object") && opts.beforeWrap;
-  const fns = findFns(midds) as ((
-    req: RequestEvent,
-    res: HttpResponse,
-    next: NextFunction,
-  ) => Promise<void> | void)[];
-  let handlers: Handler[] = [];
-  let j = 0;
-  const len = fns.length;
-  while (j < len) {
-    const fn = fns[j];
-    handlers = handlers.concat((rev, next) => {
-      const res = rev.response;
-      if (!rev.__isWrapMiddleware) {
-        rev.headers = rev.request.headers;
-        rev.method = rev.request.method;
-        res.setHeader = res.set = res.header;
-        res.getHeader = res.get = (a: string) => res.header(a);
-        res.hasHeader = (a: string) => res.header(a) !== null;
-        res.removeHeader = (a: string) => res.header().delete(a);
-        res.end = res.send;
-        res.writeHead = (a: number, ...b: TRet) => {
-          res.status(a);
-          for (let i = 0; i < b.length; i++) {
-            if (typeof b[i] === "object") res.header(b[i]);
-          }
-        };
-        rev.respond = ({ body, status, headers }: TObject) =>
-          rev.respondWith(
-            new Response(body as BodyInit, { status, headers } as TObject),
-          );
-        rev.__isWrapMiddleware = true;
-      }
-      if (beforeWrap) beforeWrap(rev, res);
-      return fn(rev, res, next);
-    });
-    j++;
-  }
-  return handlers;
+  return findFns(middlewares);
 }
 
 export function middAssets(str: string) {
   return [
     ((rev, next) => {
-      rev.url = rev.url.substring(str.length) || "/";
-      rev.path = rev.path.substring(str.length) || "/";
+      if (rev.path.startsWith(str)) {
+        rev.__url = rev.url;
+        rev.__path = rev.path;
+        rev.url = rev.url.substring(str.length) || "/";
+        rev.path = rev.path.substring(str.length) || "/";
+      }
       return next();
     }) as Handler,
   ];
+}
+
+export function pushRoutes(
+  str: string,
+  wares: Handler[],
+  last: TObject,
+  base: TObject,
+) {
+  str = str === "/" ? "" : str;
+  last = Array.isArray(last) ? last : [last];
+  last.forEach((obj: TObject) => {
+    obj.c_routes.forEach((route: TObject) => {
+      const { method, path, fns, pmidds } = route;
+      let _path: string | RegExp;
+      if (path instanceof RegExp) _path = concatRegexp(str, path);
+      else _path = str + path;
+      if (pmidds) {
+        const obj = {} as TObject;
+        for (const k in pmidds) obj[str + k] = pmidds[k];
+        base.pmidds = obj;
+      }
+      base.on(method, _path, [wares, fns]);
+    });
+  });
+}
+
+function getPos(url: string, k = -1, l = 0) {
+  while ((k = url.indexOf("/", k + 1)) != -1) {
+    l++;
+    if (l == 3) break;
+  }
+  return k;
+}
+let c_len: number | undefined;
+export function getUrl(url: string) {
+  return url.substring(c_len ??= getPos(url));
+}
+
+export function updateLen(url: string) {
+  if (url[0] === "/") return;
+  const pos = getPos(url);
+  if (c_len && c_len != pos) {
+    c_len = pos;
+    return getUrl(url);
+  }
+  return;
 }
 
 export function serializeCookie(
@@ -282,8 +333,9 @@ function tryDecode(str: string) {
   }
 }
 
-export function getReqCookies(req: Request, decode?: boolean, i = 0) {
-  const str = req.headers.get("Cookie");
+export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
+  if (!(headers instanceof Headers)) headers = new Headers(headers);
+  const str = headers.get("Cookie");
   if (str === null) return {};
   const ret = {} as Record<string, string>;
   const arr = str.split(";");
@@ -307,4 +359,30 @@ export function getReqCookies(req: Request, decode?: boolean, i = 0) {
     i++;
   }
   return ret;
+}
+const concatUint8Array = (arr: TRet[]) => {
+  if (arr.length === 1) return arr[0];
+  let len = 0;
+  arr.forEach((el) => (len += el.length));
+  const merged = new Uint8Array(len);
+  let i = 0;
+  arr.forEach((el) => {
+    merged.set(el, i);
+    i += el.length;
+  });
+  return merged;
+};
+export function arrayBuffer(request: TObject): Promise<ArrayBuffer> {
+  if (typeof request.arrayBuffer === "function") {
+    return request.arrayBuffer();
+  }
+  if (typeof request.on === "function") {
+    return new Promise((ok, no) => {
+      const body: Uint8Array[] = [];
+      request.on("data", (buf: Uint8Array) => body.push(buf))
+        .on("end", () => ok(concatUint8Array(body)))
+        .on("error", (err: Error) => no(err));
+    });
+  }
+  return Promise.resolve(new ArrayBuffer(0));
 }

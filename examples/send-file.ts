@@ -1,12 +1,17 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
-const app = new NHttp();
+const app = nhttp();
 
-app.get("/send-file", async ({ response }) => {
-  response.type("text/css");
-  return await Deno.readFile("./public/test.css");
+app.get("/", ({ response }) => {
+  response.type("css");
+  return Deno.readFile("./public/test.css");
 });
 
-app.listen(3000, () => {
-  console.log("> Running on port 3000");
+app.get("/stream", async () => {
+  const stream = await Deno.open("./public/test.css");
+  return stream.readable;
+});
+
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
 });

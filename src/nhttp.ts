@@ -1,65 +1,119 @@
 import {
+  CustomHandler,
+  EngineOptions,
   FetchEvent,
-  Handler,
   Handlers,
+  ListenOptions,
   NextFunction,
   RetHandler,
-  RouterOrWare,
   TApp,
-  TBodyLimit,
+  TBodyParser,
   TObject,
   TQueryFunc,
   TRet,
 } from "./types.ts";
-import Router from "./router.ts";
+import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
-  concatRegexp,
   findFns,
-  getReqCookies,
-  middAssets,
+  getUrl,
   parseQuery as parseQueryOri,
   toPathx,
+  updateLen,
 } from "./utils.ts";
-import { withBody } from "./body.ts";
+import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { HttpResponse, response } from "./http_response.ts";
+import { HTML_TYPE_CHARSET } from "./http_response.ts";
+import { s_response } from "./symbol.ts";
+import { ROUTE } from "./constant.ts";
 
 const defError = (
   err: TObject,
   rev: RequestEvent,
-  env: string,
+  stack: boolean,
 ): RetHandler => {
-  const obj = getError(err, env === "development");
+  const obj = getError(err, stack);
   return rev.response.status(obj.status).json(obj);
 };
-
+const awaiter = (rev: RequestEvent) => {
+  return (async (t, d) => {
+    while (rev[s_response] === void 0) {
+      await new Promise((ok) => setTimeout(ok, t));
+      if (t === d) break;
+      t++;
+    }
+    return rev[s_response];
+  })(0, 100);
+};
+const resend = (ret: TRet, rev: RequestEvent, next: NextFunction) => {
+  if (ret) {
+    if (ret instanceof Promise) {
+      return ret.then((val) => {
+        if (val) rev.send(val);
+        return rev[s_response] ?? awaiter(rev);
+      }).catch(next);
+    }
+    rev.send(ret);
+  }
+  return rev[s_response] ?? awaiter(rev);
+};
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
   private parseQuery: TQueryFunc;
-  private multipartParseQuery?: TQueryFunc;
-  private bodyLimit?: TBodyLimit;
   private env: string;
-  server: Deno.Listener | undefined;
-  constructor({ parseQuery, bodyLimit, env }: TApp = {}) {
+  private flash?: boolean;
+  private stackError!: boolean;
+  private bodyParser?: TBodyParser | boolean;
+  private parseMultipart?: TQueryFunc;
+  server: TRet;
+  /**
+   * handleEvent
+   * @example
+   * addEventListener("fetch", (event) => {
+   *   event.respondWith(app.handleEvent(event))
+   * });
+   */
+  handleEvent: (event: FetchEvent) => TRet;
+  /**
+   * handle
+   * @example
+   * Deno.serve(app.handle);
+   * // or
+   * Bun.serve({ fetch: app.handle });
+   */
+  handle: (request: Request, conn?: TRet, ctx?: TRet) => TRet;
+  constructor(
+    { parseQuery, bodyParser, env, flash, stackError }: TApp = {},
+  ) {
     super();
     this.parseQuery = parseQuery || parseQueryOri;
-    this.multipartParseQuery = parseQuery;
-    this.bodyLimit = bodyLimit;
-    this.env = env || "development";
+    this.stackError = stackError !== false;
+    this.env = env ?? "development";
+    if (this.env !== "development") {
+      this.stackError = false;
+    }
+    this.flash = flash;
+    this.handleEvent = (event) => {
+      return this.handleRequest(event.request);
+    };
+    this.handle = (request, conn, ctx) => {
+      return this.handleRequest(request, conn, ctx);
+    };
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
-        rev.__parseQuery = parseQuery;
+        rev.__parseMultipart = parseQuery;
         return next();
       });
     }
+    this.parseMultipart = parseQuery;
+    this.bodyParser = bodyParser;
   }
   /**
    * global error handling.
    * @example
-   * app.onError((error, rev) => {
-   *     return rev.response.send(error.message);
+   * app.onError((err, { response }) => {
+   *    response.send(err.message);
    * })
    */
   onError(
@@ -69,20 +123,28 @@ export class NHttp<
       next: NextFunction,
     ) => RetHandler,
   ) {
-    this._onError = (err, rev, next) => {
-      (rev as TRet).__onErr = true;
-      let status: number = err.status || err.statusCode || err.code || 500;
-      if (typeof status !== "number") status = 500;
-      rev.response.status(status);
-      return fn(err, rev, next);
+    this._onError = (err, rev) => {
+      try {
+        let status: number = err.status || err.statusCode || err.code || 500;
+        if (typeof status !== "number") status = 500;
+        rev.response.status(status);
+        return fn(err, rev, (e: TRet) => {
+          if (e) {
+            return rev.response.status(e.status ?? 500).send(String(e));
+          }
+          return this._on404(rev);
+        });
+      } catch (err) {
+        return defError(err, rev, this.stackError);
+      }
     };
     return this;
   }
   /**
    * global not found error handling.
    * @example
-   * app.on404((rev) => {
-   *     return rev.response.send(`route ${rev.url} not found`);
+   * app.on404(({ response, url }) => {
+   *    response.send(`route ${url} not found`);
    * })
    */
   on404(
@@ -91,256 +153,310 @@ export class NHttp<
       next: NextFunction,
     ) => RetHandler,
   ) {
-    this._on404 = (rev, next) => {
-      rev.response.status(404);
-      return fn(rev, next);
-    };
-    return this;
-  }
-  /**
-   * add router or middlware.
-   * @example
-   * app.use(...middlewares);
-   * app.use('/api/v1', routers);
-   */
-  use(
-    prefix: string | RouterOrWare<Rev> | RouterOrWare<Rev>[],
-    ...routerOrMiddleware: Array<RouterOrWare<Rev> | RouterOrWare<Rev>[]>
-  ) {
-    let args = routerOrMiddleware, str = "";
-    if (typeof prefix === "function" && args.length === 0) {
-      this.midds = this.midds.concat(prefix);
-      return this;
-    }
-    if (typeof prefix === "string") str = prefix === "/" ? "" : prefix;
-    else args = [prefix].concat(args);
-    const last = args[args.length - 1] as TObject;
-    if (
-      typeof last === "object" && (last.c_routes || last[0].c_routes)
-    ) {
-      this.pushRoutes(str, findFns(args) as Handler[], last);
-    } else if (str !== "") {
-      this.pmidds = this.pmidds || {};
-      this.pmidds[str] = middAssets(str).concat(findFns(args) as Handler[]);
-    } else {
-      this.midds = this.midds.concat(findFns(args) as Handler[]);
-    }
-    return this;
-  }
-  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>): this {
-    const fns = findFns(handlers);
-    const { path: oriPath, pathx, wild } = toPathx(path, method === "ANY");
-    if (pathx) {
-      this.route[method] = this.route[method] || [];
-      (this.route[method] as TObject[]).push({
-        path: oriPath,
-        pathx,
-        fns,
-        wild,
-      });
-    } else {
-      this.route[method + path] = { fns };
-    }
-    return this;
-  }
-  handle(rev: Rev, isRw?: boolean) {
-    let i = 0, k = -1, l = 0, j = 0, len;
-    const { method, url } = rev.request;
-    rev.search = null;
-    rev.query = {};
-    while ((k = url.indexOf("/", k + 1)) != -1) {
-      l += 1;
-      if (l === 3) {
-        rev.url = rev.path = url.substring(k);
-        len = rev.url.length;
-        while (j < len) {
-          if (rev.url.charCodeAt(j) === 0x3f) {
-            rev.path = rev.url.substring(0, j);
-            rev.query = this.parseQuery(rev.url.substring(j + 1));
-            rev.search = rev.url.substring(j);
-            break;
-          }
-          j++;
-        }
-        break;
-      }
-    }
-    const { fns, params } = this.find(method, rev.path, this._on404);
-    const next: NextFunction = (err?: Error) => {
-      let ret;
+    const def = this._on404.bind(this);
+    this._on404 = (rev) => {
       try {
-        ret = err ? this._onError(err, rev, next) : fns[i++](rev, next);
-      } catch (e) {
-        return err ? defError(e, rev, this.env) : next(e);
-      }
-      if (ret) {
-        if (typeof (ret as Promise<void>).then === "function") {
-          return this.withPromise(
-            ret as unknown as Promise<Handler<RequestEvent>>,
-            rev,
-            next,
-            rev.__onErr,
-          );
-        }
-        return rev.response.send(ret);
+        rev.response.status(404);
+        return fn(rev, (e) => {
+          if (e) {
+            return this._onError(e, rev);
+          }
+          return def(rev);
+        });
+      } catch (err) {
+        return defError(err, rev, this.stackError);
       }
     };
-    rev.params = params;
-    rev.getCookies = (n) => getReqCookies(rev.request, n);
-    if (isRw) rev.respondWith = (r) => r as Response;
-    response(
-      rev.response = {} as HttpResponse,
-      rev.respondWith,
-      rev.responseInit = {},
-    );
-    if (method === "GET") return next();
-    if (method === "HEAD") return next();
-    return withBody(
-      rev,
-      next,
-      this.parseQuery,
-      this.multipartParseQuery,
-      this.bodyLimit,
-    );
+    return this;
+  }
+  on<T>(
+    method: string,
+    path: string | RegExp,
+    ...handlers: Handlers<Rev & T>
+  ): this {
+    let fns = findFns<Rev>(handlers);
+    if (typeof path === "string") {
+      if (path !== "/" && path.endsWith("/")) {
+        path = path.slice(0, -1);
+      }
+      for (const k in this.pmidds) {
+        if (
+          k === path || toPathx(k).pattern?.test(path)
+        ) {
+          fns = this.pmidds[k].concat([(rev, next) => {
+            if (rev.__url && rev.__path) {
+              rev.url = rev.__url;
+              rev.path = rev.__path;
+            }
+            return next();
+          }] as Handlers, fns);
+        }
+      }
+    }
+    fns = this.midds.concat(fns);
+    const { path: oriPath, pattern, wild } = toPathx(path);
+    const invoke = (m: string) => {
+      if (pattern) {
+        const idx = (this.route[m] ??= []).findIndex(({ path }: TObject) =>
+          path === oriPath
+        );
+        if (idx != -1) {
+          this.route[m][idx].fns = this.route[m][idx].fns.concat(fns);
+        } else {
+          this.route[m].push({
+            path: oriPath,
+            pattern,
+            fns,
+            wild,
+          });
+          (ROUTE[m] ??= []).push({ path, pattern, wild });
+        }
+      } else {
+        const key = m + path;
+        if (this.route[key]) {
+          this.route[key] = this.route[key].concat(fns);
+        } else {
+          this.route[key] = fns;
+          (ROUTE[m] ??= []).push({ path });
+        }
+      }
+    };
+    if (method === "ANY") ANY_METHODS.forEach(invoke);
+    else invoke(method);
+    return this;
   }
   /**
-   * handleEvent
+   * engine - add template engine.
    * @example
-   * addEventListener("fetch", (event) => {
-   *   event.respondWith(app.handleEvent(event))
+   * app.engine(ejs.renderFile, { base: "public", ext: "ejs" });
+   *
+   * app.get("/", async ({ response }) => {
+   *   await response.render("index", { title: "hello ejs" });
    * });
    */
-  handleEvent(event: FetchEvent) {
-    return this.handle(event, true);
+  engine(
+    renderFile: (...args: TRet) => TRet,
+    opts: EngineOptions = {},
+  ) {
+    this.use(({ response }, next) => {
+      response.render = (elem, params, ...args) => {
+        if (typeof elem === "string") {
+          if (opts.ext) {
+            if (!elem.includes(".")) {
+              elem += "." + opts.ext;
+            }
+          }
+          if (opts.base) {
+            if (!opts.base.endsWith("/")) {
+              opts.base += "/";
+            }
+            if (opts.base[0] === "/") {
+              opts.base = opts.base.substring(1);
+            }
+            elem = opts.base + elem;
+          }
+        }
+        params ??= response.params;
+        response.type(HTML_TYPE_CHARSET);
+        const ret = renderFile(elem, params, ...args);
+        if (ret) {
+          if (ret instanceof Promise) {
+            return ret.then((val) => response.send(val)).catch(next);
+          }
+          return response.send(ret);
+        }
+        return ret;
+      };
+      return next();
+    });
+  }
+  matchFns(rev: RequestEvent, url: string) {
+    return this.find(
+      rev.method,
+      url,
+      (str) => {
+        const iof = str.indexOf("?");
+        if (iof != -1) {
+          rev.path = str.substring(0, iof);
+          rev.__parseQuery = this.parseQuery;
+          rev.search = str.substring(iof);
+          return rev.path;
+        }
+        return str;
+      },
+      (p) => {
+        rev.__params = p;
+      },
+      this._on404,
+      () => updateLen(rev.request.url),
+    );
+  }
+
+  private handleRequest(req: Request, conn?: TRet, ctx?: TRet) {
+    let i = 0;
+    const url = getUrl(req.url);
+    const rev = <Rev> new RequestEvent(req, conn, ctx);
+    const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
+    const next: NextFunction = (err) => {
+      try {
+        const ret = err
+          ? this._onError(err, rev)
+          : (fns[i++] ?? this._on404)(rev, next);
+        return rev[s_response] ?? resend(ret, rev, next);
+      } catch (e) {
+        return next(e);
+      }
+    };
+    if (rev.method === "GET" || rev.method === "HEAD") {
+      try {
+        const ret = fns[i++](rev, next);
+        return rev[s_response] ?? resend(ret, rev, next);
+      } catch (e) {
+        return next(e);
+      }
+    }
+    return bodyParser(
+      this.bodyParser,
+      this.parseQuery,
+      this.parseMultipart,
+    )(rev, next);
   }
   /**
    * listen the server
    * @example
-   * app.listen(3000);
-   * app.listen({ port: 3000, hostname: 'localhost' });
+   * app.listen(8000);
+   * app.listen({ port: 8000, hostname: 'localhost' });
    * app.listen({
    *    port: 443,
-   *    certFile: "./path/to/localhost.crt",
-   *    keyFile: "./path/to/localhost.key",
+   *    cert: "./path/to/localhost.crt",
+   *    key: "./path/to/localhost.key",
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-  async listen(
-    opts:
-      | number
-      | Deno.ListenOptions
-      | Deno.ListenTlsOptions
-      | TObject,
+  listen(
+    opts: number | ListenOptions,
     callback?: (
-      err?: Error,
-      opts?:
-        | Deno.ListenOptions
-        | Deno.ListenTlsOptions
-        | TObject,
+      err: Error | undefined,
+      opts: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    let isTls = false;
-    if (typeof opts === "number") {
-      opts = { port: opts };
-    } else if (typeof opts === "object") {
-      isTls = (opts as Deno.ListenTlsOptions).certFile !== void 0;
-    }
-    try {
-      this.server = (
-        isTls ? Deno.listenTls(opts as Deno.ListenTlsOptions) : Deno.listen(
-          opts as Deno.ListenOptions & { transport?: "tcp" | undefined },
-        )
-      ) as Deno.Listener;
-      if (callback) {
-        callback(undefined, {
-          ...opts,
-          hostname: opts.hostname || "localhost",
-          server: this.server,
-        });
+    return (async () => {
+      let isTls = false, handler = this.handle;
+      if (typeof opts === "number") {
+        opts = { port: opts };
+      } else if (typeof opts === "object") {
+        isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
+          opts.alpnProtocols !== void 0;
+        if (opts.handler) handler = opts.handler;
       }
-      while (true) {
-        try {
-          const conn = await this.server.accept();
-          if (conn) {
-            this.handleConn(conn);
-          } else {
-            break;
-          }
-        } catch (_e) { /* noop */ }
-      }
-    } catch (error) {
-      if (callback) {
-        callback(error, {
-          ...opts,
-          hostname: opts.hostname || "localhost",
-        });
-      }
-    }
-  }
-  private pushRoutes(str: string, wares: Handler[], last: TRet) {
-    last = Array.isArray(last) ? last : [last];
-    last.forEach((obj: TObject) => {
-      obj.c_routes.forEach((route: TObject) => {
-        const { method, path, fns } = route;
-        let _path: string | RegExp;
-        if (path instanceof RegExp) _path = concatRegexp(str, path);
-        else {
-          let mPath = path;
-          if (mPath === "/" && str !== "") mPath = "";
-          _path = str + mPath;
+      const runCallback = (err?: Error) => {
+        if (callback) {
+          const _opts = opts as ListenOptions;
+          callback(err, {
+            ..._opts,
+            hostname: _opts.hostname ?? "localhost",
+          });
+          return true;
         }
-        this.on(method, _path, [wares, fns]);
-      });
-    });
+        return;
+      };
+      try {
+        if (this.flash) {
+          if ((Deno as TRet).serve == void 0) {
+            console.log("Deno flash is unstable. please add --unstable flag.");
+            return;
+          }
+          if (runCallback()) {
+            opts.onListen = () => {};
+          }
+          opts.handler ??= handler;
+          if (opts.test) return;
+          await (Deno as TRet).serve(opts);
+        } else {
+          runCallback();
+          if (opts.signal) {
+            opts.signal.addEventListener("abort", () => {
+              try {
+                this.server?.close();
+              } catch (_e) { /* noop */ }
+            }, { once: true });
+          }
+          if (opts.test) return;
+          this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
+          /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
+          while (true) {
+            try {
+              const conn = await this.server.accept();
+              if (conn) {
+                this.handleConn(conn, handler);
+              } else {
+                break;
+              }
+            } catch (_e) { /* noop */ }
+          }
+        }
+      } catch (error) {
+        runCallback(error);
+      }
+    })();
   }
+
   private _onError(
     err: TObject,
     rev: Rev,
-    _: NextFunction,
   ): RetHandler {
-    return defError(err, rev, this.env);
+    return defError(err, rev, this.stackError);
   }
-  private _on404(rev: Rev, _: NextFunction): RetHandler {
+  private _on404(rev: Rev): RetHandler {
     const obj = getError(
       new HttpError(
         404,
-        `Route ${rev.request.method}${rev.url} not found`,
+        `Route ${rev.method}${rev.url} not found`,
         "NotFoundError",
       ),
     );
     return rev.response.status(obj.status).json(obj);
   }
-  private async handleConn(conn: Deno.Conn) {
+
+  private async handleConn(conn: Deno.Conn, handler: CustomHandler) {
     try {
       const httpConn = Deno.serveHttp(conn);
-      for await (const rev of httpConn) {
-        let resp: (res: Response) => void;
-        const promise = new Promise<Response>((ok) => (resp = ok));
-        const rw = rev.respondWith(promise);
-        (rev as Rev).conn = conn;
-        rev.respondWith = resp! as (
-          r: Response | Promise<Response>,
-        ) => Promise<void>;
-        this.handle(rev as Rev);
-        await rw;
+      /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
+      while (true) {
+        try {
+          const rev = await httpConn.nextRequest();
+          if (rev) {
+            await rev.respondWith(handler(rev.request, conn));
+          } else {
+            break;
+          }
+        } catch (_err) {
+          break;
+        }
       }
     } catch (_e) { /* noop */ }
   }
-  private async withPromise(
-    handler: Promise<Handler>,
-    rev: Rev,
-    next: NextFunction,
-    isDepError?: boolean,
-  ) {
-    try {
-      const ret = await handler;
-      if (!ret) return;
-      return rev.response.send(ret);
-    } catch (err) {
-      if (isDepError) {
-        return defError(err, rev, this.env);
-      }
-      return next(err);
-    }
-  }
 }
+
+/**
+ * inital app.
+ * @example
+ * const app = nhttp();
+ */
+export function nhttp<Rev extends RequestEvent = RequestEvent>(
+  opts: TApp = {},
+) {
+  return new NHttp<Rev>(opts);
+}
+
+/**
+ * Router
+ * @example
+ * const router = nhttp.Router();
+ * const router = nhttp.Router({ base: '/items' });
+ */
+nhttp.Router = function <Rev extends RequestEvent = RequestEvent>(
+  opts: TRouter = {},
+) {
+  return new Router<Rev>(opts);
+};

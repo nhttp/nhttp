@@ -21,24 +21,24 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.21.0
+          deno-version: 1.29.1
 
       - name: Verify formatting
         if: matrix.os != 'windows-latest'
-        run: deno fmt --config deno.json
+        run: deno fmt
 
       - name: Run linter
-        run: deno lint --config deno.json
+        run: deno lint
 
       - name: Run Test
-        run: deno test --coverage=cov_profile --allow-net --allow-read --allow-write --unstable tests
+        run: deno task test
 
       - name: Create cov report
         if: matrix.os == 'ubuntu-latest'
-        run: deno coverage cov_profile --lcov > cov_profile.lcov
+        run: deno task cov
 
       - name: Codecov
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v2
         with:
-          path-to-lcov: cov_profile.lcov
+          files: cov_profile.lcov

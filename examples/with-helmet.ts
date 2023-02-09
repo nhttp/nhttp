@@ -1,14 +1,12 @@
-import { expressMiddleware, NHttp } from "../mod.ts";
-import helmet from "https://esm.sh/helmet?no-check";
+import { nhttp } from "../mod.ts";
+import helmet from "npm:helmet";
 
-const app = new NHttp();
+const app = nhttp();
 
-app.use(expressMiddleware(
-  helmet(),
-));
+app.use(helmet());
 
-app.get("/hello", ({ response }) => {
-  return response.send("Hello");
+app.get("/", () => "hello with helmet");
+
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
 });
-
-app.listen(3000);

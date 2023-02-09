@@ -1,26 +1,27 @@
+import { ROUTE } from "./constant.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Handler, Handlers, TObject, TRet } from "./types.ts";
+import {
+  Handler,
+  Handlers,
+  NextFunction,
+  RouterOrWare,
+  TObject,
+  TRet,
+} from "./types.ts";
+import {
+  concatRegexp,
+  decURIComponent,
+  findFns,
+  middAssets,
+  pushRoutes,
+  toPathx,
+} from "./utils.ts";
 
-const decURI = (str: string) => {
-  try {
-    return decodeURI(str);
-  } catch (_e) {
-    return str;
-  }
-};
-
-function concatRegexp(prefix: string | RegExp, path: RegExp) {
-  if (prefix === "") return path;
-  prefix = new RegExp(prefix);
-  let flags = prefix.flags + path.flags;
-  flags = Array.from(new Set(flags.split(""))).join();
-  return new RegExp(prefix.source + path.source, flags);
-}
-
-function wildcard(path: string | undefined, wild: boolean, match: TRet) {
-  const params = match.groups || {};
-  if (!wild) return params;
-  if (!path) return params;
+export function findParams(el: TObject, url: string) {
+  const match = el.pattern.exec?.(decURIComponent(url));
+  const params = match?.groups ?? {};
+  if (!el.wild || !el.path) return params;
+  const path = el.path;
   if (path.indexOf("*") !== -1) {
     match.shift();
     const wild = match.filter((el: TRet) => el !== void 0).filter((
@@ -41,17 +42,22 @@ function wildcard(path: string | undefined, wild: boolean, match: TRet) {
   return params;
 }
 
-function base(url: string) {
+export function base(url: string) {
   const iof = url.indexOf("/", 1);
-  if (iof !== -1) return url.substring(0, iof);
+  if (iof != -1) return url.substring(0, iof);
   return url;
 }
 
-type TRouter = { base?: string };
-type MethodHandler<
-  Rev extends RequestEvent = RequestEvent,
-  T = TObject,
-> = (path: string | RegExp, ...handlers: Handlers<Rev>) => T;
+export type TRouter = { base?: string };
+export const ANY_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "OPTIONS",
+  "HEAD",
+] as const;
 /**
  * Router
  * @example
@@ -63,118 +69,192 @@ export default class Router<
 > {
   route: TObject = {};
   c_routes: TObject[] = [];
-  midds: Handler<Rev>[] = [];
+  midds: TRet[] = [];
   pmidds: TObject | undefined;
-  /**
-   * method GET (app or router)
-   * @example
-   * app.get("/", ...handlers);
-   */
-  get: MethodHandler<Rev, this>;
-  /**
-   * method POST (app or router)
-   * @example
-   * app.post("/", ...handlers);
-   */
-  post: MethodHandler<Rev, this>;
-  /**
-   * method PUT (app or router)
-   * @example
-   * app.put("/", ...handlers);
-   */
-  put: MethodHandler<Rev, this>;
-  /**
-   * method PATCH (app or router)
-   * @example
-   * app.patch("/", ...handlers);
-   */
-  patch: MethodHandler<Rev, this>;
-  /**
-   * method DELETE (app or router)
-   * @example
-   * app.delete("/", ...handlers);
-   */
-  delete: MethodHandler<Rev, this>;
-  /**
-   * method ANY (allow all method directly) (app or router)
-   * @example
-   * app.any("/", ...handlers);
-   */
-  any: MethodHandler<Rev, this>;
-  head: MethodHandler<Rev, this>;
-  options: MethodHandler<Rev, this>;
-  trace: MethodHandler<Rev, this>;
-  connect: MethodHandler<Rev, this>;
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
-    if (this.base === "/") this.base = "";
-    this.get = this.on.bind(this, "GET");
-    this.post = this.on.bind(this, "POST");
-    this.put = this.on.bind(this, "PUT");
-    this.patch = this.on.bind(this, "PATCH");
-    this.delete = this.on.bind(this, "DELETE");
-    this.any = this.on.bind(this, "ANY");
-    this.head = this.on.bind(this, "HEAD");
-    this.options = this.on.bind(this, "OPTIONS");
-    this.trace = this.on.bind(this, "TRACE");
-    this.connect = this.on.bind(this, "CONNECT");
+    if (this.base == "/") this.base = "";
   }
-  private single(mtd: string, url: string) {
-    let { fns, m } = this.route[mtd + url];
-    if (m) return { params: {}, fns };
-    fns = this.midds.concat(fns);
-    this.route[mtd + url] = { m: true, fns };
-    return { params: {}, fns };
+
+  /**
+   * add middlware or router.
+   * @example
+   * app.use(...middlewares);
+   * app.use('/api/v1', routers);
+   */
+  use<T>(
+    prefix: string | RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[],
+    ...routerOrMiddleware: Array<
+      RouterOrWare<Rev & T> | RouterOrWare<Rev & T>[]
+    >
+  ) {
+    let args = routerOrMiddleware, str = "";
+    if (typeof prefix === "function" && !args.length) {
+      this.midds = this.midds.concat(findFns([prefix]));
+      return this;
+    }
+    if (typeof prefix === "string") str = prefix;
+    else args = [prefix].concat(args) as TRet;
+    const last = args[args.length - 1] as TObject;
+    if (
+      typeof last === "object" && (last.c_routes || last[0]?.c_routes)
+    ) {
+      pushRoutes(str, findFns(args), last, this);
+      return this;
+    }
+    if (str !== "" && str !== "*" && str !== "/*") {
+      const path = this.base + str;
+      this.pmidds ??= {};
+      if (!this.pmidds[path]) {
+        this.pmidds[path] = middAssets(path);
+        if ((this as TRet)["handle"]) {
+          ANY_METHODS.forEach((method) => {
+            const { pattern, wild } = toPathx(path, true);
+            (ROUTE[method] ??= []).push({ path, pattern, wild });
+          });
+        }
+      }
+      this.pmidds[path] = this.pmidds[path].concat(findFns<Rev>(args));
+      return this;
+    }
+    this.midds = this.midds.concat(findFns<Rev>(args));
+    return this;
   }
   /**
    * build handlers (app or router)
    * @example
    * app.on("GET", "/", ...handlers);
    */
-  on(method: string, path: string | RegExp, ...handlers: Handlers<Rev>) {
-    let _path: string | RegExp;
-    if (path instanceof RegExp) _path = concatRegexp(this.base, path);
+  on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>) {
+    if (path instanceof RegExp) path = concatRegexp(this.base, path);
     else {
-      if (path === "/" && this.base !== "") path = "";
-      _path = this.base + path;
+      if (path === "/" && this.base != "") path = "";
+      path = this.base + path;
     }
-    this.c_routes.push({ method, path: _path, fns: handlers });
+    let fns = findFns<Rev>(handlers);
+    fns = this.midds.concat(fns);
+    this.c_routes.push({ method, path, fns, pmidds: this.pmidds });
     return this;
   }
-  find(method: string, url: string, fn404: Handler<Rev>) {
-    if (this.route[method + url]) {
-      return this.single(method, url);
-    }
-    if (url !== "/" && url[url.length - 1] === "/") {
-      const _url = url.slice(0, -1);
-      if (this.route[method + _url]) {
-        return this.single(method, _url);
+  /**
+   * method GET (app or router)
+   * @example
+   * app.get("/", ...handlers);
+   */
+  get<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("GET", path, ...handlers);
+  }
+  /**
+   * method POST (app or router)
+   * @example
+   * app.post("/", ...handlers);
+   */
+  post<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("POST", path, ...handlers);
+  }
+  /**
+   * method PUT (app or router)
+   * @example
+   * app.put("/", ...handlers);
+   */
+  put<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("PUT", path, ...handlers);
+  }
+  /**
+   * method PATCH (app or router)
+   * @example
+   * app.patch("/", ...handlers);
+   */
+  patch<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("PATCH", path, ...handlers);
+  }
+  /**
+   * method DELETE (app or router)
+   * @example
+   * app.delete("/", ...handlers);
+   */
+  delete<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("DELETE", path, ...handlers);
+  }
+  /**
+   * method ANY (allow all method directly) (app or router)
+   * @example
+   * app.any("/", ...handlers);
+   */
+  any<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("ANY", path, ...handlers);
+  }
+  /**
+   * method HEAD (app or router)
+   * @example
+   * app.head("/", ...handlers);
+   */
+  head<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("HEAD", path, ...handlers);
+  }
+  /**
+   * method OPTIONS (app or router)
+   * @example
+   * app.options("/", ...handlers);
+   */
+  options<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("OPTIONS", path, ...handlers);
+  }
+  /**
+   * method TRACE (app or router)
+   * @example
+   * app.trace("/", ...handlers);
+   */
+  trace<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("TRACE", path, ...handlers);
+  }
+  /**
+   * method CONNECT (app or router)
+   * @example
+   * app.connect("/", ...handlers);
+   */
+  connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
+    return this.on("CONNECT", path, ...handlers);
+  }
+  private findPathAssets(path: string) {
+    const paths = path.split("/");
+    paths.shift();
+    return paths.reduce((acc, curr, i, arr) => {
+      if (this.pmidds?.[acc + "/" + curr]) {
+        arr.splice(i);
       }
+      return acc + "/" + curr;
+    }, "");
+  }
+  find(
+    method: string,
+    url: string,
+    getPath: (path: string) => string,
+    setParam: (p: () => TObject) => void,
+    notFound: (rev: Rev, next: NextFunction) => TRet,
+    mutate?: () => undefined | string,
+  ): Handler<Rev>[] {
+    const path = getPath(url);
+    if (this.route[method + path]) return this.route[method + path];
+    const r = this.route[method]?.find((el: TObject) => el.pattern?.test(path));
+    if (r) {
+      setParam(() => findParams(r, path));
+      return r.fns;
     }
-    let fns: Handler<Rev>[] = [], params: TObject = {};
-    let i = 0, obj: TObject = {};
-    let arr = this.route[method] || [];
-    let match: TObject;
-    if (this.route["ANY"]) arr = this.route["ANY"].concat(arr);
-    const len = arr.length;
-    while (i < len) {
-      obj = arr[i];
-      if (obj.pathx && obj.pathx.test(url)) {
-        url = decURI(url);
-        match = obj.pathx.exec(url);
-        fns = obj.fns;
-        if (!match) break;
-        params = wildcard(obj.path, obj.wild, match);
-        break;
-      }
-      i++;
+    if (path !== "/" && path[path.length - 1] === "/") {
+      const k = method + path.slice(0, -1);
+      if (this.route[k]) return this.route[k];
     }
+    const mut = mutate?.();
+    if (mut) return this.find(method, mut, getPath, setParam, notFound, void 0);
     if (this.pmidds) {
-      const p = base(url || "/");
-      if (this.pmidds[p]) fns = this.pmidds[p].concat(fns);
+      let p = this.pmidds[path] ? path : base(path);
+      if (!this.pmidds[p] && path.startsWith(p)) p = this.findPathAssets(path);
+      if (this.pmidds[p]) {
+        return this.midds.concat(this.pmidds[p], [notFound]);
+      }
     }
-    fns = this.midds.concat(fns, [fn404]);
-    return { params, fns };
+    return this.midds.concat([notFound]);
   }
 }

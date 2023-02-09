@@ -1,4 +1,6 @@
-import { Handler, HttpError, NHttp } from "../mod.ts";
+/* Simple realtime ChatApps */
+
+import { Handler, HttpError, nhttp } from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `
@@ -7,7 +9,7 @@ const html = `
         <title>Hello Chat</title>
         <script>
             window.onload = function(){ 
-                const ws = new WebSocket("ws://localhost:3000/ws");
+                const ws = new WebSocket("ws://localhost:8000/ws");
                 const chat = document.getElementById("my_chat");
                 const form = document.getElementById("my_form");
                 const message = document.getElementById("my_message");
@@ -38,9 +40,9 @@ const html = `
     </html>
 `;
 
-const wsHandler: Handler = ({ request }, next) => {
+const wsHandler: Handler = ({ request }) => {
   if (request.headers.get("upgrade") != "websocket") {
-    return next(new HttpError(400, "Bad Websocket"));
+    throw new HttpError(400, "Bad Websocket");
   }
   const { socket, response } = Deno.upgradeWebSocket(request);
   const channel = new BroadcastChannel("chat");
@@ -51,13 +53,14 @@ const wsHandler: Handler = ({ request }, next) => {
   return response;
 };
 const htmlHandler: Handler = ({ response }) => {
-  response.type("text/html");
-  return html;
+  response.type("html").send(html);
 };
 
-const app = new NHttp();
+const app = nhttp();
 
-app
-  .get("/", htmlHandler)
-  .get("/ws", wsHandler)
-  .listen(3000);
+app.get("/", htmlHandler);
+app.get("/ws", wsHandler);
+
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
+});

@@ -1,4 +1,4 @@
-import { NHttp } from "../mod.ts";
+import { nhttp } from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `
@@ -22,7 +22,7 @@ const html = `
       </body>
     </html>
 `;
-const app = new NHttp();
+const app = nhttp();
 
 app.get("/sse", ({ response }) => {
   response.type("text/event-stream");
@@ -37,8 +37,9 @@ app.get("/sse", ({ response }) => {
 });
 
 app.get("/", ({ response }) => {
-  response.type("text/html");
-  return html;
+  response.type("html").send(html);
 });
 
-app.listen(3000);
+app.listen(8000, (_err, info) => {
+  console.log(`Running on port ${info.port}`);
+});
