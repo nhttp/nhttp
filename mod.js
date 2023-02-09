@@ -234,7 +234,7 @@ function toBytes(arg) {
 function toPathx(path, flag) {
   if (path instanceof RegExp)
     return { pattern: path, wild: true, path };
-  if (/\?|\*|\.|\:/.test(path) === false && !flag) {
+  if (/\?|\*|\.|:/.test(path) === false && !flag) {
     return {};
   }
   let wild = false;
@@ -274,8 +274,9 @@ function myParse(arr) {
         red[field] = [red[field], value];
       }
     } else {
-      let [_, prefix, keys] = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ?? [];
-      prefix = prefix ?? field;
+      const arr2 = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ?? [];
+      const prefix = arr2[1] ?? field;
+      let keys = arr2[2];
       if (keys) {
         keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m) => m[1]);
         value = needPatch(red[prefix], keys, value);
@@ -988,7 +989,7 @@ var multipart = new Multipart();
 
 // npm/src/src/body.ts
 var defautl_size = "3mb";
-async function verifyBody(req, limit = defautl_size) {
+async function verifyBody(req, limit) {
   const arrBuff = await arrayBuffer(req);
   if (limit && arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
@@ -1001,6 +1002,73 @@ function acceptContentType(headers, cType) {
   const type = ((_a = headers.get) == null ? void 0 : _a.call(headers, "content-type")) ?? headers["content-type"];
   return type === cType || (type == null ? void 0 : type.includes(cType));
 }
+function isValidBody(validate) {
+  if (validate === false || validate === 0)
+    return false;
+  if (validate === void 0 || validate === true) {
+    validate = defautl_size;
+  }
+  return true;
+}
+async function jsonBody(validate, rev, next) {
+  if (!isValidBody(validate))
+    return next();
+  try {
+    const body = await verifyBody(rev.request, validate);
+    rev.body = JSON.parse(body);
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+async function urlencodedBody(validate, parseQuery2, rev, next) {
+  if (!isValidBody(validate))
+    return next();
+  try {
+    const body = await verifyBody(rev.request, validate);
+    const parse = parseQuery2 || parseQuery;
+    rev.body = parse(body);
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+async function rawBody(validate, rev, next) {
+  if (!isValidBody(validate))
+    return next();
+  try {
+    const body = await verifyBody(rev.request, validate);
+    try {
+      rev.body = JSON.parse(body);
+    } catch (_err) {
+      rev.body = { _raw: body };
+    }
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+async function multipartBody(validate, parseMultipart, rev, next) {
+  if (validate === false || validate === 0)
+    return next();
+  try {
+    if (typeof rev.request.formData === "function") {
+      const formData = await rev.request.formData();
+      rev.body = await multipart.createBody(formData, {
+        parse: parseMultipart
+      });
+    } else {
+      rev.body = await multiParser(rev.request) || {};
+    }
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
 function bodyParser(opts, parseQuery2, parseMultipart) {
   const ret = (rev, next) => {
     if (rev.method === "GET" || rev.method === "HEAD" || opts === false || !rev.bodyValid || rev.bodyUsed)
@@ -1008,61 +1076,19 @@ function bodyParser(opts, parseQuery2, parseMultipart) {
     if (opts === void 0 || opts === true)
       opts = {};
     const headers = rev.headers;
-    return (async () => {
-      if (acceptContentType(headers, "application/json")) {
-        if (opts.json === false || opts.json === 0)
-          return next();
-        try {
-          const body = await verifyBody(rev.request, opts.json);
-          rev.body = JSON.parse(body);
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (acceptContentType(headers, "application/x-www-form-urlencoded")) {
-        if (opts.urlencoded === false || opts.urlencoded === 0)
-          return next();
-        try {
-          const body = await verifyBody(rev.request, opts.urlencoded);
-          const parse = parseQuery2 || parseQuery;
-          rev.body = parse(body);
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (acceptContentType(headers, "text/plain")) {
-        if (opts.raw === false || opts.raw === 0)
-          return next();
-        try {
-          const body = await verifyBody(rev.request, opts.raw);
-          try {
-            rev.body = JSON.parse(body);
-          } catch (_err) {
-            rev.body = { _raw: body };
-          }
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (acceptContentType(headers, "multipart/form-data")) {
-        if (opts.multipart === false || opts.multipart === 0)
-          return next();
-        try {
-          if (typeof rev.request.formData === "function") {
-            const formData = await rev.request.formData();
-            rev.body = await multipart.createBody(formData, {
-              parse: parseMultipart
-            });
-          } else {
-            rev.body = await multiParser(rev.request) || {};
-          }
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      }
-      return next();
-    })();
+    if (acceptContentType(headers, "application/json")) {
+      return jsonBody(opts.json, rev, next);
+    }
+    if (acceptContentType(headers, "application/x-www-form-urlencoded")) {
+      return urlencodedBody(opts.urlencoded, parseQuery2, rev, next);
+    }
+    if (acceptContentType(headers, "text/plain")) {
+      return rawBody(opts.raw, rev, next);
+    }
+    if (acceptContentType(headers, "multipart/form-data")) {
+      return multipartBody(opts.multipart, parseMultipart, rev, next);
+    }
+    return next();
   };
   return ret;
 }
@@ -1466,13 +1492,18 @@ var NHttp = class extends Router {
     this.bodyParser = bodyParser2;
   }
   onError(fn) {
-    this._onError = (err, rev, next) => {
+    this._onError = (err, rev) => {
       try {
         let status = err.status || err.statusCode || err.code || 500;
         if (typeof status !== "number")
           status = 500;
         rev.response.status(status);
-        return fn(err, rev, next);
+        return fn(err, rev, (e) => {
+          if (e) {
+            return rev.response.status(e.status ?? 500).send(String(e));
+          }
+          return this._on404(rev);
+        });
       } catch (err2) {
         return defError(err2, rev, this.stackError);
       }
@@ -1480,10 +1511,16 @@ var NHttp = class extends Router {
     return this;
   }
   on404(fn) {
-    this._on404 = (rev, next) => {
+    const def = this._on404.bind(this);
+    this._on404 = (rev) => {
       try {
         rev.response.status(404);
-        return fn(rev, next);
+        return fn(rev, (e) => {
+          if (e) {
+            return this._onError(e, rev);
+          }
+          return def(rev);
+        });
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -1595,7 +1632,7 @@ var NHttp = class extends Router {
     const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
     const next = (err) => {
       try {
-        const ret = err ? this._onError(err, rev, next) : (fns[i++] ?? this._on404)(rev, next);
+        const ret = err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next);
         return rev[s_response] ?? resend(ret, rev, next);
       } catch (e) {
         return next(e);
@@ -1676,10 +1713,10 @@ var NHttp = class extends Router {
       }
     })();
   }
-  _onError(err, rev, _) {
+  _onError(err, rev) {
     return defError(err, rev, this.stackError);
   }
-  _on404(rev, _) {
+  _on404(rev) {
     const obj = getError(new HttpError(404, `Route ${rev.method}${rev.url} not found`, "NotFoundError"));
     return rev.response.status(obj.status).json(obj);
   }
@@ -1867,7 +1904,7 @@ var NHttp2 = class extends NHttp {
     };
     const next = (err) => {
       try {
-        return send(err ? this["_onError"](err, rev, next) : (fns[i++] ?? this["_on404"])(rev, next));
+        return send(err ? this["_onError"](err, rev) : (fns[i++] ?? this["_on404"])(rev, next));
       } catch (e) {
         return next(e);
       }

@@ -68,6 +68,8 @@ Deno.test("RequestEvent", async (t) => {
 
   assertEquals(rev.search, null);
   assertEquals(rev.bodyUsed, false);
+  rev.bodyUsed = true;
+  assertEquals(rev.bodyUsed, true);
 
   assertEquals(rev.url, "/");
   rev.url = "/hello";
@@ -133,6 +135,7 @@ Deno.test("RequestEvent", async (t) => {
       () => ({}),
     );
     assertEquals(typeof rev.request, "object");
+    assertEquals(rev.bodyUsed, false);
   });
   await t.step("waitUntil", () => {
     const rev = new RequestEvent(

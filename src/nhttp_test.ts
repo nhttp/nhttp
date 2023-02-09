@@ -1,4 +1,4 @@
-import { Handler, Router } from "../mod.ts";
+import { Handler, HttpError, Router } from "../mod.ts";
 import { nhttp } from "./nhttp.ts";
 import { RequestEvent } from "./request_event.ts";
 import { assertEquals, superdeno } from "./deps_test.ts";
@@ -198,6 +198,53 @@ Deno.test("nhttp", async (t) => {
     app.get("/hello", async (_, next) => await next());
     await superdeno(app.handle).get("/").expect(404);
     await superdeno(app.handle).get("/hello").expect(404);
+  });
+  await t.step("404 next error", async () => {
+    const app = nhttp();
+    app.get("/", (_, next) => next());
+    app.on404((_rev, next) => {
+      return next(new HttpError(500, "noop"));
+    });
+    await superdeno(app.handle).get("/hello").expect(500);
+  });
+  await t.step("404 next error", async () => {
+    const app = nhttp();
+    app.get("/", (_, next) => next());
+    app.on404((_rev, next) => {
+      return next(new Error());
+    });
+    await superdeno(app.handle).get("/hello").expect(500);
+  });
+  await t.step("404 next", async () => {
+    const app = nhttp();
+    app.on404((_rev, next) => {
+      return next();
+    });
+    await superdeno(app.handle).get("/hello").expect(404);
+  });
+  await t.step("error next error", async () => {
+    const app = nhttp();
+    app.get("/", (rev) => rev.noop());
+    app.onError((_e, _rev, next) => {
+      return next(new HttpError(500, "noop"));
+    });
+    await superdeno(app.handle).get("/").expect(500);
+  });
+  await t.step("error next error2", async () => {
+    const app = nhttp();
+    app.get("/", (rev) => rev.noop());
+    app.onError((_e, _rev, next) => {
+      return next(new Error());
+    });
+    await superdeno(app.handle).get("/").expect(500);
+  });
+  await t.step("error next", async () => {
+    const app = nhttp();
+    app.get("/", (rev) => rev.noop());
+    app.onError((_e, _rev, next) => {
+      return next();
+    });
+    await superdeno(app.handle).get("/").expect(404);
   });
   await t.step("noop path", async () => {
     const app = nhttp();

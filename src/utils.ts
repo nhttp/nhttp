@@ -99,7 +99,7 @@ export function toBytes(arg: string | number) {
 
 export function toPathx(path: string | RegExp, flag?: boolean) {
   if (path instanceof RegExp) return { pattern: path, wild: true, path };
-  if (/\?|\*|\.|\:/.test(path) === false && !flag) {
+  if (/\?|\*|\.|:/.test(path) === false && !flag) {
     return {};
   }
   let wild = false;
@@ -151,9 +151,9 @@ export function myParse(arr: EArr[]) {
         red[field] = [red[field], value];
       }
     } else {
-      let [_, prefix, keys]: TRet = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ??
-        [];
-      prefix = prefix ?? field;
+      const arr = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ?? [];
+      const prefix = arr[1] ?? field;
+      let keys: TRet = <TRet> arr[2];
       if (keys) {
         keys = Array.from(
           keys.matchAll(/\[([^\]]*)\]/g),

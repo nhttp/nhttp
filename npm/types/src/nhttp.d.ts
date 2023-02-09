@@ -29,7 +29,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     /**
      * global error handling.
      * @example
-     * app.onError((err, { res }) => {
+     * app.onError((err, { response }) => {
      *    response.send(err.message);
      * })
      */

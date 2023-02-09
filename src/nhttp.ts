@@ -112,7 +112,7 @@ export class NHttp<
   /**
    * global error handling.
    * @example
-   * app.onError((err, { res }) => {
+   * app.onError((err, { response }) => {
    *    response.send(err.message);
    * })
    */
@@ -123,12 +123,17 @@ export class NHttp<
       next: NextFunction,
     ) => RetHandler,
   ) {
-    this._onError = (err, rev, next) => {
+    this._onError = (err, rev) => {
       try {
         let status: number = err.status || err.statusCode || err.code || 500;
         if (typeof status !== "number") status = 500;
         rev.response.status(status);
-        return fn(err, rev, next);
+        return fn(err, rev, (e: TRet) => {
+          if (e) {
+            return rev.response.status(e.status ?? 500).send(String(e));
+          }
+          return this._on404(rev);
+        });
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -148,10 +153,16 @@ export class NHttp<
       next: NextFunction,
     ) => RetHandler,
   ) {
-    this._on404 = (rev, next) => {
+    const def = this._on404.bind(this);
+    this._on404 = (rev) => {
       try {
         rev.response.status(404);
-        return fn(rev, next);
+        return fn(rev, (e) => {
+          if (e) {
+            return this._onError(e, rev);
+          }
+          return def(rev);
+        });
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -289,7 +300,7 @@ export class NHttp<
     const next: NextFunction = (err) => {
       try {
         const ret = err
-          ? this._onError(err, rev, next)
+          ? this._onError(err, rev)
           : (fns[i++] ?? this._on404)(rev, next);
         return rev[s_response] ?? resend(ret, rev, next);
       } catch (e) {
@@ -372,6 +383,7 @@ export class NHttp<
           }
           if (opts.test) return;
           this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
+          /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
           while (true) {
             try {
               const conn = await this.server.accept();
@@ -392,11 +404,10 @@ export class NHttp<
   private _onError(
     err: TObject,
     rev: Rev,
-    _: NextFunction,
   ): RetHandler {
     return defError(err, rev, this.stackError);
   }
-  private _on404(rev: Rev, _: NextFunction): RetHandler {
+  private _on404(rev: Rev): RetHandler {
     const obj = getError(
       new HttpError(
         404,
@@ -410,6 +421,7 @@ export class NHttp<
   private async handleConn(conn: Deno.Conn, handler: CustomHandler) {
     try {
       const httpConn = Deno.serveHttp(conn);
+      /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
       while (true) {
         try {
           const rev = await httpConn.nextRequest();

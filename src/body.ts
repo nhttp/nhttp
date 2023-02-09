@@ -1,7 +1,14 @@
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
 import { multiParser } from "./multipart_parser.ts";
-import { Handler, TBodyParser, TObject, TQueryFunc } from "./types.ts";
+import { RequestEvent } from "./request_event.ts";
+import {
+  Handler,
+  NextFunction,
+  TBodyParser,
+  TObject,
+  TQueryFunc,
+} from "./types.ts";
 import {
   arrayBuffer,
   decoder,
@@ -10,11 +17,13 @@ import {
   toBytes,
 } from "./utils.ts";
 
+type TValidBody = boolean | number | string | undefined;
+
 const defautl_size = "3mb";
 
 async function verifyBody(
   req: TObject,
-  limit: number | string = defautl_size,
+  limit: number | string,
 ) {
   const arrBuff = await arrayBuffer(req);
   if (limit && (arrBuff.byteLength > toBytes(limit))) {
@@ -38,6 +47,93 @@ export function acceptContentType(headers: Headers, cType: CType) {
   return type === cType || type?.includes(cType);
 }
 
+function isValidBody(validate: TValidBody) {
+  if (validate === false || validate === 0) return false;
+  if (validate === undefined || validate === true) {
+    validate = defautl_size;
+  }
+  return true;
+}
+
+async function jsonBody(
+  validate: TValidBody,
+  rev: RequestEvent,
+  next: NextFunction,
+) {
+  if (!isValidBody(validate)) return next();
+  try {
+    const body = await verifyBody(rev.request, <string> validate);
+    rev.body = JSON.parse(body);
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function urlencodedBody(
+  validate: TValidBody,
+  parseQuery: TQueryFunc,
+  rev: RequestEvent,
+  next: NextFunction,
+) {
+  if (!isValidBody(validate)) return next();
+  try {
+    const body = await verifyBody(
+      rev.request,
+      <string> validate,
+    );
+    const parse = parseQuery || parseQueryOri;
+    rev.body = parse(body);
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function rawBody(
+  validate: TValidBody,
+  rev: RequestEvent,
+  next: NextFunction,
+) {
+  if (!isValidBody(validate)) return next();
+  try {
+    const body = await verifyBody(rev.request, <string> validate);
+    try {
+      rev.body = JSON.parse(body);
+    } catch (_err) {
+      rev.body = { _raw: body };
+    }
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+async function multipartBody(
+  validate: TValidBody,
+  parseMultipart: TQueryFunc,
+  rev: RequestEvent,
+  next: NextFunction,
+) {
+  if (validate === false || validate === 0) return next();
+  try {
+    if (typeof rev.request.formData === "function") {
+      const formData = await rev.request.formData();
+      rev.body = await multipart.createBody(formData, {
+        parse: parseMultipart,
+      });
+    } else {
+      rev.body = (await multiParser(rev.request)) || {};
+    }
+    rev.bodyUsed = true;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export function bodyParser(
   opts?: TBodyParser | boolean,
   parseQuery?: TQueryFunc,
@@ -53,62 +149,21 @@ export function bodyParser(
     ) return next();
     if (opts === void 0 || opts === true) opts = {};
     const headers = rev.headers;
-    return (async () => {
-      if (acceptContentType(headers, "application/json")) {
-        if (opts.json === false || opts.json === 0) return next();
-        try {
-          const body = await verifyBody(rev.request, opts.json as number);
-          rev.body = JSON.parse(body);
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (
-        acceptContentType(headers, "application/x-www-form-urlencoded")
-      ) {
-        if (opts.urlencoded === false || opts.urlencoded === 0) return next();
-        try {
-          const body = await verifyBody(
-            rev.request,
-            opts.urlencoded as number,
-          );
-          const parse = parseQuery || parseQueryOri;
-          rev.body = parse(body);
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (acceptContentType(headers, "text/plain")) {
-        if (opts.raw === false || opts.raw === 0) return next();
-        try {
-          const body = await verifyBody(rev.request, opts.raw as number);
-          try {
-            rev.body = JSON.parse(body);
-          } catch (_err) {
-            rev.body = { _raw: body };
-          }
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      } else if (acceptContentType(headers, "multipart/form-data")) {
-        if (opts.multipart === false || opts.multipart === 0) return next();
-        try {
-          if (typeof rev.request.formData === "function") {
-            const formData = await rev.request.formData();
-            rev.body = await multipart.createBody(formData, {
-              parse: parseMultipart,
-            });
-          } else {
-            rev.body = (await multiParser(rev.request)) || {};
-          }
-          rev.bodyUsed = true;
-        } catch (error) {
-          return next(error);
-        }
-      }
-      return next();
-    })();
+    if (acceptContentType(headers, "application/json")) {
+      return jsonBody(opts.json, rev, next);
+    }
+    if (
+      acceptContentType(headers, "application/x-www-form-urlencoded")
+    ) {
+      return urlencodedBody(opts.urlencoded, parseQuery, rev, next);
+    }
+    if (acceptContentType(headers, "text/plain")) {
+      return rawBody(opts.raw, rev, next);
+    }
+    if (acceptContentType(headers, "multipart/form-data")) {
+      return multipartBody(opts.multipart, parseMultipart, rev, next);
+    }
+    return next();
   };
   return ret;
 }

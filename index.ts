@@ -173,7 +173,7 @@ export class NHttp<
       try {
         return send(
           err
-            ? this["_onError"](err, <Rev> rev, next)
+            ? this["_onError"](err, <Rev> rev)
             : (fns[i++] ?? this["_on404"])(rev, next),
         );
       } catch (e) {
