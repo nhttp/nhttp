@@ -67,6 +67,8 @@ __export(src_exports, {
 });
 
 // npm/src/src/constant.ts
+var JSON_TYPE = "application/json";
+var HTML_TYPE = "text/html;charset=UTF-8";
 var STATUS_LIST = {
   100: "Continue",
   101: "Switching Protocols",
@@ -240,7 +242,6 @@ function findFn(fn) {
   return fn;
 }
 function findFns(arr) {
-  var _a;
   let ret = [], i = 0;
   const len = arr.length;
   for (; i < len; i++) {
@@ -248,7 +249,7 @@ function findFns(arr) {
     if (Array.isArray(fn)) {
       ret = ret.concat(findFns(fn));
     } else if (typeof fn === "function") {
-      if ((_a = fn.prototype) == null ? void 0 : _a.use) {
+      if (fn.prototype?.use) {
         ret.push(findFn(fn.prototype.use));
       } else {
         ret.push(findFn(fn));
@@ -258,6 +259,8 @@ function findFns(arr) {
   return ret;
 }
 function toBytes(arg) {
+  if (typeof arg === "number")
+    return arg;
   const sizeList = {
     b: 1,
     kb: 1 << 10,
@@ -266,8 +269,6 @@ function toBytes(arg) {
     tb: Math.pow(1024, 4),
     pb: Math.pow(1024, 5)
   };
-  if (typeof arg === "number")
-    return arg;
   const arr = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i.exec(arg);
   let val, unt = "b";
   if (!arr) {
@@ -310,7 +311,8 @@ function needPatch(data, keys, value) {
   }
   data = data || {};
   const val = needPatch(data[key], keys, value);
-  data[key] = val;
+  if (typeof data === "object")
+    data[key] = val;
   return data;
 }
 function myParse(arr) {
@@ -335,19 +337,41 @@ function myParse(arr) {
   }, {});
   return obj;
 }
+function parseQueryArray(query) {
+  const arr = query.split("&");
+  const len = arr.length;
+  let i = 0;
+  const data = [];
+  while (i < len) {
+    const el = arr[i].split("=");
+    data.push([el[0], el[1] ?? ""]);
+    i++;
+  }
+  return myParse(data);
+}
 function parseQuery(query) {
   if (!query)
     return {};
   if (typeof query === "string") {
-    let i = 0;
+    query = decURIComponent(query);
+    if (query.includes("]="))
+      return parseQueryArray(query);
     const arr = query.split("&");
-    const data = [], len = arr.length;
+    const len = arr.length;
+    let i = 0;
+    const data = {};
     while (i < len) {
       const el = arr[i].split("=");
-      data.push([decURIComponent(el[0]), decURIComponent(el[1] || "")]);
+      if (data[el[0]]) {
+        if (!Array.isArray(data[el[0]]))
+          data[el[0]] = [data[el[0]]];
+        data[el[0]].push(el[1] ?? "");
+      } else {
+        data[el[0]] = el[1] ?? "";
+      }
       i++;
     }
-    return myParse(data);
+    return data;
   }
   return myParse(Array.from(query.entries()));
 }
@@ -396,28 +420,7 @@ function pushRoutes(str, wares, last, base2) {
     });
   });
 }
-function getPos(url, k = -1, l = 0) {
-  while ((k = url.indexOf("/", k + 1)) != -1) {
-    l++;
-    if (l == 3)
-      break;
-  }
-  return k;
-}
-var c_len;
-function getUrl(url) {
-  return url.substring(c_len ??= getPos(url));
-}
-function updateLen(url) {
-  if (url[0] === "/")
-    return;
-  const pos = getPos(url);
-  if (c_len && c_len != pos) {
-    c_len = pos;
-    return getUrl(url);
-  }
-  return;
-}
+var getUrl = (s) => s.substring(s.indexOf("/", 8));
 function serializeCookie(name, value, cookie = {}) {
   cookie.encode = !!cookie.encode;
   if (cookie.encode) {
@@ -530,9 +533,8 @@ function arrayBuffer(request) {
 
 // npm/src/src/router.ts
 function findParams(el, url) {
-  var _a, _b;
-  const match = (_b = (_a = el.pattern).exec) == null ? void 0 : _b.call(_a, decURIComponent(url));
-  const params = (match == null ? void 0 : match.groups) ?? {};
+  const match = el.pattern.exec?.(decURIComponent(url));
+  const params = match?.groups ?? {};
   if (!el.wild || !el.path)
     return params;
   const path = el.path;
@@ -579,7 +581,6 @@ var Router = class {
       this.base = "";
   }
   use(prefix, ...routerOrMiddleware) {
-    var _a;
     let args = routerOrMiddleware, str = "";
     if (typeof prefix === "function" && !args.length) {
       this.midds = this.midds.concat(findFns([prefix]));
@@ -590,7 +591,7 @@ var Router = class {
     else
       args = [prefix].concat(args);
     const last = args[args.length - 1];
-    if (typeof last === "object" && (last.c_routes || ((_a = last[0]) == null ? void 0 : _a.c_routes))) {
+    if (typeof last === "object" && (last.c_routes || last[0]?.c_routes)) {
       pushRoutes(str, findFns(args), last, this);
       return this;
     }
@@ -659,22 +660,17 @@ var Router = class {
     const paths = path.split("/");
     paths.shift();
     return paths.reduce((acc, curr, i, arr) => {
-      var _a;
-      if ((_a = this.pmidds) == null ? void 0 : _a[acc + "/" + curr]) {
+      if (this.pmidds?.[acc + "/" + curr]) {
         arr.splice(i);
       }
       return acc + "/" + curr;
     }, "");
   }
-  find(method, url, getPath, setParam, notFound, mutate) {
-    var _a;
+  find(method, url, getPath, setParam, notFound) {
     const path = getPath(url);
     if (this.route[method + path])
       return this.route[method + path];
-    const r = (_a = this.route[method]) == null ? void 0 : _a.find((el) => {
-      var _a2;
-      return (_a2 = el.pattern) == null ? void 0 : _a2.test(path);
-    });
+    const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r) {
       setParam(() => findParams(r, path));
       return r.fns;
@@ -684,9 +680,6 @@ var Router = class {
       if (this.route[k])
         return this.route[k];
     }
-    const mut = mutate == null ? void 0 : mutate();
-    if (mut)
-      return this.find(method, mut, getPath, setParam, notFound, void 0);
     if (this.pmidds) {
       let p = this.pmidds[path] ? path : base(path);
       if (!this.pmidds[p] && path.startsWith(p))
@@ -740,8 +733,7 @@ var encode = {
   carriageReturn: encoder.encode("\r")
 };
 function getType(headers) {
-  var _a;
-  return ((_a = headers.get) == null ? void 0 : _a.call(headers, "content-type")) ?? headers["content-type"];
+  return headers.get?.("content-type") ?? headers["content-type"];
 }
 async function multiParser(request) {
   const arrayBuf = await arrayBuffer(request);
@@ -926,7 +918,7 @@ var Multipart = class {
   validate(files, opts) {
     let j = 0;
     const len = files.length;
-    if (opts == null ? void 0 : opts.maxCount) {
+    if (opts?.maxCount) {
       if (len > opts.maxCount) {
         throw new HttpError(400, `${opts.name} no more than ${opts.maxCount} file`, "BadRequestError");
       }
@@ -934,12 +926,12 @@ var Multipart = class {
     while (j < len) {
       const file = files[j];
       const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
-      if (opts == null ? void 0 : opts.accept) {
+      if (opts?.accept) {
         if (!opts.accept.includes(ext)) {
           throw new HttpError(400, `${opts.name} only accept ${opts.accept}`, "BadRequestError");
         }
       }
-      if (opts == null ? void 0 : opts.maxSize) {
+      if (opts?.maxSize) {
         if (file.size > toBytes(opts.maxSize)) {
           throw new HttpError(400, `${opts.name} to large, maxSize = ${opts.maxSize}`, "BadRequestError");
         }
@@ -1036,26 +1028,22 @@ var Multipart = class {
 var multipart = new Multipart();
 
 // npm/src/src/body.ts
-var defautl_size = "3mb";
-async function verifyBody(req, limit) {
+var defautl_size = 1048576;
+async function verifyBody(req, limit = defautl_size) {
   const arrBuff = await arrayBuffer(req);
-  if (limit && arrBuff.byteLength > toBytes(limit)) {
+  if (arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
-  const body = decURIComponent(decoder.decode(arrBuff));
-  return body;
+  const val = decoder.decode(arrBuff);
+  return val ? decURIComponent(val) : void 0;
 }
 function acceptContentType(headers, cType) {
-  var _a;
-  const type = ((_a = headers.get) == null ? void 0 : _a.call(headers, "content-type")) ?? headers["content-type"];
-  return type === cType || (type == null ? void 0 : type.includes(cType));
+  const type = headers.get?.("content-type") ?? headers["content-type"];
+  return type === cType || type?.includes(cType);
 }
 function isValidBody(validate) {
   if (validate === false || validate === 0)
     return false;
-  if (validate === void 0 || validate === true) {
-    validate = defautl_size;
-  }
   return true;
 }
 async function jsonBody(validate, rev, next) {
@@ -1063,6 +1051,8 @@ async function jsonBody(validate, rev, next) {
     return next();
   try {
     const body = await verifyBody(rev.request, validate);
+    if (!body)
+      return next();
     rev.body = JSON.parse(body);
     rev.bodyUsed = true;
     return next();
@@ -1075,6 +1065,8 @@ async function urlencodedBody(validate, parseQuery2, rev, next) {
     return next();
   try {
     const body = await verifyBody(rev.request, validate);
+    if (!body)
+      return next();
     const parse = parseQuery2 || parseQuery;
     rev.body = parse(body);
     rev.bodyUsed = true;
@@ -1088,6 +1080,8 @@ async function rawBody(validate, rev, next) {
     return next();
   try {
     const body = await verifyBody(rev.request, validate);
+    if (!body)
+      return next();
     try {
       rev.body = JSON.parse(body);
     } catch (_err) {
@@ -1100,8 +1094,9 @@ async function rawBody(validate, rev, next) {
   }
 }
 async function multipartBody(validate, parseMultipart, rev, next) {
-  if (validate === false || validate === 0)
+  if (!rev.bodyValid || validate === false || validate === 0) {
     return next();
+  }
   try {
     if (typeof rev.request.formData === "function") {
       const formData = await rev.request.formData();
@@ -1119,22 +1114,22 @@ async function multipartBody(validate, parseMultipart, rev, next) {
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
   const ret = (rev, next) => {
-    if (rev.method === "GET" || rev.method === "HEAD" || opts === false || !rev.bodyValid || rev.bodyUsed)
+    if (opts === false || rev.bodyUsed)
       return next();
-    if (opts === void 0 || opts === true)
+    if (opts === true)
       opts = {};
     const headers = rev.headers;
     if (acceptContentType(headers, "application/json")) {
-      return jsonBody(opts.json, rev, next);
+      return jsonBody(opts?.json, rev, next);
     }
     if (acceptContentType(headers, "application/x-www-form-urlencoded")) {
-      return urlencodedBody(opts.urlencoded, parseQuery2, rev, next);
+      return urlencodedBody(opts?.urlencoded, parseQuery2, rev, next);
     }
     if (acceptContentType(headers, "text/plain")) {
-      return rawBody(opts.raw, rev, next);
+      return rawBody(opts?.raw, rev, next);
     }
     if (acceptContentType(headers, "multipart/form-data")) {
-      return multipartBody(opts.multipart, parseMultipart, rev, next);
+      return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();
   };
@@ -1160,26 +1155,20 @@ var s_response = Symbol("res");
 var s_promise_response = Symbol("promise_res");
 
 // npm/src/src/http_response.ts
-var JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
-var HTML_TYPE_CHARSET = "text/html; charset=UTF-8";
 var HttpResponse = class {
   constructor(_send) {
     this._send = _send;
   }
   header(key, value) {
-    if (!this.init)
-      this.init = {};
-    if (this.init.headers) {
-      if (this.init.headers instanceof Headers) {
-        this.init.headers = Object.fromEntries(this.init.headers.entries());
-      }
-    } else
-      this.init.headers = {};
+    this.init ??= {};
+    this.init.headers ??= {};
+    if (this.init.headers instanceof Headers) {
+      this.init.headers = Object.fromEntries(this.init.headers.entries());
+    }
     if (typeof key === "string") {
       key = key.toLowerCase();
-      if (!value) {
+      if (value === void 0)
         return this.init.headers[key];
-      }
       this.init.headers[key] = value;
       return this;
     }
@@ -1193,14 +1182,13 @@ var HttpResponse = class {
     return this.init.headers = new Headers(this.init.headers);
   }
   status(code) {
-    var _a;
     if (code) {
       this.init ??= {};
       this.init.statusText = STATUS_LIST[code];
       this.init.status = code;
       return this;
     }
-    return ((_a = this.init) == null ? void 0 : _a.status) || 200;
+    return this.init?.status || 200;
   }
   sendStatus(code) {
     if (code > 511)
@@ -1286,11 +1274,11 @@ var JsonResponse = class extends Response {
   constructor(body, resInit = {}) {
     if (resInit.headers) {
       if (resInit.headers instanceof Headers) {
-        resInit.headers.set("content-type", JSON_TYPE_CHARSET);
+        resInit.headers.set("content-type", JSON_TYPE);
       } else
-        resInit.headers["content-type"] = JSON_TYPE_CHARSET;
+        resInit.headers["content-type"] = JSON_TYPE;
     } else
-      resInit.headers = { "content-type": JSON_TYPE_CHARSET };
+      resInit.headers = { "content-type": JSON_TYPE };
     super(JSON.stringify(body), resInit);
   }
 };
@@ -1310,17 +1298,13 @@ var RequestEvent = class {
     return this[s_res] ??= new HttpResponse(this.send.bind(this));
   }
   get route() {
-    var _a;
     if (this[s_route])
       return this[s_route];
     let path = this.path;
     if (path !== "/" && path[path.length - 1] === "/") {
       path = path.slice(0, -1);
     }
-    const ret = (_a = ROUTE[this.method]) == null ? void 0 : _a.find((o) => {
-      var _a2;
-      return ((_a2 = o.pattern) == null ? void 0 : _a2.test(path)) || o.path === path;
-    });
+    const ret = ROUTE[this.method]?.find((o) => o.pattern?.test(path) || o.path === path);
     if (ret) {
       if (!ret.pattern) {
         Object.assign(ret, toPathx(ret.path, true));
@@ -1348,34 +1332,33 @@ var RequestEvent = class {
     this[s_response] = r;
   }
   send(body) {
-    var _a, _b, _c, _d;
     if (typeof body === "string") {
-      this[s_response] = new Response(body, (_a = this[s_res]) == null ? void 0 : _a.init);
+      this[s_response] = new Response(body, this[s_res]?.init);
     } else if (body instanceof Response) {
       this[s_response] = body;
     } else if (typeof body === "object") {
       if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob) {
-        this[s_response] = new Response(body, (_b = this[s_res]) == null ? void 0 : _b.init);
+        this[s_response] = new Response(body, this[s_res]?.init);
       } else {
-        const init = ((_c = this[s_res]) == null ? void 0 : _c.init) ?? {};
+        const init = this[s_res]?.init ?? {};
         if (init.headers) {
+          const type = "content-type";
           if (init.headers instanceof Headers) {
-            init.headers.set("content-type", JSON_TYPE_CHARSET);
+            init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
           } else {
-            init.headers["content-type"] = JSON_TYPE_CHARSET;
+            init.headers[type] ??= JSON_TYPE;
           }
         } else {
-          init.headers = { "content-type": JSON_TYPE_CHARSET };
+          init.headers = { "content-type": JSON_TYPE };
         }
         this[s_response] = new Response(JSON.stringify(body), init);
       }
     } else {
-      this[s_response] = new Response(body, (_d = this[s_res]) == null ? void 0 : _d.init);
+      this[s_response] = new Response(body, this[s_res]?.init);
     }
   }
   get responseInit() {
-    var _a;
-    return ((_a = this[s_res]) == null ? void 0 : _a.init) ?? {};
+    return this[s_res]?.init ?? {};
   }
   get search() {
     return this[s_search] ?? null;
@@ -1384,8 +1367,7 @@ var RequestEvent = class {
     this[s_search] = val;
   }
   get bodyUsed() {
-    var _a;
-    return this[s_body_used] ?? ((_a = this.request) == null ? void 0 : _a.bodyUsed) ?? false;
+    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
   }
   set bodyUsed(val) {
     this[s_body_used] = val;
@@ -1399,8 +1381,7 @@ var RequestEvent = class {
     return true;
   }
   get params() {
-    var _a;
-    return this[s_params] ??= ((_a = this.__params) == null ? void 0 : _a.call(this)) ?? {};
+    return this[s_params] ??= this.__params?.() ?? {};
   }
   set params(val) {
     this[s_params] = val;
@@ -1424,8 +1405,7 @@ var RequestEvent = class {
     this[s_path] = val;
   }
   get query() {
-    var _a, _b;
-    return this[s_query] ??= ((_b = this.__parseQuery) == null ? void 0 : _b.call(this, (_a = this.search) == null ? void 0 : _a.substring(1))) ?? {};
+    return this[s_query] ??= this.__parseQuery?.(this.search?.substring(1)) ?? {};
   }
   set query(val) {
     this[s_query] = val;
@@ -1576,14 +1556,13 @@ var NHttp = class extends Router {
     return this;
   }
   on(method, path, ...handlers) {
-    var _a;
     let fns = findFns(handlers);
     if (typeof path === "string") {
       if (path !== "/" && path.endsWith("/")) {
         path = path.slice(0, -1);
       }
       for (const k in this.pmidds) {
-        if (k === path || ((_a = toPathx(k).pattern) == null ? void 0 : _a.test(path))) {
+        if (k === path || toPathx(k).pattern?.test(path)) {
           fns = this.pmidds[k].concat([(rev, next) => {
             if (rev.__url && rev.__path) {
               rev.url = rev.__url;
@@ -1646,7 +1625,7 @@ var NHttp = class extends Router {
           }
         }
         params ??= response.params;
-        response.type(HTML_TYPE_CHARSET);
+        response.type(HTML_TYPE);
         const ret = renderFile(elem, params, ...args);
         if (ret) {
           if (ret instanceof Promise) {
@@ -1671,7 +1650,7 @@ var NHttp = class extends Router {
       return str;
     }, (p) => {
       rev.__params = p;
-    }, this._on404, () => updateLen(rev.request.url));
+    }, this._on404);
   }
   handleRequest(req, conn, ctx) {
     let i = 0;
@@ -1734,9 +1713,8 @@ var NHttp = class extends Router {
           runCallback();
           if (opts.signal) {
             opts.signal.addEventListener("abort", () => {
-              var _a;
               try {
-                (_a = this.server) == null ? void 0 : _a.close();
+                this.server?.close();
               } catch (_e) {
               }
             }, { once: true });
@@ -1796,7 +1774,6 @@ nhttp.Router = function(opts = {}) {
 
 // npm/src/index.ts
 function buildRes(response, send) {
-  var _a;
   const _res = new HttpResponse(send);
   _res.header = function header(key, value) {
     if (typeof key === "string") {
@@ -1837,7 +1814,7 @@ function buildRes(response, send) {
   response.params = _res.params;
   response.redirect = _res.redirect.bind(_res);
   response.attachment = _res.attachment.bind(_res);
-  response.render = (_a = _res.render) == null ? void 0 : _a.bind(_res);
+  response.render = _res.render?.bind(_res);
   response.send = _res.send.bind(_res);
   response.sendStatus = _res.sendStatus.bind(_res);
   response.type = _res.type.bind(_res);
@@ -1881,10 +1858,9 @@ var NHttp2 = class extends NHttp {
       try {
         if (opts2.signal) {
           opts2.signal.addEventListener("abort", () => {
-            var _a, _b, _c, _d;
             try {
-              (_b = (_a = this.server) == null ? void 0 : _a.close) == null ? void 0 : _b.call(_a);
-              (_d = (_c = this.server) == null ? void 0 : _c.stop) == null ? void 0 : _d.call(_c);
+              this.server?.close?.();
+              this.server?.stop?.();
             } catch (_e) {
             }
           }, { once: true });
@@ -1914,34 +1890,35 @@ var NHttp2 = class extends NHttp {
       }
     };
   }
-  handleRequestNode(request, response) {
+  handleRequestNode(req, res) {
     let i = 0;
-    const rev = new RequestEvent(request, response, buildRes);
+    const rev = new RequestEvent(req, res, buildRes);
     rev.send = (body) => {
       if (typeof body === "string") {
-        response.end(body);
+        res.end(body);
       } else if (typeof body === "object") {
         if (typeof body.pipe === "function") {
-          body.pipe(response);
+          body.pipe(res);
         } else if (body === null || body instanceof Uint8Array) {
-          response.end(body);
+          res.end(body);
         } else {
-          response.setHeader("content-type", JSON_TYPE_CHARSET);
-          response.end(JSON.stringify(body));
+          const type = "content-type";
+          res.setHeader(type, res.getHeader(type) ?? JSON_TYPE);
+          res.end(JSON.stringify(body));
         }
       } else if (typeof body === "number") {
-        response.end(body.toString());
+        res.end(body.toString());
       } else {
         try {
-          response.end(body);
+          res.end(body);
         } catch (_e) {
         }
       }
     };
-    const fns = this.route[rev.method + request.url] ?? this.matchFns(rev, request.url);
+    const fns = this.route[rev.method + req.url] ?? this.matchFns(rev, req.url);
     const send = (ret) => {
       if (ret) {
-        if (response.writableEnded)
+        if (res.writableEnded)
           return;
         if (ret instanceof Promise) {
           ret.then((val) => val && rev.send(val)).catch(next);

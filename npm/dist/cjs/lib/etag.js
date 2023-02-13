@@ -28,7 +28,7 @@ __export(etag_exports, {
 var import_deps = require("./deps");
 const def = '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
 const encoder = new TextEncoder();
-const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
+const JSON_TYPE = "application/json";
 const build_date = new Date();
 function cHash(entity) {
   let hash = 0, i = entity.length - 1;
@@ -79,18 +79,17 @@ function is304(nonMatch, response, stat, weak, subfix = "", cd) {
   return nonMatch && nonMatch === etag2;
 }
 async function sendFile(rev, pathFile, opts = {}) {
-  var _a, _b, _c;
   try {
     const weak = opts.weak !== false;
     const { response, request } = rev;
-    const nonMatch = ((_b = (_a = request.headers) == null ? void 0 : _a.get) == null ? void 0 : _b.call(_a, "if-none-match")) ?? request.headers["if-none-match"];
+    const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
     response.type(response.header("content-type") ?? getContentType(path));
     const cd = response.header("content-disposition");
     if (is304(nonMatch, response, stat, weak, subfix, cd)) {
       return response.status(304).send();
     }
-    const file = await ((_c = opts.readFile) == null ? void 0 : _c.call(opts, path));
+    const file = await opts.readFile?.(path);
     if (!file) {
       throw new Error("File error. please add options readFile");
     }
@@ -104,19 +103,19 @@ const etag = (opts = {}) => {
     const weak = opts.weak !== false;
     const send = rev.send.bind(rev);
     rev.send = (body) => {
-      var _a, _b;
       if (body) {
         const { response, request } = rev;
         if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob)) {
-          const nonMatch = ((_b = (_a = request.headers) == null ? void 0 : _a.get) == null ? void 0 : _b.call(_a, "if-none-match")) ?? request.headers["if-none-match"];
+          const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
+          const type = response.header("content-type");
           if (typeof body === "object" && !(body instanceof Uint8Array || body instanceof Response)) {
             try {
               body = JSON.stringify(body);
             } catch (_e) {
             }
-            response.type(JSON_TYPE_CHARSET);
+            if (!type)
+              response.type(JSON_TYPE);
           }
-          const type = response.header("content-type");
           const hash = entityTag(body instanceof Uint8Array ? body : encoder.encode(body), type ? "" + cHash(encoder.encode(type)) : "");
           const _etag = weak ? `W/${hash}` : hash;
           response.header("etag", _etag);

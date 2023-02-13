@@ -9,11 +9,12 @@ export type NextFunction = (err?: Error) => TRet;
 export type RetHandler = Promise<void | string | TObject> | void | string | TObject;
 export type Handler<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction, ...args: TRet) => RetHandler;
 export type Handlers<Rev extends RequestEvent = RequestEvent> = Array<Handler<Rev> | Handler<Rev>[]>;
+export type TValidBody = number | string | false | undefined;
 export type TBodyParser = {
-    json?: number | string | boolean;
-    urlencoded?: number | string | boolean;
-    raw?: number | string | boolean;
-    multipart?: number | string | boolean;
+    json?: TValidBody;
+    urlencoded?: TValidBody;
+    raw?: TValidBody;
+    multipart?: TValidBody;
 };
 export type TSizeList = {
     b: number;

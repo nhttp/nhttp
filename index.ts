@@ -8,9 +8,10 @@ import {
   TObject,
   TRet,
 } from "./src/index.ts";
-import { HttpResponse, JSON_TYPE_CHARSET } from "./src/http_response.ts";
+import { HttpResponse } from "./src/http_response.ts";
 import { TResp } from "./src/request_event.ts";
 import Router, { TRouter } from "./src/router.ts";
+import { JSON_TYPE } from "./src/constant.ts";
 
 function buildRes(response: TObject, send: TResp) {
   const _res = new HttpResponse(send);
@@ -134,34 +135,35 @@ export class NHttp<
     };
   }
 
-  private handleRequestNode(request: TObject, response: TObject) {
+  private handleRequestNode(req: TObject, res: TObject) {
     let i = 0;
-    const rev = new RequestEvent(request as Request, response, buildRes);
+    const rev = new RequestEvent(req as Request, res, buildRes);
     rev.send = (body?: TRet) => {
       if (typeof body === "string") {
-        response.end(body);
+        res.end(body);
       } else if (typeof body === "object") {
         if (typeof body.pipe === "function") {
-          body.pipe(response);
+          body.pipe(res);
         } else if (body === null || body instanceof Uint8Array) {
-          response.end(body);
+          res.end(body);
         } else {
-          response.setHeader("content-type", JSON_TYPE_CHARSET);
-          response.end(JSON.stringify(body));
+          const type = "content-type";
+          res.setHeader(type, res.getHeader(type) ?? JSON_TYPE);
+          res.end(JSON.stringify(body));
         }
       } else if (typeof body === "number") {
-        response.end(body.toString());
+        res.end(body.toString());
       } else {
         try {
-          response.end(body);
+          res.end(body);
         } catch (_e) { /* noop */ }
       }
     };
-    const fns = this.route[rev.method + request.url] ??
-      this.matchFns(rev, request.url);
+    const fns = this.route[rev.method + req.url] ??
+      this.matchFns(rev, req.url);
     const send = (ret: TRet) => {
       if (ret) {
-        if (response.writableEnded) return;
+        if (res.writableEnded) return;
         if (ret instanceof Promise) {
           ret.then((val) => val && rev.send(val)).catch(next);
         } else {

@@ -233,11 +233,10 @@ export default class Router<
     getPath: (path: string) => string,
     setParam: (p: () => TObject) => void,
     notFound: (rev: Rev, next: NextFunction) => TRet,
-    mutate?: () => undefined | string,
   ): Handler<Rev>[] {
     const path = getPath(url);
     if (this.route[method + path]) return this.route[method + path];
-    const r = this.route[method]?.find((el: TObject) => el.pattern?.test(path));
+    const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r) {
       setParam(() => findParams(r, path));
       return r.fns;
@@ -246,8 +245,6 @@ export default class Router<
       const k = method + path.slice(0, -1);
       if (this.route[k]) return this.route[k];
     }
-    const mut = mutate?.();
-    if (mut) return this.find(method, mut, getPath, setParam, notFound, void 0);
     if (this.pmidds) {
       let p = this.pmidds[path] ? path : base(path);
       if (!this.pmidds[p] && path.startsWith(p)) p = this.findPathAssets(path);

@@ -1,7 +1,5 @@
 import { TResp } from "./request_event";
 import { Cookie, TObject, TRet, TSendBody } from "./types";
-export declare const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
-export declare const HTML_TYPE_CHARSET = "text/html; charset=UTF-8";
 export type ResInit = {
     headers?: TObject;
     status?: number;

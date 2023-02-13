@@ -34,7 +34,7 @@ const defObj: esbuild.BuildOptions = {
   bundle: true,
   // minify: true,
   target: [
-    "node16",
+    "node18",
   ],
   entryPoints: ["npm/src/index.ts"],
 };
@@ -114,7 +114,7 @@ for (let i = 0; i < LIBS.length; i++) {
 }
 
 await Deno.copyFile("LICENSE", "npm/LICENSE");
-await Deno.copyFile("README.MD", "npm/README.MD");
+await Deno.copyFile("README.md", "npm/README.md");
 
 esbuild.stop();
 
@@ -122,7 +122,7 @@ const pkg = {
   "name": "nhttp-land",
   "description": "An Simple http framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./types/index.d.ts",
@@ -135,7 +135,7 @@ const pkg = {
     "url": "https://github.com/nhttp/nhttp/issues",
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.14.0",
   },
   "keywords": [
     "nhttp",

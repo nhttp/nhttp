@@ -1,11 +1,8 @@
-import { MIME_LIST, STATUS_LIST } from "./constant.ts";
+import { JSON_TYPE, MIME_LIST, STATUS_LIST } from "./constant.ts";
 import { TResp } from "./request_event.ts";
 import { s_params } from "./symbol.ts";
 import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
-
-export const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
-export const HTML_TYPE_CHARSET = "text/html; charset=UTF-8";
 
 export type ResInit = {
   headers?: TObject;
@@ -38,17 +35,14 @@ export class HttpResponse {
     key?: TObject | string,
     value?: string | string[],
   ): this | string | Headers {
-    if (!this.init) this.init = {};
-    if (this.init.headers) {
-      if (this.init.headers instanceof Headers) {
-        this.init.headers = Object.fromEntries(this.init.headers.entries());
-      }
-    } else this.init.headers = {};
+    this.init ??= {};
+    this.init.headers ??= {};
+    if (this.init.headers instanceof Headers) {
+      this.init.headers = Object.fromEntries(this.init.headers.entries());
+    }
     if (typeof key === "string") {
       key = key.toLowerCase();
-      if (!value) {
-        return this.init.headers[key];
-      }
+      if (value === void 0) return this.init.headers[key];
       this.init.headers[key] = value;
       return this;
     }
@@ -264,9 +258,9 @@ export class JsonResponse extends Response {
   constructor(body: TObject | null, resInit: ResponseInit = {}) {
     if (resInit.headers) {
       if (resInit.headers instanceof Headers) {
-        resInit.headers.set("content-type", JSON_TYPE_CHARSET);
-      } else (resInit.headers as TObject)["content-type"] = JSON_TYPE_CHARSET;
-    } else resInit.headers = { "content-type": JSON_TYPE_CHARSET };
+        resInit.headers.set("content-type", JSON_TYPE);
+      } else (resInit.headers as TObject)["content-type"] = JSON_TYPE;
+    } else resInit.headers = { "content-type": JSON_TYPE };
     super(JSON.stringify(body), resInit);
   }
 }

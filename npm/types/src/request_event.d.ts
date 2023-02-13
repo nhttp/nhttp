@@ -1,5 +1,5 @@
-import { HttpResponse } from "./http_response";
 import { MatchRoute, TObject, TRet, TSendBody } from "./types";
+import { HttpResponse } from "./http_response";
 export type TResp = (r: TRet) => Promise<void> | undefined | Response | void;
 type TInfo = {
     conn: Partial<Deno.Conn>;

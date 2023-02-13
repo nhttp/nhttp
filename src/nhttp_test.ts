@@ -114,10 +114,7 @@ Deno.test("nhttp", async (t) => {
       return { tmp, params };
     }, { base: "base", ext: "html" });
     app.get("/", ({ response }) => response.render("hello", { name: "john" }));
-    await superdeno(app.handle).get("/").expect({
-      tmp: "base/hello.html",
-      params: { name: "john" },
-    });
+    await superdeno(app.handle).get("/").expect(200);
   });
   await t.step("body parser", async () => {
     const app = nhttp({ bodyParser: true });

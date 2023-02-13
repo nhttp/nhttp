@@ -18,12 +18,11 @@ import {
   getUrl,
   parseQuery as parseQueryOri,
   toPathx,
-  updateLen,
 } from "./utils.ts";
 import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { HTML_TYPE_CHARSET } from "./http_response.ts";
+import { HTML_TYPE } from "./constant.ts";
 import { s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 
@@ -257,7 +256,7 @@ export class NHttp<
           }
         }
         params ??= response.params;
-        response.type(HTML_TYPE_CHARSET);
+        response.type(HTML_TYPE);
         const ret = renderFile(elem, params, ...args);
         if (ret) {
           if (ret instanceof Promise) {
@@ -288,7 +287,6 @@ export class NHttp<
         rev.__params = p;
       },
       this._on404,
-      () => updateLen(rev.request.url),
     );
   }
 

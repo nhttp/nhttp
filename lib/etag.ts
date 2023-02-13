@@ -15,7 +15,7 @@ type TOptsSendFile = {
 };
 const def = '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
 const encoder = new TextEncoder();
-const JSON_TYPE_CHARSET = "application/json; charset=UTF-8";
+const JSON_TYPE = "application/json";
 const build_date = new Date();
 function cHash(entity: Uint8Array) {
   let hash = 0, i = entity.length - 1;
@@ -107,6 +107,7 @@ export const etag = (
         ) {
           const nonMatch = request.headers?.get?.("if-none-match") ??
             (request.headers as TRet)["if-none-match"];
+          const type = response.header("content-type");
           if (
             typeof body === "object" &&
             !(body instanceof Uint8Array || body instanceof Response)
@@ -114,9 +115,8 @@ export const etag = (
             try {
               body = JSON.stringify(body);
             } catch (_e) { /* noop */ }
-            response.type(JSON_TYPE_CHARSET);
+            if (!type) response.type(JSON_TYPE);
           }
-          const type = response.header("content-type");
           const hash = entityTag(
             body instanceof Uint8Array ? body : encoder.encode(body),
             type ? ("" + cHash(encoder.encode(type))) : "",

@@ -1,5 +1,6 @@
 import { TObject } from "./types.ts";
-
+export const JSON_TYPE = "application/json";
+export const HTML_TYPE = "text/html;charset=UTF-8";
 export const STATUS_LIST: Record<number, string> = {
   100: "Continue",
   101: "Switching Protocols",

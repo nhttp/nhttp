@@ -32,11 +32,13 @@ export type Handlers<
   Rev extends RequestEvent = RequestEvent,
 > = Array<Handler<Rev> | Handler<Rev>[]>;
 
+export type TValidBody = number | string | false | undefined;
+
 export type TBodyParser = {
-  json?: number | string | boolean;
-  urlencoded?: number | string | boolean;
-  raw?: number | string | boolean;
-  multipart?: number | string | boolean;
+  json?: TValidBody;
+  urlencoded?: TValidBody;
+  raw?: TValidBody;
+  multipart?: TValidBody;
 };
 
 export type TSizeList = {

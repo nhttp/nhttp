@@ -23,7 +23,8 @@ export declare function toPathx(path: string | RegExp, flag?: boolean): {
 };
 export declare function needPatch(data: TObject | TObject[], keys: number[], value: string): string | TObject;
 export declare function myParse(arr: EArr[]): TObject;
-export declare function parseQuery(query: unknown | string): TObject;
+export declare function parseQueryArray(query: string): TObject;
+export declare function parseQuery(query?: null | string | FormData): any;
 export declare function concatRegexp(prefix: string | RegExp, path: RegExp): RegExp;
 /**
  * Wrapper middleware for framework express like (req, res, next)
@@ -42,8 +43,7 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
 export declare function expressMiddleware(...middlewares: TRet): TRet;
 export declare function middAssets(str: string): Handler<RequestEvent>[];
 export declare function pushRoutes(str: string, wares: Handler[], last: TObject, base: TObject): void;
-export declare function getUrl(url: string): string;
-export declare function updateLen(url: string): string;
+export declare const getUrl: (s: string) => string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
 export declare function getReqCookies(headers: TObject, decode?: boolean, i?: number): Record<string, string>;
 export declare function arrayBuffer(request: TObject): Promise<ArrayBuffer>;

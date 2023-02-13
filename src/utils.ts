@@ -76,6 +76,7 @@ export function findFns<Rev extends RequestEvent = RequestEvent>(
 }
 
 export function toBytes(arg: string | number) {
+  if (typeof arg === "number") return arg;
   const sizeList: TSizeList = {
     b: 1,
     kb: 1 << 10,
@@ -84,7 +85,6 @@ export function toBytes(arg: string | number) {
     tb: Math.pow(1024, 4),
     pb: Math.pow(1024, 5),
   };
-  if (typeof arg === "number") return arg;
   const arr = (/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i).exec(arg);
   let val, unt = "b";
   if (!arr) {
@@ -138,7 +138,7 @@ export function needPatch(
   }
   data = (data || {}) as TObject;
   const val = needPatch(data[key] as TObject, keys, value);
-  data[key] = val;
+  if (typeof data === "object") data[key] = val;
   return data;
 }
 
@@ -168,20 +168,41 @@ export function myParse(arr: EArr[]) {
   return obj;
 }
 
-export function parseQuery(query: unknown | string) {
+export function parseQueryArray(query: string) {
+  const arr = query.split("&") as EArr;
+  const len = arr.length;
+  let i = 0;
+  const data = [] as EArr[];
+  while (i < len) {
+    const el = arr[i].split("=");
+    data.push([el[0], el[1] ?? ""]);
+    i++;
+  }
+  return myParse(data);
+}
+
+export function parseQuery(query?: null | string | FormData) {
   if (!query) return {};
   if (typeof query === "string") {
-    let i = 0;
+    query = decURIComponent(query);
+    if (query.includes("]=")) return parseQueryArray(query);
     const arr = query.split("&") as EArr;
-    const data = [] as EArr[], len = arr.length;
+    const len = arr.length;
+    let i = 0;
+    const data: TRet = {};
     while (i < len) {
       const el = arr[i].split("=");
-      data.push([decURIComponent(el[0]), decURIComponent(el[1] || "")]);
+      if (data[el[0]]) {
+        if (!Array.isArray(data[el[0]])) data[el[0]] = [data[el[0]]];
+        data[el[0]].push(el[1] ?? "");
+      } else {
+        data[el[0]] = el[1] ?? "";
+      }
       i++;
     }
-    return myParse(data);
+    return data;
   }
-  return myParse(Array.from((query as FormData).entries()));
+  return myParse(Array.from(query.entries()));
 }
 
 export function concatRegexp(prefix: string | RegExp, path: RegExp) {
@@ -248,27 +269,7 @@ export function pushRoutes(
   });
 }
 
-function getPos(url: string, k = -1, l = 0) {
-  while ((k = url.indexOf("/", k + 1)) != -1) {
-    l++;
-    if (l == 3) break;
-  }
-  return k;
-}
-let c_len: number | undefined;
-export function getUrl(url: string) {
-  return url.substring(c_len ??= getPos(url));
-}
-
-export function updateLen(url: string) {
-  if (url[0] === "/") return;
-  const pos = getPos(url);
-  if (c_len && c_len != pos) {
-    c_len = pos;
-    return getUrl(url);
-  }
-  return;
-}
+export const getUrl = (s: string) => s.substring(s.indexOf("/", 8));
 
 export function serializeCookie(
   name: string,

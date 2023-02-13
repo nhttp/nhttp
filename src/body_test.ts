@@ -3,7 +3,7 @@ import { assertEquals } from "./deps_test.ts";
 import { RequestEvent } from "./request_event.ts";
 import { TRet } from "./types.ts";
 import { encoder } from "./utils.ts";
-
+const base = "http://127.0.0.1:8000";
 Deno.test("body parser", async (t) => {
   const request = (
     content: string | FormData,
@@ -18,7 +18,7 @@ Deno.test("body parser", async (t) => {
     headers: new Headers({ "content-type": type }),
     bodyUsed: false,
     body: "noop",
-    url: "http://127.0.0.1:8000/",
+    url: base + "/",
   });
   await t.step("content-type", async (t) => {
     const createBody = async (
@@ -193,19 +193,38 @@ Deno.test("body parser", async (t) => {
   });
   await t.step("GET body", async () => {
     const createBody = async (
-      content: string | FormData,
       type: string,
-      lose?: boolean,
-      lose2?: boolean,
     ) => {
       const rev = new RequestEvent(
-        request(content, type, lose, lose2, "GET") as TRet,
+        new Request(base + "/", {
+          method: "GET",
+          headers: { "content-type": type },
+        }),
       );
       await bodyParser()(rev, (err?: Error) => err?.message || "noop");
       return rev.body;
     };
-    const ret = await createBody(`{"name": "john"}`, "application/json");
+    const ret = await createBody("application/json");
     assertEquals(ret, {});
+    const ret2 = await createBody("application/x-www-form-urlencoded");
+    assertEquals(ret2, {});
+    const ret3 = await createBody("text/plain");
+    assertEquals(ret3, {});
+  });
+  await t.step("false and cosume", async () => {
+    const req = new Request(base + "/", {
+      method: "GET",
+      headers: { "content-type": "application/json" },
+    });
+    const createBody = async (status: boolean) => {
+      const rev = new RequestEvent(req);
+      await bodyParser(status)(rev, (err?: Error) => err?.message || "noop");
+      return rev.body;
+    };
+    const ret = await createBody(false);
+    assertEquals(ret, {});
+    const ret2 = await createBody(true);
+    assertEquals(ret2, {});
   });
   await t.step("acceptContentType", () => {
     const isAccept = acceptContentType(

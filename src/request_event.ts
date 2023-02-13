@@ -1,5 +1,5 @@
 import { ROUTE } from "./constant.ts";
-import { HttpResponse, JSON_TYPE_CHARSET } from "./http_response.ts";
+import { JSON_TYPE } from "./constant.ts";
 import { findParams } from "./router.ts";
 import {
   s_body,
@@ -19,6 +19,7 @@ import {
 import { MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
 import { getReqCookies, getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
+import { HttpResponse } from "./http_response.ts";
 
 export type TResp = (
   r: TRet,
@@ -140,13 +141,14 @@ export class RequestEvent {
       } else {
         const init = this[s_res]?.init ?? {};
         if (init.headers) {
+          const type = "content-type";
           if (init.headers instanceof Headers) {
-            init.headers.set("content-type", JSON_TYPE_CHARSET);
+            init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
           } else {
-            init.headers["content-type"] = JSON_TYPE_CHARSET;
+            init.headers[type] ??= JSON_TYPE;
           }
         } else {
-          init.headers = { "content-type": JSON_TYPE_CHARSET };
+          init.headers = { "content-type": JSON_TYPE };
         }
         this[s_response] = new Response(JSON.stringify(body), init);
       }

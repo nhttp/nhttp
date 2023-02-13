@@ -15,7 +15,6 @@ import {
   serializeCookie,
   toBytes,
   toPathx,
-  updateLen,
 } from "./utils.ts";
 
 Deno.test("utils", async (t) => {
@@ -80,6 +79,14 @@ Deno.test("utils", async (t) => {
     const obj = parseQuery("loc=1&loc=2&loc=3");
     assertEquals(obj, { loc: ["1", "2", "3"] });
   });
+  await t.step("parseQuery object", () => {
+    const obj = parseQuery("loc[foo]=1");
+    assertEquals(obj, { loc: { foo: "1" } });
+  });
+  await t.step("parseQuery object noop", () => {
+    const obj = parseQuery("loc=1&loc[]=2");
+    assertEquals(obj, { loc: "1" });
+  });
   await t.step("needPatch obj", () => {
     const obj = needPatch(void 0 as unknown as TObject, [1], "2");
     assertEquals(typeof obj, "object");
@@ -91,10 +98,6 @@ Deno.test("utils", async (t) => {
       return next();
     };
     middAssets("/")[midd as TRet];
-  });
-  await t.step("updateUrl", () => {
-    const pos = updateLen("/");
-    assertEquals(pos, undefined);
   });
   await t.step("miss arrayBuffer", () => {
     const buf = arrayBuffer({} as TRet);

@@ -1,6 +1,7 @@
-import { JSON_TYPE_CHARSET, JsonResponse } from "./http_response.ts";
+import { JsonResponse } from "./http_response.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TRet } from "./types.ts";
+import { JSON_TYPE } from "./constant.ts";
 import { s_params } from "./symbol.ts";
 import { RequestEvent } from "./request_event.ts";
 
@@ -14,18 +15,18 @@ Deno.test("HttpResponse", async (t) => {
     const type = "content-type";
     await t.step("without resInit", () => {
       const resp = new JsonResponse({});
-      assertEquals(resp.headers.get(type), JSON_TYPE_CHARSET);
+      assertEquals(resp.headers.get(type), JSON_TYPE);
     });
     await t.step("with resInit", () => {
       const resp = new JsonResponse({}, { headers: { name: "john" } });
-      assertEquals(resp.headers.get(type), JSON_TYPE_CHARSET);
+      assertEquals(resp.headers.get(type), JSON_TYPE);
       assertEquals(resp.headers.get("name"), "john");
     });
     await t.step("with resInit Headers", () => {
       const resp = new JsonResponse({}, {
         headers: new Headers({ name: "john" }),
       });
-      assertEquals(resp.headers.get(type), JSON_TYPE_CHARSET);
+      assertEquals(resp.headers.get(type), JSON_TYPE);
       assertEquals(resp.headers.get("name"), "john");
     });
   });
