@@ -167,6 +167,7 @@ var decURIComponent = (str) => {
     return str;
   }
 };
+var duc = decURIComponent;
 function findFn(fn) {
   if (fn.length === 3) {
     const newFn = (rev, next) => {
@@ -251,14 +252,14 @@ function needPatch(data, keys, value) {
   }
   let key = keys.shift();
   if (!key) {
-    data = data || [];
+    data ||= [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data = data || [];
+    data ||= [];
     key = index;
   }
   data = data || {};
@@ -296,7 +297,7 @@ function parseQueryArray(query) {
   const data = [];
   while (i < len) {
     const el = arr[i].split("=");
-    data.push([el[0], el[1] ?? ""]);
+    data.push([duc(el[0]), duc(el[1] ?? "")]);
     i++;
   }
   return myParse(data);
@@ -305,7 +306,6 @@ function parseQuery(query) {
   if (!query)
     return {};
   if (typeof query === "string") {
-    query = decURIComponent(query);
     if (query.includes("]="))
       return parseQueryArray(query);
     const arr = query.split("&");
@@ -314,12 +314,13 @@ function parseQuery(query) {
     const data = {};
     while (i < len) {
       const el = arr[i].split("=");
-      if (data[el[0]]) {
+      el[0] = duc(el[0]);
+      if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]]))
           data[el[0]] = [data[el[0]]];
-        data[el[0]].push(el[1] ?? "");
+        data[el[0]].push(duc(el[1] ?? ""));
       } else {
-        data[el[0]] = el[1] ?? "";
+        data[el[0]] = duc(el[1] ?? "");
       }
       i++;
     }
@@ -470,17 +471,36 @@ var concatUint8Array = (arr) => {
   });
   return merged;
 };
-function arrayBuffer(request) {
-  if (typeof request.arrayBuffer === "function") {
-    return request.arrayBuffer();
+function cloneReq(req, body) {
+  return new Request(req.url, {
+    method: req.method,
+    body,
+    headers: req.headers
+  });
+}
+function memoBody(req, body) {
+  try {
+    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
+    req.text = () => Promise.resolve(decoder.decode(body));
+    req.arrayBuffer = () => Promise.resolve(body);
+    req.formData = () => cloneReq(req, body).formData();
+    req.blob = () => cloneReq(req, body).blob();
+  } catch (_e) {
   }
-  if (typeof request.on === "function") {
-    return new Promise((ok, no) => {
+}
+async function arrayBuffer(req) {
+  if (typeof req.arrayBuffer === "function") {
+    const body = await req.arrayBuffer();
+    memoBody(req, body);
+    return body;
+  }
+  if (typeof req.on === "function") {
+    return await new Promise((ok, no) => {
       const body = [];
-      request.on("data", (buf) => body.push(buf)).on("end", () => ok(concatUint8Array(body))).on("error", (err) => no(err));
+      req.on("data", (buf) => body.push(buf)).on("end", () => ok(concatUint8Array(body))).on("error", (err) => no(err));
     });
   }
-  return Promise.resolve(new ArrayBuffer(0));
+  return await Promise.resolve(new ArrayBuffer(0));
 }
 
 // npm/src/src/router.ts
@@ -981,8 +1001,8 @@ var multipart = new Multipart();
 
 // npm/src/src/body.ts
 var defautl_size = 1048576;
-async function verifyBody(req, limit = defautl_size) {
-  const arrBuff = await arrayBuffer(req);
+async function verifyBody(rev, limit = defautl_size) {
+  const arrBuff = await arrayBuffer(rev.request);
   if (arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
@@ -1002,11 +1022,11 @@ async function jsonBody(validate, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev.request, validate);
+    const body = await verifyBody(rev, validate);
+    rev.bodyUsed = true;
     if (!body)
       return next();
     rev.body = JSON.parse(body);
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
@@ -1016,12 +1036,12 @@ async function urlencodedBody(validate, parseQuery2, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev.request, validate);
+    const body = await verifyBody(rev, validate);
+    rev.bodyUsed = true;
     if (!body)
       return next();
     const parse = parseQuery2 || parseQuery;
     rev.body = parse(body);
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
@@ -1031,7 +1051,8 @@ async function rawBody(validate, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev.request, validate);
+    const body = await verifyBody(rev, validate);
+    rev.bodyUsed = true;
     if (!body)
       return next();
     try {
@@ -1039,26 +1060,28 @@ async function rawBody(validate, rev, next) {
     } catch (_err) {
       rev.body = { _raw: body };
     }
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
   }
 }
 async function multipartBody(validate, parseMultipart, rev, next) {
-  if (!rev.bodyValid || validate === false || validate === 0) {
+  if (validate === false || validate === 0)
     return next();
-  }
   try {
+    let body;
     if (typeof rev.request.formData === "function") {
-      const formData = await rev.request.formData();
-      rev.body = await multipart.createBody(formData, {
+      const formData = await rev.request.clone().formData();
+      body = await multipart.createBody(formData, {
         parse: parseMultipart
       });
     } else {
-      rev.body = await multiParser(rev.request) || {};
+      body = await multiParser(rev.request);
     }
     rev.bodyUsed = true;
+    if (!body)
+      return next();
+    rev.body = body;
     return next();
   } catch (error) {
     return next(error);
@@ -1201,7 +1224,7 @@ var HttpResponse = class {
     opts.httpOnly = opts.httpOnly !== false;
     this.header().append("Set-Cookie", serializeCookie(name, "", __spreadProps(__spreadValues({}, opts), { expires: new Date(0) })));
   }
-  [Symbol.for("Deno.customInspect")](inspect) {
+  [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
       clearCookie: this.clearCookie,
       cookie: this.cookie,
@@ -1219,7 +1242,12 @@ var HttpResponse = class {
       status: this.status,
       type: this.type
     };
-    return `${this.constructor.name} ${inspect(ret)}`;
+    for (const key in this) {
+      if (ret[key] === void 0) {
+        ret[key] = this[key];
+      }
+    }
+    return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
 };
 var JsonResponse = class extends Response {
@@ -1262,6 +1290,7 @@ var RequestEvent = class {
         Object.assign(ret, toPathx(ret.path, true));
       }
       ret.method = this.method;
+      ret.pathname = this.path;
       ret.query = this.query;
       ret.params = findParams(ret, path);
     }
@@ -1389,7 +1418,7 @@ var RequestEvent = class {
   getCookies(decode) {
     return getReqCookies(this.headers, decode);
   }
-  [Symbol.for("Deno.customInspect")](inspect) {
+  [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
       body: this.body,
       bodyUsed: this.bodyUsed,
@@ -1413,7 +1442,12 @@ var RequestEvent = class {
       url: this.url,
       waitUntil: this.waitUntil
     };
-    return `${this.constructor.name} ${inspect(ret)}`;
+    for (const key in this) {
+      if (ret[key] === void 0) {
+        ret[key] = this[key];
+      }
+    }
+    return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
 };
 

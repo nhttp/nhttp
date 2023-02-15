@@ -119,6 +119,13 @@ Deno.test("RequestEvent", async (t) => {
     const inspect = rev[key].bind(rev);
     assertEquals(typeof inspect(Deno.inspect), "string");
   });
+  await t.step("inspect2", () => {
+    const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
+    rev.myvalue = "hello";
+    const key = Symbol.for("Deno.customInspect") as TRet;
+    const inspect = rev[key].bind(rev);
+    assertEquals(typeof inspect(Deno.inspect), "string");
+  });
   await t.step("miss res", () => {
     const rev = new RequestEvent(
       new Request("http://127.0.0.1:8000/"),

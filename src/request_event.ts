@@ -71,6 +71,7 @@ export class RequestEvent {
         Object.assign(ret, toPathx(ret.path, true));
       }
       ret.method = this.method;
+      ret.pathname = this.path;
       ret.query = this.query;
       ret.params = findParams(ret, path);
     }
@@ -327,7 +328,7 @@ export class RequestEvent {
   /**
    * get cookies from request
    * @deprecated
-   * Use `rev.cookies` instead. `rev.cookies`, auto decode if cookie is encode.
+   * Use `rev.cookies` instead. `rev.cookies` auto decode if cookie is encode.
    * @example
    * const object = rev.getCookies();
    * const objectWithDecode = rev.getCookies(true);
@@ -336,8 +337,8 @@ export class RequestEvent {
     return getReqCookies(this.headers, decode);
   }
 
-  [Symbol.for("Deno.customInspect")](inspect: TRet) {
-    const ret = {
+  [Symbol.for("Deno.customInspect")](inspect: TRet, opts: TRet) {
+    const ret = <TRet> {
       body: this.body,
       bodyUsed: this.bodyUsed,
       bodyValid: this.bodyValid,
@@ -360,7 +361,12 @@ export class RequestEvent {
       url: this.url,
       waitUntil: this.waitUntil,
     };
-    return `${this.constructor.name} ${inspect(ret)}`;
+    for (const key in this) {
+      if (ret[key] === void 0) {
+        ret[key] = this[key];
+      }
+    }
+    return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
 
   [k: string | symbol]: TRet;

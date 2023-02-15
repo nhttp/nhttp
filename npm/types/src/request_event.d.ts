@@ -182,7 +182,7 @@ export declare class RequestEvent {
     /**
      * get cookies from request
      * @deprecated
-     * Use `rev.cookies` instead. `rev.cookies`, auto decode if cookie is encode.
+     * Use `rev.cookies` instead. `rev.cookies` auto decode if cookie is encode.
      * @example
      * const object = rev.getCookies();
      * const objectWithDecode = rev.getCookies(true);

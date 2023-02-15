@@ -135,5 +135,12 @@ Deno.test("HttpResponse", async (t) => {
       const inspect = response[key].bind(response);
       assertEquals(typeof inspect(Deno.inspect), "string");
     });
+    await t.step("inspect 2", () => {
+      const response = buildRes();
+      response.myvalue = "hello";
+      const key = Symbol.for("Deno.customInspect") as TRet;
+      const inspect = response[key].bind(response);
+      assertEquals(typeof inspect(Deno.inspect), "string");
+    });
   });
 });

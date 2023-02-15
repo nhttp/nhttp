@@ -13,12 +13,17 @@ Deno.test("body parser", async (t) => {
     method = "POST",
   ) => ({
     [lose ? "noop" : "formData"]: () => lose2 ? new Error("noop") : content,
-    arrayBuffer: () => encoder.encode(content as string),
     method,
     headers: new Headers({ "content-type": type }),
     bodyUsed: false,
     body: "noop",
     url: base + "/",
+    arrayBuffer() {
+      return encoder.encode(content as string);
+    },
+    clone() {
+      return this;
+    },
   });
   await t.step("content-type", async (t) => {
     const createBody = async (

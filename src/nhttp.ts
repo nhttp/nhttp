@@ -305,6 +305,7 @@ export class NHttp<
         return next(e);
       }
     };
+    // GET/HEAD cannot have body.
     if (rev.method === "GET" || rev.method === "HEAD") {
       try {
         const ret = fns[i++](rev, next);

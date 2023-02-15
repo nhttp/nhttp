@@ -28,6 +28,9 @@ export const decURIComponent = (str: string) => {
   }
 };
 
+// alias decodeUriComponent
+const duc = decURIComponent;
+
 export function findFn(fn: TRet) {
   if (fn.length === 3) {
     const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
@@ -126,18 +129,18 @@ export function needPatch(
   }
   let key = keys.shift() as number;
   if (!key) {
-    data = data || [];
+    data ||= [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data = data || [];
+    data ||= [];
     key = index;
   }
   data = (data || {}) as TObject;
-  const val = needPatch(data[key] as TObject, keys, value);
+  const val = needPatch(data[key], keys, value);
   if (typeof data === "object") data[key] = val;
   return data;
 }
@@ -175,7 +178,7 @@ export function parseQueryArray(query: string) {
   const data = [] as EArr[];
   while (i < len) {
     const el = arr[i].split("=");
-    data.push([el[0], el[1] ?? ""]);
+    data.push([duc(el[0]), duc(el[1] ?? "")]);
     i++;
   }
   return myParse(data);
@@ -184,7 +187,6 @@ export function parseQueryArray(query: string) {
 export function parseQuery(query?: null | string | FormData) {
   if (!query) return {};
   if (typeof query === "string") {
-    query = decURIComponent(query);
     if (query.includes("]=")) return parseQueryArray(query);
     const arr = query.split("&") as EArr;
     const len = arr.length;
@@ -192,11 +194,12 @@ export function parseQuery(query?: null | string | FormData) {
     const data: TRet = {};
     while (i < len) {
       const el = arr[i].split("=");
-      if (data[el[0]]) {
+      el[0] = duc(el[0]);
+      if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]])) data[el[0]] = [data[el[0]]];
-        data[el[0]].push(el[1] ?? "");
+        data[el[0]].push(duc(el[1] ?? ""));
       } else {
-        data[el[0]] = el[1] ?? "";
+        data[el[0]] = duc(el[1] ?? "");
       }
       i++;
     }
@@ -373,17 +376,35 @@ const concatUint8Array = (arr: TRet[]) => {
   });
   return merged;
 };
-export function arrayBuffer(request: TObject): Promise<ArrayBuffer> {
-  if (typeof request.arrayBuffer === "function") {
-    return request.arrayBuffer();
+function cloneReq(req: TObject, body: TRet) {
+  return new Request(req.url, {
+    method: req.method,
+    body,
+    headers: req.headers,
+  });
+}
+export function memoBody(req: TObject, body: TRet) {
+  try {
+    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
+    req.text = () => Promise.resolve(decoder.decode(body));
+    req.arrayBuffer = () => Promise.resolve(body);
+    req.formData = () => cloneReq(req, body).formData();
+    req.blob = () => cloneReq(req, body).blob();
+  } catch (_e) { /* no_^_op */ }
+}
+export async function arrayBuffer(req: TObject): Promise<ArrayBuffer> {
+  if (typeof req.arrayBuffer === "function") {
+    const body = await req.arrayBuffer();
+    memoBody(req, body);
+    return body;
   }
-  if (typeof request.on === "function") {
-    return new Promise((ok, no) => {
+  if (typeof req.on === "function") {
+    return await new Promise((ok, no) => {
       const body: Uint8Array[] = [];
-      request.on("data", (buf: Uint8Array) => body.push(buf))
+      req.on("data", (buf: Uint8Array) => body.push(buf))
         .on("end", () => ok(concatUint8Array(body)))
         .on("error", (err: Error) => no(err));
     });
   }
-  return Promise.resolve(new ArrayBuffer(0));
+  return await Promise.resolve(new ArrayBuffer(0));
 }

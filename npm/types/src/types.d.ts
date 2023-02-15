@@ -136,6 +136,7 @@ export type MatchRoute = {
     method: string;
     params: TObject;
     path: string | RegExp;
+    pathname: string;
     query: TObject;
     pattern: RegExp;
     wild: boolean;

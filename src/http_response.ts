@@ -231,8 +231,8 @@ export class HttpResponse {
       serializeCookie(name, "", { ...opts, expires: new Date(0) }),
     );
   }
-  [Symbol.for("Deno.customInspect")](inspect: TRet) {
-    const ret = {
+  [Symbol.for("Deno.customInspect")](inspect: TRet, opts: TRet) {
+    const ret = <TRet> {
       clearCookie: this.clearCookie,
       cookie: this.cookie,
       getHeader: this.getHeader,
@@ -249,7 +249,12 @@ export class HttpResponse {
       status: this.status,
       type: this.type,
     };
-    return `${this.constructor.name} ${inspect(ret)}`;
+    for (const key in this) {
+      if (ret[key] === void 0) {
+        ret[key] = this[key];
+      }
+    }
+    return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
   [k: string | symbol]: TRet;
 }

@@ -20,12 +20,11 @@ import {
 
 // binary bytes (1mb)
 const defautl_size = 1048576;
-
 async function verifyBody(
-  req: TObject,
+  rev: RequestEvent,
   limit: number | string = defautl_size,
 ) {
-  const arrBuff = await arrayBuffer(req);
+  const arrBuff = await arrayBuffer(rev.request);
   if (arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(
       400,
@@ -59,10 +58,10 @@ async function jsonBody(
 ) {
   if (!isValidBody(validate)) return next();
   try {
-    const body = await verifyBody(rev.request, <number> validate);
+    const body = await verifyBody(rev, <number> validate);
+    rev.bodyUsed = true;
     if (!body) return next();
     rev.body = JSON.parse(body);
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
@@ -78,13 +77,13 @@ async function urlencodedBody(
   if (!isValidBody(validate)) return next();
   try {
     const body = await verifyBody(
-      rev.request,
+      rev,
       <number> validate,
     );
+    rev.bodyUsed = true;
     if (!body) return next();
     const parse = parseQuery || parseQueryOri;
     rev.body = parse(body);
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
@@ -98,14 +97,14 @@ async function rawBody(
 ) {
   if (!isValidBody(validate)) return next();
   try {
-    const body = await verifyBody(rev.request, <number> validate);
+    const body = await verifyBody(rev, <number> validate);
+    rev.bodyUsed = true;
     if (!body) return next();
     try {
       rev.body = JSON.parse(body);
     } catch (_err) {
       rev.body = { _raw: body };
     }
-    rev.bodyUsed = true;
     return next();
   } catch (error) {
     return next(error);
@@ -117,22 +116,20 @@ async function multipartBody(
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (
-    !rev.bodyValid || validate === false ||
-    validate === 0
-  ) {
-    return next();
-  }
+  if (validate === false || validate === 0) return next();
   try {
+    let body;
     if (typeof rev.request.formData === "function") {
-      const formData = await rev.request.formData();
-      rev.body = await multipart.createBody(formData, {
+      const formData = await rev.request.clone().formData();
+      body = await multipart.createBody(formData, {
         parse: parseMultipart,
       });
     } else {
-      rev.body = (await multiParser(rev.request)) || {};
+      body = await multiParser(rev.request);
     }
     rev.bodyUsed = true;
+    if (!body) return next();
+    rev.body = body;
     return next();
   } catch (error) {
     return next(error);

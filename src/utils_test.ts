@@ -9,6 +9,7 @@ import {
   findFn,
   findFns,
   getReqCookies,
+  memoBody,
   middAssets,
   needPatch,
   parseQuery,
@@ -75,6 +76,14 @@ Deno.test("utils", async (t) => {
     const obj = parseQuery("name&address=maja");
     assertEquals(obj, { name: "", address: "maja" });
   });
+  await t.step("parseQuery empty val 2", () => {
+    const obj = parseQuery("name=maja&name");
+    assertEquals(obj, { name: ["maja", ""] });
+  });
+  await t.step("parseQuery empty val 3", () => {
+    const obj = parseQuery("name[]=maja&name[]");
+    assertEquals(obj, { name: ["maja", ""] });
+  });
   await t.step("parseQuery array", () => {
     const obj = parseQuery("loc=1&loc=2&loc=3");
     assertEquals(obj, { loc: ["1", "2", "3"] });
@@ -90,6 +99,61 @@ Deno.test("utils", async (t) => {
   await t.step("needPatch obj", () => {
     const obj = needPatch(void 0 as unknown as TObject, [1], "2");
     assertEquals(typeof obj, "object");
+  });
+  await t.step("memo Body", async (t) => {
+    const createReq = (body: BodyInit, type: string) =>
+      new Request("http://127.0.0.1:8000/", {
+        method: "POST",
+        body,
+        headers: { "content-type": type },
+      });
+    await t.step("json", async () => {
+      const req = createReq(
+        JSON.stringify({ name: "john" }),
+        "application/json",
+      );
+      memoBody(req, await req.arrayBuffer());
+      const body = await req.json();
+      assertEquals(typeof body, "object");
+    });
+    await t.step("text", async () => {
+      const req = createReq("name=john", "application/x-www-form-urlencoded");
+      memoBody(req, await req.arrayBuffer());
+      const body = await req.text();
+      assertEquals(typeof body, "string");
+    });
+    await t.step("buffer", async () => {
+      const req = createReq("name=john", "application/x-www-form-urlencoded");
+      memoBody(req, await req.arrayBuffer());
+      const body = await req.arrayBuffer();
+      assertEquals(typeof body, "object");
+    });
+    await t.step("formData", async () => {
+      const req = createReq(
+        new FormData(),
+        `multipart/form-data; boundary="sample"`,
+      );
+      memoBody(req, await req.arrayBuffer());
+      const body = await req.formData();
+      assertEquals(typeof body, "object");
+    });
+    await t.step("json2", async () => {
+      const req = createReq(
+        JSON.stringify({ name: "john" }),
+        `application/json`,
+      );
+      Object.defineProperty(req, "json", {
+        writable: false,
+      });
+      memoBody(req, await req.arrayBuffer());
+      assertEquals(typeof req.json, "undefined");
+    });
+    await t.step("blob", async () => {
+      const req = createReq("name=john", `text/plain`);
+      memoBody(req, await req.arrayBuffer());
+      const body = await req.blob();
+      assertEquals(typeof body, "object");
+    });
   });
   await t.step("middAssets", () => {
     const midd: Handler = (rev, next) => {
