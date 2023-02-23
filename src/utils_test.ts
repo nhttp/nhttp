@@ -4,7 +4,6 @@ import { TObject, TRet } from "./types.ts";
 import {
   arrayBuffer,
   concatRegexp,
-  decURI,
   decURIComponent,
   findFn,
   findFns,
@@ -19,13 +18,6 @@ import {
 } from "./utils.ts";
 
 Deno.test("utils", async (t) => {
-  await t.step("decode uri", () => {
-    const val = decURI("/hello?name=sahimar");
-    assertEquals(val, "/hello?name=sahimar");
-
-    const val2 = decURI("%E0%A4%A");
-    assertEquals(val2, "%E0%A4%A");
-  });
   await t.step("decode uri comp", () => {
     const val = decURIComponent("%3Fx%3Dtest");
     assertEquals(val, "?x=test");

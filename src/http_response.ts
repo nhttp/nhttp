@@ -1,5 +1,4 @@
-import { JSON_TYPE, MIME_LIST, STATUS_LIST } from "./constant.ts";
-import { TResp } from "./request_event.ts";
+import { JSON_TYPE, MIME_LIST } from "./constant.ts";
 import { s_params } from "./symbol.ts";
 import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
@@ -7,10 +6,43 @@ import { serializeCookie } from "./utils.ts";
 export type ResInit = {
   headers?: TObject;
   status?: number;
+  statusText?: string;
+};
+
+type RetHeaders = {
+  append: (key: string, value: string) => HttpResponse;
+  delete: (key: string) => void;
+  toJSON: () => TObject;
 };
 
 export class HttpResponse {
-  constructor(private _send: TResp) {}
+  constructor(
+    /**
+     * send response body
+     * @example
+     * response.send("hello");
+     * response.send({ name: "john" });
+     */
+    public send: (body?: TSendBody) => void,
+    public init: ResInit,
+  ) {}
+  /**
+   * setHeader
+   * @example
+   * response.setHeader("key", "value");
+   */
+  setHeader(key: string, value: string | string[]) {
+    (this.init.headers ??= {})[key.toLowerCase()] = value;
+    return this;
+  }
+  /**
+   * getHeader
+   * @example
+   * const str = response.getHeader("key");
+   */
+  getHeader(key: string) {
+    return this.init.headers?.[key.toLowerCase()];
+  }
   /**
    * set header or get header
    * @example
@@ -26,32 +58,38 @@ export class HttpResponse {
    *
    * // append header
    * response.header().append("key", "other-value");
+   *
+   * // get all header
+   * const headers = response.header().toJSON();
    */
   header(key: string, value: string | string[]): this;
   header(key: string): string;
   header(key: TObject): this;
-  header(): Headers;
+  header(): RetHeaders;
   header(
     key?: TObject | string,
     value?: string | string[],
-  ): this | string | Headers {
-    this.init ??= {};
-    this.init.headers ??= {};
-    if (this.init.headers instanceof Headers) {
-      this.init.headers = Object.fromEntries(this.init.headers.entries());
-    }
+  ): this | string | RetHeaders {
     if (typeof key === "string") {
-      key = key.toLowerCase();
-      if (value === void 0) return this.init.headers[key];
-      this.init.headers[key] = value;
+      if (value === void 0) return this.getHeader(key);
+      this.setHeader(key, value);
       return this;
     }
     if (typeof key === "object") {
-      if (key instanceof Headers) key = Object.fromEntries(key.entries());
-      for (const k in key) this.init.headers[k.toLowerCase()] = key[k];
+      for (const k in key) this.setHeader(k, key[k]);
       return this;
     }
-    return (this.init.headers = new Headers(this.init.headers));
+    return {
+      delete: (k) => {
+        delete this.init.headers?.[k.toLowerCase()];
+      },
+      append: (k, v) => {
+        const cur = this.getHeader(k);
+        this.setHeader(k, cur ? (cur + ", " + v) : v);
+        return this;
+      },
+      toJSON: () => this.init.headers ?? {},
+    };
   }
   /**
    * set status or get status
@@ -66,12 +104,10 @@ export class HttpResponse {
   status(): number;
   status(code?: number): this | number {
     if (code) {
-      this.init ??= {};
-      this.init.statusText = STATUS_LIST[code];
       this.init.status = code;
       return this;
     }
-    return (this.init?.status || 200);
+    return (this.init.status ?? 200);
   }
   /**
    * sendStatus
@@ -80,9 +116,8 @@ export class HttpResponse {
    */
   sendStatus(code: number) {
     if (code > 511) code = 500;
-    const status = STATUS_LIST[code];
     try {
-      this.status(code).send(status);
+      this.status(code).send(code);
     } catch (_e) {
       this.status(code).send(null);
     }
@@ -98,22 +133,7 @@ export class HttpResponse {
     const c_dis = filename ? `attachment; filename=${filename}` : "attachment;";
     return this.header("content-disposition", c_dis);
   }
-  /**
-   * setHeader
-   * @example
-   * response.setHeader("key", "value");
-   */
-  setHeader(key: string, value: string | string[]) {
-    return this.header(key, value);
-  }
-  /**
-   * getHeader
-   * @example
-   * const str = response.getHeader("key");
-   */
-  getHeader(key: string) {
-    return this.header(key);
-  }
+
   /**
    * set/get statusCode
    * @example
@@ -165,15 +185,6 @@ export class HttpResponse {
     params?: TObject,
     ...args: TRet
   ) => Promise<void | Response>;
-  /**
-   * send response body
-   * @example
-   * response.send("hello");
-   * response.send({ name: "john" });
-   */
-  send(body?: TSendBody) {
-    this._send(body);
-  }
   /**
    * shorthand for send json body
    * @example

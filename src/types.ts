@@ -1,6 +1,7 @@
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
 
+// eslint-disable @typescript-eslint/no-explicit-any
 // deno-lint-ignore no-explicit-any
 export type TRet = any;
 export type TObject = { [k: string]: TRet };
@@ -14,7 +15,7 @@ export type TSendBody =
   | number;
 export type NextFunction = (
   err?: Error,
-) => TRet;
+) => TRet | Promise<TRet>;
 export type RetHandler =
   | Promise<void | string | TObject>
   | void
@@ -153,7 +154,7 @@ export type ListenOptions = {
   cert?: string;
   keyFile?: string;
   certFile?: string;
-  transport?: string;
+  transport?: "tcp";
   alpnProtocols?: string[];
   handler?: CustomHandler;
   signal?: AbortSignal;

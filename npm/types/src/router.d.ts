@@ -93,5 +93,5 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
     private findPathAssets;
-    find(method: string, url: string, getPath: (path: string) => string, setParam: (p: () => TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
+    find(method: string, path: string, setParam: (obj: TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
 }

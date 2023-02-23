@@ -22,6 +22,7 @@ export default class Application extends NHttp {
       .addServer("http://localhost:8000/api/v1")
       .build();
 
-    swagger(this, "/api-docs", document, { validationMetadatasToSchemas });
+    const schemas = validationMetadatasToSchemas();
+    swagger(this, "/api-docs", document, { schemas });
   }
 }

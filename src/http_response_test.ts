@@ -35,12 +35,9 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       response.header("name", "john");
       response.header({ "address": "jakarta" });
-      response.header(new Headers({ "gender": "male" }));
-      const header = response.header();
-      assertEquals(header.get("name"), "john");
-      assertEquals(header.get("address"), "jakarta");
-      const gender = response.header("gender") as string;
-      assertEquals(gender, "male");
+      const header = response.header().toJSON();
+      assertEquals(header["name"], "john");
+      assertEquals(header["address"], "jakarta");
     });
     await t.step("status", () => {
       const response = buildRes();
@@ -61,24 +58,18 @@ Deno.test("HttpResponse", async (t) => {
       response.json({ name: "john" });
       assertEquals(response.statusCode, 200);
     });
-    await t.step("json no init", () => {
-      const response = buildRes();
-      response.init = void 0;
-      response.json({ name: "john" });
-      assertEquals(response.statusCode, 200);
-    });
     await t.step("cookie", () => {
       const response = buildRes();
       response.cookie("name", "john", { httpOnly: true });
-      assertEquals(response.header().has("Set-Cookie"), true);
+      assertEquals(typeof response.header("Set-Cookie"), "string");
       response.clearCookie("fname", { httpOnly: true });
 
       response.cookie("name", "john", { path: "/", maxAge: 1000 });
-      assertEquals(response.header().has("Set-Cookie"), true);
+      assertEquals(typeof response.header("Set-Cookie"), "string");
       response.clearCookie("name");
 
       response.cookie("name", ["john", "doe"]);
-      assertEquals(response.header().has("Set-Cookie"), true);
+      assertEquals(typeof response.header("Set-Cookie"), "string");
       response.clearCookie("name");
     });
     await t.step("redirect", () => {
@@ -109,6 +100,11 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       response.setHeader("key", "value");
       assertEquals(response.getHeader("key"), "value");
+    });
+    await t.step("toJSON header", () => {
+      const response = buildRes();
+      response.setHeader("key", "value");
+      assertEquals(response.header().toJSON(), { key: "value" });
     });
     await t.step("attachment", () => {
       const response = buildRes();

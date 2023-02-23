@@ -2,6 +2,8 @@ declare global {
     export namespace Deno {
         interface Conn {
         }
+        interface HttpConn {
+        }
     }
 }
 import { NHttp as BaseApp } from "./src/nhttp";

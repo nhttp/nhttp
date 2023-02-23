@@ -75,15 +75,12 @@ import { nhttp } from "https://deno.land/x/nhttp@1.1.14/mod.ts";
 
 const app = nhttp();
 
-app.get("/", (rev) => {
-  rev.send("Hello, World");
+app.get("/", () => {
+  return "Hello, World";
 });
 
-// return directly
 app.get("/cat", () => {
-  return "Hello, Cat";
-  // or json
-  // return { name: "cat" };
+  return { name: "cat" };
 });
 
 app.listen(8000, () => {

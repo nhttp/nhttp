@@ -7,7 +7,10 @@ await emptyDir("./npm");
 const dir = Deno.cwd();
 
 const fakeGlob = `declare global {
-  export namespace Deno { interface Conn { } }
+  export namespace Deno { 
+    interface Conn { }
+    interface HttpConn { }
+  }
 }`;
 
 await Deno.mkdir("npm/src/src", { recursive: true });

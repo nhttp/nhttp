@@ -23,14 +23,12 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 var class_validator_exports = {};
 __export(class_validator_exports, {
   Validate: () => Validate,
-  ValidateOriginal: () => import_class_validator.Validate,
-  validate: () => validate,
-  validateOriginal: () => import_class_validator.validate
+  validate: () => validate
 });
-__reExport(class_validator_exports, require("class-validator"));
 var import_class_validator = require("class-validator");
 var import_deps = require("./deps");
 var import_controller = require("./controller");
+__reExport(class_validator_exports, require("class-validator"));
 function validate(_class, opts = {}) {
   return async (rev, next) => {
     const obj = new _class();
@@ -54,7 +52,5 @@ module.exports = __toCommonJS(class_validator_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Validate,
-  ValidateOriginal,
-  validate,
-  validateOriginal
+  validate
 });

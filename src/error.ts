@@ -1,4 +1,4 @@
-import { STATUS_LIST } from "./constant.ts";
+import { STATUS_ERROR_LIST } from "./constant.ts";
 import { TObject, TRet } from "./types.ts";
 
 /**
@@ -11,9 +11,9 @@ export class HttpError extends Error {
   constructor(status?: number, message?: TRet, name?: string) {
     super(message);
     this.status = status ?? 500;
-    this.message = message ?? STATUS_LIST[this.status] ?? "Http Error";
+    this.message = message ?? STATUS_ERROR_LIST[this.status] ?? "Http Error";
     this.name = name ??
-      (STATUS_LIST[this.status] ?? "Http").replace(/\s/g, "");
+      (STATUS_ERROR_LIST[this.status] ?? "Http").replace(/\s/g, "");
     if (!name && !this.name.endsWith("Error")) {
       this.name += "Error";
     }
@@ -24,20 +24,20 @@ export class HttpError extends Error {
  * Give error object
  */
 export function getError(err: TObject, isStack?: boolean) {
-  let status: number = err.status || err.statusCode || err.code || 500;
+  let status: number = err.status ?? err.statusCode ?? err.code ?? 500;
   if (typeof status !== "number") status = 500;
-  let stack = void 0;
+  let stack;
   if (isStack) {
-    const arr = err.stack ? err.stack.split("\n") : [""];
+    const arr: string[] = err.stack?.split("\n") ?? [""];
     arr.shift();
     stack = arr
-      .filter((line: string | string[]) => line.indexOf("file://") !== -1)
-      .map((line: string) => line.trim());
+      .filter((l) => l.includes("file://"))
+      .map((l) => l.trim());
   }
   return {
     status,
-    message: (err.message || "Something went wrong") as string,
-    name: (err.name || "HttpError") as string,
+    message: (err.message ?? "Something went wrong") as string,
+    name: (err.name ?? "HttpError") as string,
     stack,
   };
 }

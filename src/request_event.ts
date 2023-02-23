@@ -1,5 +1,4 @@
 import { ROUTE } from "./constant.ts";
-import { JSON_TYPE } from "./constant.ts";
 import { findParams } from "./router.ts";
 import {
   s_body,
@@ -7,6 +6,7 @@ import {
   s_cookies,
   s_file,
   s_headers,
+  s_init,
   s_params,
   s_path,
   s_query,
@@ -21,9 +21,6 @@ import { getReqCookies, getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
 import { HttpResponse } from "./http_response.ts";
 
-export type TResp = (
-  r: TRet,
-) => Promise<void> | undefined | Response | void;
 type TInfo = {
   conn: Partial<Deno.Conn>;
   env: TObject;
@@ -45,15 +42,11 @@ export class RequestEvent {
    * response as HttpResponse
    */
   get response(): HttpResponse {
-    if (this._ctx && typeof this._ctx === "function") {
-      return this[s_res] ??= (this._ctx as TRet)(
-        this._info,
-        this.send.bind(this),
-      );
-    }
-    return this[s_res] ??= new HttpResponse(this.send.bind(this));
+    return this[s_res] ??= new HttpResponse(
+      this.send.bind(this),
+      this[s_init] = {},
+    );
   }
-
   /**
    * lookup self route
    */
@@ -81,10 +74,11 @@ export class RequestEvent {
    * lookup Object info like `conn / env / context`.
    */
   get info(): TInfo {
-    const flag = typeof this._ctx === "function";
-    const info = flag ? {} : (this._info ?? {});
-    const context = flag ? {} : (this._ctx ?? {});
-    return { conn: info, env: info, context };
+    return {
+      conn: this._info ?? {},
+      env: this._info ?? {},
+      context: this._ctx ?? {},
+    };
   }
   /**
    * This method tells the event dispatcher that work is ongoing.
@@ -94,7 +88,7 @@ export class RequestEvent {
    * app.get("/", async (rev) => {
    *   let resp = await cache.match(rev.request);
    *   if (!resp) {
-   *     const init = rev.response.init;
+   *     const init = rev.responseInit;
    *     resp = new Response("Hello, World", init);
    *     resp.headers.set("Cache-Control", "max-age=86400, public");
    *     rev.waitUntil(cache.put(rev.request, resp.clone()));
@@ -104,6 +98,10 @@ export class RequestEvent {
    */
   waitUntil(promise: Promise<TRet>) {
     if (promise instanceof Promise) {
+      if (this._ctx && this._ctx.waitUntil) {
+        this._ctx.waitUntil(promise);
+        return;
+      }
       promise.catch(console.error);
       return;
     }
@@ -126,9 +124,9 @@ export class RequestEvent {
    * rev.response.send("hello");
    * rev.response.send({ name: "john" });
    */
-  send(body?: TSendBody): void {
+  send(body?: TSendBody, lose?: number): void {
     if (typeof body === "string") {
-      this[s_response] = new Response(body, this[s_res]?.init);
+      this[s_response] = new Response(body, this[s_init]);
     } else if (body instanceof Response) {
       this[s_response] = body;
     } else if (typeof body === "object") {
@@ -138,30 +136,24 @@ export class RequestEvent {
         body instanceof ReadableStream ||
         body instanceof Blob
       ) {
-        this[s_response] = new Response(<TRet> body, this[s_res]?.init);
+        this[s_response] = new Response(<TRet> body, this[s_init]);
       } else {
-        const init = this[s_res]?.init ?? {};
-        if (init.headers) {
-          const type = "content-type";
-          if (init.headers instanceof Headers) {
-            init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
-          } else {
-            init.headers[type] ??= JSON_TYPE;
-          }
-        } else {
-          init.headers = { "content-type": JSON_TYPE };
-        }
-        this[s_response] = new Response(JSON.stringify(body), init);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // deno-lint-ignore ban-ts-comment
+        // @ts-ignore
+        this[s_response] = Response.json(body, this[s_init]);
       }
-    } else {
-      this[s_response] = new Response(<TRet> body, this[s_res]?.init);
+    } else if (typeof body === "number") {
+      this[s_response] = new Response(body.toString(), this[s_init]);
+    } else if (!lose) {
+      this[s_response] ??= new Response(<TRet> body, this[s_init]);
     }
   }
   /**
    * Lookup responseInit.
    */
   get responseInit(): ResponseInit {
-    return this[s_res]?.init ?? {};
+    return this[s_init] ?? {};
   }
   /**
    * search.
@@ -170,7 +162,7 @@ export class RequestEvent {
    * console.log(search);
    */
   get search() {
-    return this[s_search] ?? null;
+    return this[s_search] ??= null;
   }
   set search(val: string | null) {
     this[s_search] = val;
@@ -208,7 +200,7 @@ export class RequestEvent {
    * console.log(params);
    */
   get params() {
-    return this[s_params] ??= this.__params?.() ?? {};
+    return this[s_params] ??= {};
   }
   set params(val: TObject) {
     this[s_params] = val;
@@ -264,7 +256,7 @@ export class RequestEvent {
    * // => { name: "john" }
    */
   get query() {
-    return this[s_query] ??= this.__parseQuery?.(this.search?.substring(1)) ??
+    return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ??
       {};
   }
   set query(val: TObject) {

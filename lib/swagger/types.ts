@@ -16,6 +16,7 @@ export type GenHtmlOpts = {
 };
 export type TOptionServe = GenHtmlOpts & {
   validationMetadatasToSchemas?: (...args: TRet) => TRet;
+  schemas?: TRet;
 };
 export type TInfo = {
   title: string;

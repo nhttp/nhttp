@@ -5,7 +5,7 @@ export type TObject = {
     [k: string]: TRet;
 };
 export type TSendBody = string | Response | ReadableStream | Blob | TObject | null | number;
-export type NextFunction = (err?: Error) => TRet;
+export type NextFunction = (err?: Error) => TRet | Promise<TRet>;
 export type RetHandler = Promise<void | string | TObject> | void | string | TObject;
 export type Handler<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction, ...args: TRet) => RetHandler;
 export type Handlers<Rev extends RequestEvent = RequestEvent> = Array<Handler<Rev> | Handler<Rev>[]>;
@@ -116,7 +116,7 @@ export type ListenOptions = {
     cert?: string;
     keyFile?: string;
     certFile?: string;
-    transport?: string;
+    transport?: "tcp";
     alpnProtocols?: string[];
     handler?: CustomHandler;
     signal?: AbortSignal;

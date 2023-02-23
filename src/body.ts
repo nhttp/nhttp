@@ -40,9 +40,8 @@ type CType =
   | "application/x-www-form-urlencoded"
   | "multipart/form-data"
   | "text/plain";
-export function acceptContentType(headers: Headers, cType: CType) {
-  const type = headers.get?.("content-type") ??
-    (headers as TObject)["content-type"];
+export function acceptContentType(headers: TObject, cType: CType) {
+  const type = headers.get?.("content-type") ?? headers["content-type"];
   return type === cType || type?.includes(cType);
 }
 
@@ -140,26 +139,27 @@ export function bodyParser(
   opts?: TBodyParser | boolean,
   parseQuery?: TQueryFunc,
   parseMultipart?: TQueryFunc,
-) {
-  const ret: Handler = (rev, next) => {
+): Handler {
+  return (rev, next) => {
     if (opts === false || rev.bodyUsed) return next();
     if (opts === true) opts = {};
-    const headers = rev.headers;
-    if (acceptContentType(headers, "application/json")) {
+    if (acceptContentType(rev.request.headers, "application/json")) {
       return jsonBody(opts?.json, rev, next);
     }
     if (
-      acceptContentType(headers, "application/x-www-form-urlencoded")
+      acceptContentType(
+        rev.request.headers,
+        "application/x-www-form-urlencoded",
+      )
     ) {
       return urlencodedBody(opts?.urlencoded, parseQuery, rev, next);
     }
-    if (acceptContentType(headers, "text/plain")) {
+    if (acceptContentType(rev.request.headers, "text/plain")) {
       return rawBody(opts?.raw, rev, next);
     }
-    if (acceptContentType(headers, "multipart/form-data")) {
+    if (acceptContentType(rev.request.headers, "multipart/form-data")) {
       return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();
   };
-  return ret;
 }

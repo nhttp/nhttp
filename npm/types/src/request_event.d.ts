@@ -1,6 +1,5 @@
 import { MatchRoute, TObject, TRet, TSendBody } from "./types";
 import { HttpResponse } from "./http_response";
-export type TResp = (r: TRet) => Promise<void> | undefined | Response | void;
 type TInfo = {
     conn: Partial<Deno.Conn>;
     env: TObject;
@@ -40,7 +39,7 @@ export declare class RequestEvent {
      * app.get("/", async (rev) => {
      *   let resp = await cache.match(rev.request);
      *   if (!resp) {
-     *     const init = rev.response.init;
+     *     const init = rev.responseInit;
      *     resp = new Response("Hello, World", init);
      *     resp.headers.set("Cache-Control", "max-age=86400, public");
      *     rev.waitUntil(cache.put(rev.request, resp.clone()));
@@ -64,7 +63,7 @@ export declare class RequestEvent {
      * rev.response.send("hello");
      * rev.response.send({ name: "john" });
      */
-    send(body?: TSendBody): void;
+    send(body?: TSendBody, lose?: number): void;
     /**
      * Lookup responseInit.
      */

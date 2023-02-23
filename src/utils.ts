@@ -13,19 +13,13 @@ export const decoder = new TextDecoder();
 
 type EArr = [string, string | TObject];
 
-export const decURI = (str: string) => {
-  try {
-    return decodeURI(str);
-  } catch (_e) {
-    return str;
+export const decURIComponent = (str = "") => {
+  if (/\%/.test(str)) {
+    try {
+      return decodeURIComponent(str);
+    } catch (_e) { /* noop */ }
   }
-};
-export const decURIComponent = (str: string) => {
-  try {
-    return decodeURIComponent(str);
-  } catch (_e) {
-    return str;
-  }
+  return str;
 };
 
 // alias decodeUriComponent
@@ -129,14 +123,14 @@ export function needPatch(
   }
   let key = keys.shift() as number;
   if (!key) {
-    data ||= [];
+    data ??= [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data ||= [];
+    data ??= [];
     key = index;
   }
   data = (data || {}) as TObject;
@@ -172,15 +166,11 @@ export function myParse(arr: EArr[]) {
 }
 
 export function parseQueryArray(query: string) {
-  const arr = query.split("&") as EArr;
-  const len = arr.length;
-  let i = 0;
   const data = [] as EArr[];
-  while (i < len) {
-    const el = arr[i].split("=");
-    data.push([duc(el[0]), duc(el[1] ?? "")]);
-    i++;
-  }
+  query.split(/&/).forEach((key) => {
+    const el = key.split(/=/);
+    data.push([el[0], duc(el[1])]);
+  });
   return myParse(data);
 }
 
@@ -188,21 +178,18 @@ export function parseQuery(query?: null | string | FormData) {
   if (!query) return {};
   if (typeof query === "string") {
     if (query.includes("]=")) return parseQueryArray(query);
-    const arr = query.split("&") as EArr;
-    const len = arr.length;
-    let i = 0;
     const data: TRet = {};
-    while (i < len) {
-      const el = arr[i].split("=");
-      el[0] = duc(el[0]);
+    const invoke = (key: string) => {
+      const el = key.split(/=/);
       if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]])) data[el[0]] = [data[el[0]]];
-        data[el[0]].push(duc(el[1] ?? ""));
+        data[el[0]].push(duc(el[1]));
       } else {
-        data[el[0]] = duc(el[1] ?? "");
+        data[el[0]] = duc(el[1]);
       }
-      i++;
-    }
+    };
+    if (query.includes("&")) query.split(/&/).forEach(invoke);
+    else invoke(query);
     return data;
   }
   return myParse(Array.from(query.entries()));

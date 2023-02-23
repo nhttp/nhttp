@@ -1,11 +1,7 @@
-export * from "class-validator";
-import {
-  Validate as ValidateOriginal,
-  validate as validateOriginal,
-  validateOrReject
-} from "class-validator";
+import { validateOrReject } from "class-validator";
 import { HttpError } from "./deps.js";
 import { joinHandlers } from "./controller.js";
+export * from "class-validator";
 function validate(_class, opts = {}) {
   return async (rev, next) => {
     const obj = new _class();
@@ -27,7 +23,5 @@ function Validate(_class, opts = {}) {
 }
 export {
   Validate,
-  ValidateOriginal,
-  validate,
-  validateOriginal
+  validate
 };

@@ -7,8 +7,7 @@ deno run -A server.ts
 ## Api
 
 ```ts
-GET http://localhost:8000/api/v1/user
-GET http://localhost:8000/api/v1/user/:id
+POST http://localhost:8000/api/v1/user
 ```
 
 ## Doc

@@ -212,7 +212,7 @@ function ApiDocument(objOrArr) {
 import { DocumentBuilder } from "./swagger/builder.js";
 function swagger(app, docUrl, document, opts = {}) {
   const metadata = globalThis.NHttpMetadata;
-  const schemas = opts.validationMetadatasToSchemas ? opts.validationMetadatasToSchemas() : {};
+  const schemas = opts.schemas ?? opts.validationMetadatasToSchemas?.() ?? {};
   const doc_paths = metadata["doc_paths"];
   const schemasOri = metadata["doc_schemas"] || {};
   let j = 0;

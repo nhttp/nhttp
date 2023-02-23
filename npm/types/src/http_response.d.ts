@@ -1,12 +1,43 @@
-import { TResp } from "./request_event";
 import { Cookie, TObject, TRet, TSendBody } from "./types";
 export type ResInit = {
     headers?: TObject;
     status?: number;
+    statusText?: string;
+};
+type RetHeaders = {
+    append: (key: string, value: string) => HttpResponse;
+    delete: (key: string) => void;
+    toJSON: () => TObject;
 };
 export declare class HttpResponse {
-    private _send;
-    constructor(_send: TResp);
+    /**
+     * send response body
+     * @example
+     * response.send("hello");
+     * response.send({ name: "john" });
+     */
+    send: (body?: TSendBody) => void;
+    init: ResInit;
+    constructor(
+    /**
+     * send response body
+     * @example
+     * response.send("hello");
+     * response.send({ name: "john" });
+     */
+    send: (body?: TSendBody) => void, init: ResInit);
+    /**
+     * setHeader
+     * @example
+     * response.setHeader("key", "value");
+     */
+    setHeader(key: string, value: string | string[]): this;
+    /**
+     * getHeader
+     * @example
+     * const str = response.getHeader("key");
+     */
+    getHeader(key: string): any;
     /**
      * set header or get header
      * @example
@@ -22,11 +53,14 @@ export declare class HttpResponse {
      *
      * // append header
      * response.header().append("key", "other-value");
+     *
+     * // get all header
+     * const headers = response.header().toJSON();
      */
     header(key: string, value: string | string[]): this;
     header(key: string): string;
     header(key: TObject): this;
-    header(): Headers;
+    header(): RetHeaders;
     /**
      * set status or get status
      * @example
@@ -52,18 +86,6 @@ export declare class HttpResponse {
      * response.attachment();
      */
     attachment(filename?: string): this;
-    /**
-     * setHeader
-     * @example
-     * response.setHeader("key", "value");
-     */
-    setHeader(key: string, value: string | string[]): this;
-    /**
-     * getHeader
-     * @example
-     * const str = response.getHeader("key");
-     */
-    getHeader(key: string): string;
     /**
      * set/get statusCode
      * @example
@@ -102,13 +124,6 @@ export declare class HttpResponse {
      */
     render: (fileOrElem: TRet, params?: TObject, ...args: TRet) => Promise<void | Response>;
     /**
-     * send response body
-     * @example
-     * response.send("hello");
-     * response.send({ name: "john" });
-     */
-    send(body?: TSendBody): void;
-    /**
      * shorthand for send json body
      * @example
      * response.json({ name: "john" });
@@ -141,3 +156,4 @@ export declare class HttpResponse {
 export declare class JsonResponse extends Response {
     constructor(body: TObject | null, resInit?: ResponseInit);
 }
+export {};

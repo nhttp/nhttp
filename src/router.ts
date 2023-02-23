@@ -21,6 +21,7 @@ export function findParams(el: TObject, url: string) {
   const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
   if (!el.wild || !el.path) return params;
+  if (el.path instanceof RegExp) return params;
   const path = el.path;
   if (path.indexOf("*") !== -1) {
     match.shift();
@@ -229,16 +230,14 @@ export default class Router<
   }
   find(
     method: string,
-    url: string,
-    getPath: (path: string) => string,
-    setParam: (p: () => TObject) => void,
+    path: string,
+    setParam: (obj: TObject) => void,
     notFound: (rev: Rev, next: NextFunction) => TRet,
   ): Handler<Rev>[] {
-    const path = getPath(url);
     if (this.route[method + path]) return this.route[method + path];
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r) {
-      setParam(() => findParams(r, path));
+      setParam(findParams(r, path));
       return r.fns;
     }
     if (path !== "/" && path[path.length - 1] === "/") {

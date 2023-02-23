@@ -9,12 +9,12 @@ import {
   TRet,
 } from "./src/index.ts";
 import { HttpResponse } from "./src/http_response.ts";
-import { TResp } from "./src/request_event.ts";
 import Router, { TRouter } from "./src/router.ts";
 import { JSON_TYPE } from "./src/constant.ts";
+import { s_res } from "./src/symbol.ts";
 
-function buildRes(response: TObject, send: TResp) {
-  const _res = new HttpResponse(send);
+function buildRes(response: TObject, send: TRet) {
+  const _res = new HttpResponse(send, {});
   _res.header = function header(
     key?: TObject | string,
     value?: string | string[],
@@ -29,15 +29,14 @@ function buildRes(response: TObject, send: TResp) {
       for (const k in key) response.setHeader(k.toLowerCase(), key[k]);
       return this;
     }
-    return <TRet> {
-      has: response.hasHeader,
+    return {
       delete: response.removeHeader,
-      set: response.setHeader,
-      get: response.getHeader,
-      append: function (key: string, value: TRet) {
+      append: (key, value) => {
         const cur = response.getHeader(key);
         response.setHeader(key, cur ? (cur + ", " + value) : value);
+        return this;
       },
+      toJSON: () => response.getHeaders(),
     };
   };
   _res.status = function status(code?: number) {
@@ -81,6 +80,8 @@ export class NHttp<
     };
     const oriListen = this.listen.bind(this);
     this.listen = async (opts, callback) => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       if (typeof Deno !== "undefined") {
         this.handle = this.handleWorkers;
         return oriListen(opts, callback);
@@ -110,21 +111,25 @@ export class NHttp<
             } catch (_e) { /* noop */ }
           }, { once: true });
         }
+        // @ts-ignore
         if (typeof Bun !== "undefined") {
           opts.fetch = handler;
+          // @ts-ignore
           this.server = Bun.serve(opts);
           runCallback();
           return;
         }
         if (!opts.handler) handler = this.handleNode;
         if (isTls) {
-          const h = await import("https");
+          // @ts-ignore
+          const h = await import("node:https");
           this.server = h.createServer(opts, handler);
           this.server.listen(opts.port);
           runCallback();
           return;
         }
-        const h = await import("http");
+        // @ts-ignore
+        const h = await import("node:http");
         this.server = h.createServer(handler);
         this.server.listen(opts.port);
         runCallback();
@@ -137,7 +142,7 @@ export class NHttp<
 
   private handleRequestNode(req: TObject, res: TObject) {
     let i = 0;
-    const rev = new RequestEvent(req as Request, res, buildRes);
+    const rev = new RequestEvent(req as Request);
     rev.send = (body?: TRet) => {
       if (typeof body === "string") {
         res.end(body);
@@ -159,6 +164,10 @@ export class NHttp<
         } catch (_e) { /* noop */ }
       }
     };
+    rev[s_res] = buildRes(
+      res,
+      rev.send.bind(rev),
+    );
     const fns = this.route[rev.method + req.url] ??
       this.matchFns(rev, req.url);
     const send = (ret: TRet) => {

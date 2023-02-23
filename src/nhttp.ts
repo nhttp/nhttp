@@ -1,5 +1,4 @@
 import {
-  CustomHandler,
   EngineOptions,
   FetchEvent,
   Handlers,
@@ -11,6 +10,7 @@ import {
   TObject,
   TQueryFunc,
   TRet,
+  TSendBody,
 } from "./types.ts";
 import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
@@ -22,9 +22,26 @@ import {
 import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { HTML_TYPE } from "./constant.ts";
+import { HTML_TYPE, JSON_TYPE } from "./constant.ts";
 import { s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
+import { ResInit } from "./http_response.ts";
+
+function oldSchool() {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // deno-lint-ignore ban-ts-comment
+  // @ts-ignore
+  Response.json ??= (data: unknown, init: ResInit = {}) => {
+    const type = "content-type";
+    init.headers ??= {};
+    if (init.headers instanceof Headers) {
+      init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
+    } else {
+      init.headers[type] ??= JSON_TYPE;
+    }
+    return new Response(JSON.stringify(data), init);
+  };
+}
 
 const defError = (
   err: TObject,
@@ -32,7 +49,8 @@ const defError = (
   stack: boolean,
 ): RetHandler => {
   const obj = getError(err, stack);
-  return rev.response.status(obj.status).json(obj);
+  rev.response.status(obj.status);
+  return obj;
 };
 const awaiter = (rev: RequestEvent) => {
   return (async (t, d) => {
@@ -44,17 +62,17 @@ const awaiter = (rev: RequestEvent) => {
     return rev[s_response];
   })(0, 100);
 };
-const resend = (ret: TRet, rev: RequestEvent, next: NextFunction) => {
-  if (ret) {
-    if (ret instanceof Promise) {
-      return ret.then((val) => {
-        if (val) rev.send(val);
-        return rev[s_response] ?? awaiter(rev);
-      }).catch(next);
-    }
-    rev.send(ret);
+const respond = async (
+  ret: TSendBody | Promise<TSendBody>,
+  rev: RequestEvent,
+  next: NextFunction,
+) => {
+  try {
+    rev.send(await ret, 1);
+    return rev[s_response] ?? awaiter(rev);
+  } catch (e) {
+    return next(e);
   }
-  return rev[s_response] ?? awaiter(rev);
 };
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -65,7 +83,9 @@ export class NHttp<
   private stackError!: boolean;
   private bodyParser?: TBodyParser | boolean;
   private parseMultipart?: TQueryFunc;
-  server: TRet;
+  private alive = true;
+  private track = new Set<Deno.HttpConn>();
+  server!: TRet;
   /**
    * handleEvent
    * @example
@@ -86,6 +106,7 @@ export class NHttp<
     { parseQuery, bodyParser, env, flash, stackError }: TApp = {},
   ) {
     super();
+    oldSchool();
     this.parseQuery = parseQuery || parseQueryOri;
     this.stackError = stackError !== false;
     this.env = env ?? "development";
@@ -269,23 +290,18 @@ export class NHttp<
       return next();
     });
   }
-  matchFns(rev: RequestEvent, url: string) {
+  matchFns(rev: RequestEvent, path: string) {
+    const iof = path.indexOf("?");
+    if (iof !== -1) {
+      rev.path = path.substring(0, iof);
+      rev.__parseQuery = this.parseQuery;
+      rev.search = path.substring(iof);
+      path = rev.path;
+    }
     return this.find(
       rev.method,
-      url,
-      (str) => {
-        const iof = str.indexOf("?");
-        if (iof != -1) {
-          rev.path = str.substring(0, iof);
-          rev.__parseQuery = this.parseQuery;
-          rev.search = str.substring(iof);
-          return rev.path;
-        }
-        return str;
-      },
-      (p) => {
-        rev.__params = p;
-      },
+      path,
+      (obj) => (rev.params = obj),
       this._on404,
     );
   }
@@ -297,10 +313,11 @@ export class NHttp<
     const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
     const next: NextFunction = (err) => {
       try {
-        const ret = err
-          ? this._onError(err, rev)
-          : (fns[i++] ?? this._on404)(rev, next);
-        return rev[s_response] ?? resend(ret, rev, next);
+        return respond(
+          err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next),
+          rev,
+          next,
+        );
       } catch (e) {
         return next(e);
       }
@@ -308,8 +325,7 @@ export class NHttp<
     // GET/HEAD cannot have body.
     if (rev.method === "GET" || rev.method === "HEAD") {
       try {
-        const ret = fns[i++](rev, next);
-        return rev[s_response] ?? resend(ret, rev, next);
+        return respond(fns[i++](rev, next), rev, next);
       } catch (e) {
         return next(e);
       }
@@ -319,6 +335,31 @@ export class NHttp<
       this.parseQuery,
       this.parseMultipart,
     )(rev, next);
+  }
+  closeServer() {
+    try {
+      if (!this.alive) {
+        throw new Error("Server Closed");
+      }
+      this.alive = false;
+      this.server.close();
+      for (const httpConn of this.track) {
+        httpConn.close();
+      }
+      this.track.clear();
+    } catch { /* noop */ }
+  }
+  private buildListenOptions(opts: number | ListenOptions) {
+    let isSecure = false;
+    if (typeof opts === "number") {
+      opts = { port: opts };
+    } else if (typeof opts === "object") {
+      isSecure = opts.certFile !== void 0 ||
+        opts.cert !== void 0 ||
+        opts.alpnProtocols !== void 0;
+      if (opts.handler) this.handle = opts.handler;
+    }
+    return { opts, isSecure };
   }
   /**
    * listen the server
@@ -332,74 +373,78 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-  listen(
-    opts: number | ListenOptions,
+  async listen(
+    options: number | ListenOptions,
     callback?: (
       err: Error | undefined,
       opts: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    return (async () => {
-      let isTls = false, handler = this.handle;
-      if (typeof opts === "number") {
-        opts = { port: opts };
-      } else if (typeof opts === "object") {
-        isTls = opts.certFile !== void 0 || opts.cert !== void 0 ||
-          opts.alpnProtocols !== void 0;
-        if (opts.handler) handler = opts.handler;
+    const { opts, isSecure } = this.buildListenOptions(options);
+    const runCallback = (err?: Error) => {
+      if (callback) {
+        callback(err, {
+          ...opts,
+          hostname: opts.hostname ?? "localhost",
+        });
+        return true;
       }
-      const runCallback = (err?: Error) => {
-        if (callback) {
-          const _opts = opts as ListenOptions;
-          callback(err, {
-            ..._opts,
-            hostname: _opts.hostname ?? "localhost",
-          });
-          return true;
-        }
-        return;
-      };
-      try {
-        if (this.flash) {
-          if ((Deno as TRet).serve == void 0) {
-            console.log("Deno flash is unstable. please add --unstable flag.");
-            return;
-          }
-          if (runCallback()) {
-            opts.onListen = () => {};
-          }
-          opts.handler ??= handler;
-          if (opts.test) return;
-          await (Deno as TRet).serve(opts);
-        } else {
-          runCallback();
-          if (opts.signal) {
-            opts.signal.addEventListener("abort", () => {
-              try {
-                this.server?.close();
-              } catch (_e) { /* noop */ }
-            }, { once: true });
-          }
-          if (opts.test) return;
-          this.server = (isTls ? Deno.listenTls : Deno.listen)(opts as TRet);
-          /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
-          while (true) {
-            try {
-              const conn = await this.server.accept();
-              if (conn) {
-                this.handleConn(conn, handler);
-              } else {
-                break;
-              }
-            } catch (_e) { /* noop */ }
-          }
-        }
-      } catch (error) {
-        runCallback(error);
+      return;
+    };
+    try {
+      if (this.flash) {
+        if (runCallback()) opts.onListen = () => {};
+        const handler = opts.handler ?? this.handle;
+        if (opts.handler) delete opts.handler;
+        return await Deno.serve(handler, opts);
       }
-    })();
+      runCallback();
+      if (opts.signal) {
+        opts.signal.addEventListener("abort", () => this.closeServer(), {
+          once: true,
+        });
+      }
+      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
+      return await this.acceptConn();
+    } catch (error) {
+      runCallback(error);
+      this.closeServer();
+    }
   }
 
+  private async acceptConn() {
+    while (this.alive) {
+      let conn: Deno.Conn;
+      try {
+        conn = await this.server.accept();
+      } catch {
+        break;
+      }
+      let httpConn: Deno.HttpConn;
+      try {
+        httpConn = Deno.serveHttp(conn);
+      } catch {
+        continue;
+      }
+      this.track.add(httpConn);
+      this.handleHttp(httpConn, conn);
+    }
+  }
+
+  private async handleHttp(httpConn: Deno.HttpConn, conn: Deno.Conn) {
+    for (;;) {
+      try {
+        const rev = await httpConn.nextRequest();
+        if (rev) {
+          await rev.respondWith(this.handle(rev.request, conn));
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+  }
   private _onError(
     err: TObject,
     rev: Rev,
@@ -414,26 +459,8 @@ export class NHttp<
         "NotFoundError",
       ),
     );
-    return rev.response.status(obj.status).json(obj);
-  }
-
-  private async handleConn(conn: Deno.Conn, handler: CustomHandler) {
-    try {
-      const httpConn = Deno.serveHttp(conn);
-      /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
-      while (true) {
-        try {
-          const rev = await httpConn.nextRequest();
-          if (rev) {
-            await rev.respondWith(handler(rev.request, conn));
-          } else {
-            break;
-          }
-        } catch (_err) {
-          break;
-        }
-      }
-    } catch (_e) { /* noop */ }
+    rev.response.status(obj.status);
+    return obj;
   }
 }
 

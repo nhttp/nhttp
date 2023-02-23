@@ -1,26 +1,7 @@
 import { TObject } from "./types.ts";
 export const JSON_TYPE = "application/json";
-export const HTML_TYPE = "text/html;charset=UTF-8";
-export const STATUS_LIST: Record<number, string> = {
-  100: "Continue",
-  101: "Switching Protocols",
-  102: "Processing",
-  200: "OK",
-  201: "Created",
-  202: "Accepted",
-  203: "Non Authoritative Information",
-  204: "No Content",
-  205: "Reset Content",
-  206: "Partial Content",
-  207: "Multi-Status",
-  300: "Multiple Choices",
-  301: "Moved Permanently",
-  302: "Moved Temporarily",
-  303: "See Other",
-  304: "Not Modified",
-  305: "Use Proxy",
-  307: "Temporary Redirect",
-  308: "Permanent Redirect",
+export const HTML_TYPE = "text/html; charset=UTF-8";
+export const STATUS_ERROR_LIST: Record<number, string> = {
   400: "Bad Request",
   401: "Unauthorized",
   402: "Payment Required",
@@ -133,8 +114,6 @@ export const MIME_LIST: Record<string, string> = {
   xul: "application/vnd.mozilla.xul+xml",
   zip: "application/zip",
   "3gp": "video/3gpp",
-  "3gp_DOES_NOT_CONTAIN_VIDEO": "audio/3gpp",
   "3gp2": "video/3gpp2",
-  "3gp2_DOES_NOT_CONTAIN_VIDEO": "audio/3gpp2",
   "7z": "application/x-7z-compressed",
 };

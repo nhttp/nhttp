@@ -1,16 +1,7 @@
-export * from "npm:class-validator";
-import {
-  Validate as ValidateOriginal,
-  validate as validateOriginal,
-  validateOrReject,
-  ValidatorOptions,
-} from "npm:class-validator";
+import { validateOrReject, ValidatorOptions } from "npm:class-validator";
 import { Handler, HttpError, TRet } from "./deps.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";
-
-// original validate
-export { ValidateOriginal, validateOriginal };
-
+export * from "npm:class-validator";
 type Class = TRet;
 
 export function validate(_class: Class, opts: ValidatorOptions = {}): Handler {

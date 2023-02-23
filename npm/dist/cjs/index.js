@@ -68,27 +68,8 @@ __export(src_exports, {
 
 // npm/src/src/constant.ts
 var JSON_TYPE = "application/json";
-var HTML_TYPE = "text/html;charset=UTF-8";
-var STATUS_LIST = {
-  100: "Continue",
-  101: "Switching Protocols",
-  102: "Processing",
-  200: "OK",
-  201: "Created",
-  202: "Accepted",
-  203: "Non Authoritative Information",
-  204: "No Content",
-  205: "Reset Content",
-  206: "Partial Content",
-  207: "Multi-Status",
-  300: "Multiple Choices",
-  301: "Moved Permanently",
-  302: "Moved Temporarily",
-  303: "See Other",
-  304: "Not Modified",
-  305: "Use Proxy",
-  307: "Temporary Redirect",
-  308: "Permanent Redirect",
+var HTML_TYPE = "text/html; charset=UTF-8";
+var STATUS_ERROR_LIST = {
   400: "Bad Request",
   401: "Unauthorized",
   402: "Payment Required",
@@ -199,21 +180,21 @@ var MIME_LIST = {
   xul: "application/vnd.mozilla.xul+xml",
   zip: "application/zip",
   "3gp": "video/3gpp",
-  "3gp_DOES_NOT_CONTAIN_VIDEO": "audio/3gpp",
   "3gp2": "video/3gpp2",
-  "3gp2_DOES_NOT_CONTAIN_VIDEO": "audio/3gpp2",
   "7z": "application/x-7z-compressed"
 };
 
 // npm/src/src/utils.ts
 var encoder = new TextEncoder();
 var decoder = new TextDecoder();
-var decURIComponent = (str) => {
-  try {
-    return decodeURIComponent(str);
-  } catch (_e) {
-    return str;
+var decURIComponent = (str = "") => {
+  if (/\%/.test(str)) {
+    try {
+      return decodeURIComponent(str);
+    } catch (_e) {
+    }
   }
+  return str;
 };
 var duc = decURIComponent;
 function findFn(fn) {
@@ -300,14 +281,14 @@ function needPatch(data, keys, value) {
   }
   let key = keys.shift();
   if (!key) {
-    data ||= [];
+    data ??= [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data ||= [];
+    data ??= [];
     key = index;
   }
   data = data || {};
@@ -339,15 +320,11 @@ function myParse(arr) {
   return obj;
 }
 function parseQueryArray(query) {
-  const arr = query.split("&");
-  const len = arr.length;
-  let i = 0;
   const data = [];
-  while (i < len) {
-    const el = arr[i].split("=");
-    data.push([duc(el[0]), duc(el[1] ?? "")]);
-    i++;
-  }
+  query.split(/&/).forEach((key) => {
+    const el = key.split(/=/);
+    data.push([el[0], duc(el[1])]);
+  });
   return myParse(data);
 }
 function parseQuery(query) {
@@ -356,22 +333,21 @@ function parseQuery(query) {
   if (typeof query === "string") {
     if (query.includes("]="))
       return parseQueryArray(query);
-    const arr = query.split("&");
-    const len = arr.length;
-    let i = 0;
     const data = {};
-    while (i < len) {
-      const el = arr[i].split("=");
-      el[0] = duc(el[0]);
+    const invoke = (key) => {
+      const el = key.split(/=/);
       if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]]))
           data[el[0]] = [data[el[0]]];
-        data[el[0]].push(duc(el[1] ?? ""));
+        data[el[0]].push(duc(el[1]));
       } else {
-        data[el[0]] = duc(el[1] ?? "");
+        data[el[0]] = duc(el[1]);
       }
-      i++;
-    }
+    };
+    if (query.includes("&"))
+      query.split(/&/).forEach(invoke);
+    else
+      invoke(query);
     return data;
   }
   return myParse(Array.from(query.entries()));
@@ -557,6 +533,8 @@ function findParams(el, url) {
   const params = match?.groups ?? {};
   if (!el.wild || !el.path)
     return params;
+  if (el.path instanceof RegExp)
+    return params;
   const path = el.path;
   if (path.indexOf("*") !== -1) {
     match.shift();
@@ -686,13 +664,12 @@ var Router = class {
       return acc + "/" + curr;
     }, "");
   }
-  find(method, url, getPath, setParam, notFound) {
-    const path = getPath(url);
+  find(method, path, setParam, notFound) {
     if (this.route[method + path])
       return this.route[method + path];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r) {
-      setParam(() => findParams(r, path));
+      setParam(findParams(r, path));
       return r.fns;
     }
     if (path !== "/" && path[path.length - 1] === "/") {
@@ -717,27 +694,27 @@ var HttpError = class extends Error {
   constructor(status, message, name) {
     super(message);
     this.status = status ?? 500;
-    this.message = message ?? STATUS_LIST[this.status] ?? "Http Error";
-    this.name = name ?? (STATUS_LIST[this.status] ?? "Http").replace(/\s/g, "");
+    this.message = message ?? STATUS_ERROR_LIST[this.status] ?? "Http Error";
+    this.name = name ?? (STATUS_ERROR_LIST[this.status] ?? "Http").replace(/\s/g, "");
     if (!name && !this.name.endsWith("Error")) {
       this.name += "Error";
     }
   }
 };
 function getError(err, isStack) {
-  let status = err.status || err.statusCode || err.code || 500;
+  let status = err.status ?? err.statusCode ?? err.code ?? 500;
   if (typeof status !== "number")
     status = 500;
-  let stack = void 0;
+  let stack;
   if (isStack) {
-    const arr = err.stack ? err.stack.split("\n") : [""];
+    const arr = err.stack?.split("\n") ?? [""];
     arr.shift();
-    stack = arr.filter((line) => line.indexOf("file://") !== -1).map((line) => line.trim());
+    stack = arr.filter((l) => l.includes("file://")).map((l) => l.trim());
   }
   return {
     status,
-    message: err.message || "Something went wrong",
-    name: err.name || "HttpError",
+    message: err.message ?? "Something went wrong",
+    name: err.name ?? "HttpError",
     stack
   };
 }
@@ -1136,33 +1113,30 @@ async function multipartBody(validate, parseMultipart, rev, next) {
   }
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
-  const ret = (rev, next) => {
+  return (rev, next) => {
     if (opts === false || rev.bodyUsed)
       return next();
     if (opts === true)
       opts = {};
-    const headers = rev.headers;
-    if (acceptContentType(headers, "application/json")) {
+    if (acceptContentType(rev.request.headers, "application/json")) {
       return jsonBody(opts?.json, rev, next);
     }
-    if (acceptContentType(headers, "application/x-www-form-urlencoded")) {
+    if (acceptContentType(rev.request.headers, "application/x-www-form-urlencoded")) {
       return urlencodedBody(opts?.urlencoded, parseQuery2, rev, next);
     }
-    if (acceptContentType(headers, "text/plain")) {
+    if (acceptContentType(rev.request.headers, "text/plain")) {
       return rawBody(opts?.raw, rev, next);
     }
-    if (acceptContentType(headers, "multipart/form-data")) {
+    if (acceptContentType(rev.request.headers, "multipart/form-data")) {
       return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();
   };
-  return ret;
 }
 
 // npm/src/src/symbol.ts
 var s_url = Symbol("url");
 var s_path = Symbol("path");
-var s_f_route = Symbol("find_route");
 var s_query = Symbol("query");
 var s_route = Symbol("route");
 var s_params = Symbol("params");
@@ -1170,55 +1144,61 @@ var s_file = Symbol("file");
 var s_body = Symbol("body");
 var s_search = Symbol("search");
 var s_headers = Symbol("headers");
-var s_method = Symbol("method");
 var s_cookies = Symbol("cookies");
 var s_res = Symbol("http_res");
 var s_body_used = Symbol("req_body_used");
 var s_response = Symbol("res");
-var s_promise_response = Symbol("promise_res");
+var s_init = Symbol("res_init");
 
 // npm/src/src/http_response.ts
 var HttpResponse = class {
-  constructor(_send) {
-    this._send = _send;
+  constructor(send, init) {
+    this.send = send;
+    this.init = init;
+  }
+  setHeader(key, value) {
+    (this.init.headers ??= {})[key.toLowerCase()] = value;
+    return this;
+  }
+  getHeader(key) {
+    return this.init.headers?.[key.toLowerCase()];
   }
   header(key, value) {
-    this.init ??= {};
-    this.init.headers ??= {};
-    if (this.init.headers instanceof Headers) {
-      this.init.headers = Object.fromEntries(this.init.headers.entries());
-    }
     if (typeof key === "string") {
-      key = key.toLowerCase();
       if (value === void 0)
-        return this.init.headers[key];
-      this.init.headers[key] = value;
+        return this.getHeader(key);
+      this.setHeader(key, value);
       return this;
     }
     if (typeof key === "object") {
-      if (key instanceof Headers)
-        key = Object.fromEntries(key.entries());
       for (const k in key)
-        this.init.headers[k.toLowerCase()] = key[k];
+        this.setHeader(k, key[k]);
       return this;
     }
-    return this.init.headers = new Headers(this.init.headers);
+    return {
+      delete: (k) => {
+        delete this.init.headers?.[k.toLowerCase()];
+      },
+      append: (k, v) => {
+        const cur = this.getHeader(k);
+        this.setHeader(k, cur ? cur + ", " + v : v);
+        return this;
+      },
+      toJSON: () => this.init.headers ?? {}
+    };
   }
   status(code) {
     if (code) {
-      this.init ??= {};
-      this.init.statusText = STATUS_LIST[code];
       this.init.status = code;
       return this;
     }
-    return this.init?.status || 200;
+    return this.init.status ?? 200;
   }
   sendStatus(code) {
     if (code > 511)
       code = 500;
-    const status = STATUS_LIST[code];
     try {
-      this.status(code).send(status);
+      this.status(code).send(code);
     } catch (_e) {
       this.status(code).send(null);
     }
@@ -1226,12 +1206,6 @@ var HttpResponse = class {
   attachment(filename) {
     const c_dis = filename ? `attachment; filename=${filename}` : "attachment;";
     return this.header("content-disposition", c_dis);
-  }
-  setHeader(key, value) {
-    return this.header(key, value);
-  }
-  getHeader(key) {
-    return this.header(key);
   }
   get statusCode() {
     return this.status();
@@ -1247,9 +1221,6 @@ var HttpResponse = class {
   }
   type(contentType) {
     return this.header("content-type", MIME_LIST[contentType] ?? contentType);
-  }
-  send(body) {
-    this._send(body);
   }
   json(body) {
     this.send(body);
@@ -1320,10 +1291,7 @@ var RequestEvent = class {
     this.method = request.method;
   }
   get response() {
-    if (this._ctx && typeof this._ctx === "function") {
-      return this[s_res] ??= this._ctx(this._info, this.send.bind(this));
-    }
-    return this[s_res] ??= new HttpResponse(this.send.bind(this));
+    return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
   }
   get route() {
     if (this[s_route])
@@ -1345,13 +1313,18 @@ var RequestEvent = class {
     return this[s_route] ??= ret ?? {};
   }
   get info() {
-    const flag = typeof this._ctx === "function";
-    const info = flag ? {} : this._info ?? {};
-    const context = flag ? {} : this._ctx ?? {};
-    return { conn: info, env: info, context };
+    return {
+      conn: this._info ?? {},
+      env: this._info ?? {},
+      context: this._ctx ?? {}
+    };
   }
   waitUntil(promise) {
     if (promise instanceof Promise) {
+      if (this._ctx && this._ctx.waitUntil) {
+        this._ctx.waitUntil(promise);
+        return;
+      }
       promise.catch(console.error);
       return;
     }
@@ -1360,37 +1333,28 @@ var RequestEvent = class {
   respondWith(r) {
     this[s_response] = r;
   }
-  send(body) {
+  send(body, lose) {
     if (typeof body === "string") {
-      this[s_response] = new Response(body, this[s_res]?.init);
+      this[s_response] = new Response(body, this[s_init]);
     } else if (body instanceof Response) {
       this[s_response] = body;
     } else if (typeof body === "object") {
       if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob) {
-        this[s_response] = new Response(body, this[s_res]?.init);
+        this[s_response] = new Response(body, this[s_init]);
       } else {
-        const init = this[s_res]?.init ?? {};
-        if (init.headers) {
-          const type = "content-type";
-          if (init.headers instanceof Headers) {
-            init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
-          } else {
-            init.headers[type] ??= JSON_TYPE;
-          }
-        } else {
-          init.headers = { "content-type": JSON_TYPE };
-        }
-        this[s_response] = new Response(JSON.stringify(body), init);
+        this[s_response] = Response.json(body, this[s_init]);
       }
-    } else {
-      this[s_response] = new Response(body, this[s_res]?.init);
+    } else if (typeof body === "number") {
+      this[s_response] = new Response(body.toString(), this[s_init]);
+    } else if (!lose) {
+      this[s_response] ??= new Response(body, this[s_init]);
     }
   }
   get responseInit() {
-    return this[s_res]?.init ?? {};
+    return this[s_init] ?? {};
   }
   get search() {
-    return this[s_search] ?? null;
+    return this[s_search] ??= null;
   }
   set search(val) {
     this[s_search] = val;
@@ -1410,7 +1374,7 @@ var RequestEvent = class {
     return true;
   }
   get params() {
-    return this[s_params] ??= this.__params?.() ?? {};
+    return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
@@ -1434,7 +1398,7 @@ var RequestEvent = class {
     this[s_path] = val;
   }
   get query() {
-    return this[s_query] ??= this.__parseQuery?.(this.search?.substring(1)) ?? {};
+    return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ?? {};
   }
   set query(val) {
     this[s_query] = val;
@@ -1500,9 +1464,22 @@ var RequestEvent = class {
 };
 
 // npm/src/src/nhttp.ts
+function oldSchool() {
+  Response.json ??= (data, init = {}) => {
+    const type = "content-type";
+    init.headers ??= {};
+    if (init.headers instanceof Headers) {
+      init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
+    } else {
+      init.headers[type] ??= JSON_TYPE;
+    }
+    return new Response(JSON.stringify(data), init);
+  };
+}
 var defError = (err, rev, stack) => {
   const obj = getError(err, stack);
-  return rev.response.status(obj.status).json(obj);
+  rev.response.status(obj.status);
+  return obj;
 };
 var awaiter = (rev) => {
   return (async (t, d) => {
@@ -1515,22 +1492,20 @@ var awaiter = (rev) => {
     return rev[s_response];
   })(0, 100);
 };
-var resend = (ret, rev, next) => {
-  if (ret) {
-    if (ret instanceof Promise) {
-      return ret.then((val) => {
-        if (val)
-          rev.send(val);
-        return rev[s_response] ?? awaiter(rev);
-      }).catch(next);
-    }
-    rev.send(ret);
+var respond = async (ret, rev, next) => {
+  try {
+    rev.send(await ret, 1);
+    return rev[s_response] ?? awaiter(rev);
+  } catch (e) {
+    return next(e);
   }
-  return rev[s_response] ?? awaiter(rev);
 };
 var NHttp = class extends Router {
   constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
     super();
+    this.alive = true;
+    this.track = /* @__PURE__ */ new Set();
+    oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
     this.stackError = stackError !== false;
     this.env = env ?? "development";
@@ -1672,19 +1647,15 @@ var NHttp = class extends Router {
       return next();
     });
   }
-  matchFns(rev, url) {
-    return this.find(rev.method, url, (str) => {
-      const iof = str.indexOf("?");
-      if (iof != -1) {
-        rev.path = str.substring(0, iof);
-        rev.__parseQuery = this.parseQuery;
-        rev.search = str.substring(iof);
-        return rev.path;
-      }
-      return str;
-    }, (p) => {
-      rev.__params = p;
-    }, this._on404);
+  matchFns(rev, path) {
+    const iof = path.indexOf("?");
+    if (iof !== -1) {
+      rev.path = path.substring(0, iof);
+      rev.__parseQuery = this.parseQuery;
+      rev.search = path.substring(iof);
+      path = rev.path;
+    }
+    return this.find(rev.method, path, (obj) => rev.params = obj, this._on404);
   }
   handleRequest(req, conn, ctx) {
     let i = 0;
@@ -1693,110 +1664,118 @@ var NHttp = class extends Router {
     const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
     const next = (err) => {
       try {
-        const ret = err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next);
-        return rev[s_response] ?? resend(ret, rev, next);
+        return respond(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
       } catch (e) {
         return next(e);
       }
     };
     if (rev.method === "GET" || rev.method === "HEAD") {
       try {
-        const ret = fns[i++](rev, next);
-        return rev[s_response] ?? resend(ret, rev, next);
+        return respond(fns[i++](rev, next), rev, next);
       } catch (e) {
         return next(e);
       }
     }
     return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
   }
-  listen(opts, callback) {
-    return (async () => {
-      let isTls = false, handler = this.handle;
-      if (typeof opts === "number") {
-        opts = { port: opts };
-      } else if (typeof opts === "object") {
-        isTls = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
+  closeServer() {
+    try {
+      if (!this.alive) {
+        throw new Error("Server Closed");
+      }
+      this.alive = false;
+      this.server.close();
+      for (const httpConn of this.track) {
+        httpConn.close();
+      }
+      this.track.clear();
+    } catch {
+    }
+  }
+  buildListenOptions(opts) {
+    let isSecure = false;
+    if (typeof opts === "number") {
+      opts = { port: opts };
+    } else if (typeof opts === "object") {
+      isSecure = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
+      if (opts.handler)
+        this.handle = opts.handler;
+    }
+    return { opts, isSecure };
+  }
+  async listen(options, callback) {
+    const { opts, isSecure } = this.buildListenOptions(options);
+    const runCallback = (err) => {
+      if (callback) {
+        callback(err, __spreadProps(__spreadValues({}, opts), {
+          hostname: opts.hostname ?? "localhost"
+        }));
+        return true;
+      }
+      return;
+    };
+    try {
+      if (this.flash) {
+        if (runCallback())
+          opts.onListen = () => {
+          };
+        const handler = opts.handler ?? this.handle;
         if (opts.handler)
-          handler = opts.handler;
+          delete opts.handler;
+        return await Deno.serve(handler, opts);
       }
-      const runCallback = (err) => {
-        if (callback) {
-          const _opts = opts;
-          callback(err, __spreadProps(__spreadValues({}, _opts), {
-            hostname: _opts.hostname ?? "localhost"
-          }));
-          return true;
-        }
-        return;
-      };
+      runCallback();
+      if (opts.signal) {
+        opts.signal.addEventListener("abort", () => this.closeServer(), {
+          once: true
+        });
+      }
+      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
+      return await this.acceptConn();
+    } catch (error) {
+      runCallback(error);
+      this.closeServer();
+    }
+  }
+  async acceptConn() {
+    while (this.alive) {
+      let conn;
       try {
-        if (this.flash) {
-          if (Deno.serve == void 0) {
-            console.log("Deno flash is unstable. please add --unstable flag.");
-            return;
-          }
-          if (runCallback()) {
-            opts.onListen = () => {
-            };
-          }
-          opts.handler ??= handler;
-          if (opts.test)
-            return;
-          await Deno.serve(opts);
-        } else {
-          runCallback();
-          if (opts.signal) {
-            opts.signal.addEventListener("abort", () => {
-              try {
-                this.server?.close();
-              } catch (_e) {
-              }
-            }, { once: true });
-          }
-          if (opts.test)
-            return;
-          this.server = (isTls ? Deno.listenTls : Deno.listen)(opts);
-          while (true) {
-            try {
-              const conn = await this.server.accept();
-              if (conn) {
-                this.handleConn(conn, handler);
-              } else {
-                break;
-              }
-            } catch (_e) {
-            }
-          }
-        }
-      } catch (error) {
-        runCallback(error);
+        conn = await this.server.accept();
+      } catch {
+        break;
       }
-    })();
+      let httpConn;
+      try {
+        httpConn = Deno.serveHttp(conn);
+      } catch {
+        continue;
+      }
+      this.track.add(httpConn);
+      this.handleHttp(httpConn, conn);
+    }
+  }
+  async handleHttp(httpConn, conn) {
+    for (; ; ) {
+      try {
+        const rev = await httpConn.nextRequest();
+        if (rev) {
+          await rev.respondWith(this.handle(rev.request, conn));
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
   }
   _onError(err, rev) {
     return defError(err, rev, this.stackError);
   }
   _on404(rev) {
     const obj = getError(new HttpError(404, `Route ${rev.method}${rev.url} not found`, "NotFoundError"));
-    return rev.response.status(obj.status).json(obj);
-  }
-  async handleConn(conn, handler) {
-    try {
-      const httpConn = Deno.serveHttp(conn);
-      while (true) {
-        try {
-          const rev = await httpConn.nextRequest();
-          if (rev) {
-            await rev.respondWith(handler(rev.request, conn));
-          } else {
-            break;
-          }
-        } catch (_err) {
-          break;
-        }
-      }
-    } catch (_e) {
-    }
+    rev.response.status(obj.status);
+    return obj;
   }
 };
 function nhttp(opts = {}) {
@@ -1808,7 +1787,7 @@ nhttp.Router = function(opts = {}) {
 
 // npm/src/index.ts
 function buildRes(response, send) {
-  const _res = new HttpResponse(send);
+  const _res = new HttpResponse(send, {});
   _res.header = function header(key, value) {
     if (typeof key === "string") {
       key = key.toLowerCase();
@@ -1823,14 +1802,13 @@ function buildRes(response, send) {
       return this;
     }
     return {
-      has: response.hasHeader,
       delete: response.removeHeader,
-      set: response.setHeader,
-      get: response.getHeader,
-      append: function(key2, value2) {
+      append: (key2, value2) => {
         const cur = response.getHeader(key2);
         response.setHeader(key2, cur ? cur + ", " + value2 : value2);
-      }
+        return this;
+      },
+      toJSON: () => response.getHeaders()
     };
   };
   _res.status = function status(code) {
@@ -1908,13 +1886,13 @@ var NHttp2 = class extends NHttp {
         if (!opts2.handler)
           handler = this.handleNode;
         if (isTls) {
-          const h2 = await import("https");
+          const h2 = await import("node:https");
           this.server = h2.createServer(opts2, handler);
           this.server.listen(opts2.port);
           runCallback();
           return;
         }
-        const h = await import("http");
+        const h = await import("node:http");
         this.server = h.createServer(handler);
         this.server.listen(opts2.port);
         runCallback();
@@ -1926,7 +1904,7 @@ var NHttp2 = class extends NHttp {
   }
   handleRequestNode(req, res) {
     let i = 0;
-    const rev = new RequestEvent(req, res, buildRes);
+    const rev = new RequestEvent(req);
     rev.send = (body) => {
       if (typeof body === "string") {
         res.end(body);
@@ -1949,6 +1927,7 @@ var NHttp2 = class extends NHttp {
         }
       }
     };
+    rev[s_res] = buildRes(res, rev.send.bind(rev));
     const fns = this.route[rev.method + req.url] ?? this.matchFns(rev, req.url);
     const send = (ret) => {
       if (ret) {

@@ -8,6 +8,8 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private stackError;
     private bodyParser?;
     private parseMultipart?;
+    private alive;
+    private track;
     server: TRet;
     /**
      * handleEvent
@@ -53,8 +55,10 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * });
      */
     engine(renderFile: (...args: TRet) => TRet, opts?: EngineOptions): void;
-    matchFns(rev: RequestEvent, url: string): import("./types").Handler<Rev>[];
+    matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
     private handleRequest;
+    closeServer(): void;
+    private buildListenOptions;
     /**
      * listen the server
      * @example
@@ -67,10 +71,11 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *    alpnProtocols: ["h2", "http/1.1"]
      * }, callback);
      */
-    listen(opts: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>): Promise<void>;
+    listen(options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>): Promise<any>;
+    private acceptConn;
+    private handleHttp;
     private _onError;
     private _on404;
-    private handleConn;
 }
 /**
  * inital app.

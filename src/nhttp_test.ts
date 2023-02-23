@@ -4,7 +4,6 @@ import { RequestEvent } from "./request_event.ts";
 import { assertEquals, superdeno } from "./deps_test.ts";
 import { NextFunction, TRet } from "./types.ts";
 import { expressMiddleware } from "./utils.ts";
-import { mockConn } from "https://deno.land/std@0.170.0/http/_mock_conn.ts";
 
 const renderFile = (file: string, ..._args: TRet) => {
   return Deno.readTextFileSync(file);
@@ -76,7 +75,7 @@ Deno.test("nhttp", async (t) => {
       response.json({ name: "john" });
     });
     app.get("/json-header2", ({ response }) => {
-      response.header().set("name", "john");
+      response.header().append("name", "john");
       response.json({ name: "john" });
     });
     app.get("/status", ({ response }) => response.sendStatus(204));
@@ -327,10 +326,10 @@ Deno.test("nhttp", async (t) => {
     });
     app.onError((err) => err.message);
     app.on404(() => "404");
-    const noop = app.handle(myReq("GET", "/"));
-    const noop2 = app.handle(myReq("GET", "/noop"));
-    const noop3 = app.handle(myReq("GET", "/noop2"));
-    const notFound = app.handle(myReq("GET", "/404"));
+    const noop = await app.handle(myReq("GET", "/"));
+    const noop2 = await app.handle(myReq("GET", "/noop"));
+    const noop3 = await app.handle(myReq("GET", "/noop2"));
+    const notFound = await app.handle(myReq("GET", "/404"));
     assertEquals(await noop.text(), "noop is not a function");
     assertEquals(await notFound.text(), "404");
     assertEquals((await noop2).status, 400);
@@ -340,9 +339,9 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.get("/", ({ noop }) => noop());
     app.get("/2", async ({ noop }) => await noop());
-    const noop = app.handle(myReq("GET", "/"));
+    const noop = await app.handle(myReq("GET", "/"));
     const noop2 = await app.handle(myReq("GET", "/2"));
-    const notFound = app.handle(myReq("GET", "/404"));
+    const notFound = await app.handle(myReq("GET", "/404"));
     const message = (await noop.json()).message;
     const message2 = (await noop2.json()).message;
     const status = (await notFound.json()).status;
@@ -372,13 +371,13 @@ Deno.test("nhttp", async (t) => {
   await t.step("option parse query", async () => {
     const app = nhttp({ parseQuery: (str: string) => str });
     app.get("/", ({ __parseMultipart }) => __parseMultipart("test"));
-    const val = app.handle(myReq("GET", "/"));
+    const val = await app.handle(myReq("GET", "/"));
     assertEquals(await val.text(), "test");
   });
   await t.step("params", async () => {
     const app = nhttp();
     app.get("/:name", (rev) => rev.params);
-    const val = app.handle(myReq("GET", "/john"));
+    const val = await app.handle(myReq("GET", "/john"));
     assertEquals(await val.text(), `{"name":"john"}`);
   });
   await t.step("awaiter", async () => {
@@ -397,41 +396,18 @@ Deno.test("nhttp", async (t) => {
     assertEquals(await val.text(), "hello");
     assertEquals(await promise.text(), "hello");
   });
-  await t.step("conn", async () => {
-    const conn = mockConn();
-    const app = nhttp();
-    app.get("/", () => "hello");
-    const ret = await app["handleConn"](conn, app.handle);
-    assertEquals(ret, undefined);
-  });
-  await t.step("listen", async () => {
-    const def_port = 8080;
-    const app = nhttp();
-    const ac = new AbortController();
-    app.get("/", () => "hello");
-    const info: TRet = await new Promise((ok) => {
-      app.listen({
-        signal: ac.signal,
-        port: def_port,
-        test: true,
-        handler: app.handle,
-      }, (_, obj) => {
-        ok(obj);
-      });
+  await t.step("oldSchool", () => {
+    (Response as TRet).json = void 0;
+    nhttp();
+    const res = Response.json({ name: "john" });
+    assertEquals(res.status, 200);
+    const res2 = Response.json({ name: "john" }, {
+      headers: { "name": "john" },
     });
-    const infoSSL: TRet = await new Promise((ok) => {
-      app.listen({
-        port: def_port + 1,
-        cert: "./dummy/localhost.cert",
-        key: "./dummy/localhost.key",
-        alpnProtocols: ["h2", "http/1.1"],
-        test: true,
-      }, (_, info) => {
-        ok(info);
-      });
+    assertEquals(res2.headers.get("name"), "john");
+    const res3 = Response.json({ name: "john" }, {
+      headers: new Headers({ "name": "john" }),
     });
-    ac.abort();
-    assertEquals(info.port, def_port);
-    assertEquals(infoSSL.port, def_port + 1);
+    assertEquals(res3.headers.get("name"), "john");
   });
 });
