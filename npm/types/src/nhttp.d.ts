@@ -57,7 +57,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     engine(renderFile: (...args: TRet) => TRet, opts?: EngineOptions): void;
     matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
     private handleRequest;
-    closeServer(): void;
+    private closeServer;
     private buildListenOptions;
     /**
      * listen the server

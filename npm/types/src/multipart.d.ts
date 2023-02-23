@@ -34,6 +34,9 @@ declare class Multipart {
     private cleanUp;
     private validate;
     private privUpload;
+    private mutateBody;
+    private handleArrayUpload;
+    private handleSingleUpload;
     /**
      * upload handler multipart/form-data.
      * @example
