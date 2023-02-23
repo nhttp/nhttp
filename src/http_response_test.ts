@@ -33,6 +33,7 @@ Deno.test("HttpResponse", async (t) => {
   await t.step("response", async (t) => {
     await t.step("header", () => {
       const response = buildRes();
+      assertEquals(response.header().toJSON(), {});
       response.header("name", "john");
       response.header({ "address": "jakarta" });
       const header = response.header().toJSON();

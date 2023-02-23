@@ -29,8 +29,7 @@ import { ResInit } from "./http_response.ts";
 
 function oldSchool() {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // deno-lint-ignore ban-ts-comment
-  // @ts-ignore
+  // @ts-ignore: Temporary workaround for oldVersion
   Response.json ??= (data: unknown, init: ResInit = {}) => {
     const type = "content-type";
     init.headers ??= {};
@@ -336,7 +335,7 @@ export class NHttp<
       this.parseMultipart,
     )(rev, next);
   }
-  closeServer() {
+  private closeServer() {
     try {
       if (!this.alive) {
         throw new Error("Server Closed");

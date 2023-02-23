@@ -14,7 +14,7 @@ export const decoder = new TextDecoder();
 type EArr = [string, string | TObject];
 
 export const decURIComponent = (str = "") => {
-  if (/\%/.test(str)) {
+  if (/%/.test(str)) {
     try {
       return decodeURIComponent(str);
     } catch (_e) { /* noop */ }
@@ -148,7 +148,7 @@ export function myParse(arr: EArr[]) {
         red[field] = [red[field], value];
       }
     } else {
-      const arr = field.match(/^([^\[]+)((?:\[[^\]]*\])*)/) ?? [];
+      const arr = field.match(/^([^[]+)((?:\[[^\]]*\])*)/) ?? [];
       const prefix = arr[1] ?? field;
       let keys: TRet = <TRet> arr[2];
       if (keys) {

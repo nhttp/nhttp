@@ -139,8 +139,7 @@ export class RequestEvent {
         this[s_response] = new Response(<TRet> body, this[s_init]);
       } else {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // deno-lint-ignore ban-ts-comment
-        // @ts-ignore
+        // @ts-ignore: Temporary workaround for oldVersion
         this[s_response] = Response.json(body, this[s_init]);
       }
     } else if (typeof body === "number") {

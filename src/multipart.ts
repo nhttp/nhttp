@@ -1,6 +1,7 @@
 import { acceptContentType } from "./body.ts";
 import { HttpError } from "./error.ts";
 import { multiParser } from "./multipart_parser.ts";
+import { RequestEvent } from "./request_event.ts";
 import { Handler, TObject, TQueryFunc, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
@@ -129,6 +130,72 @@ class Multipart {
       i++;
     }
   }
+  private async mutateBody(rev: RequestEvent, isMultipart: boolean) {
+    if (
+      rev.bodyUsed === false &&
+      isMultipart
+    ) {
+      if (typeof rev.request.formData === "function") {
+        const formData = await rev.request.clone().formData();
+        rev.body = await this.createBody(formData, {
+          parse: rev.__parseMultipart as TQueryFunc,
+        });
+      } else {
+        rev.body = (await multiParser(rev.request)) || {};
+      }
+    }
+  }
+  private async handleArrayUpload(rev: RequestEvent, opts: TMultipartUpload[]) {
+    let j = 0, i = 0;
+    const len = opts.length;
+    while (j < len) {
+      const obj = opts[j];
+      if (obj.required && rev.body[obj.name] === void 0) {
+        throw new HttpError(
+          400,
+          `Field ${obj.name} is required`,
+          "BadRequestError",
+        );
+      }
+      if (rev.body[obj.name]) {
+        rev.file[obj.name] = rev.body[obj.name];
+        const objFile = rev.file[obj.name];
+        const files = Array.isArray(objFile) ? objFile : [objFile];
+        this.validate(files, obj);
+      }
+      j++;
+    }
+    while (i < len) {
+      const obj = opts[i] as TMultipartUpload;
+      if (rev.body[obj.name]) {
+        rev.file[obj.name] = rev.body[obj.name];
+        const objFile = rev.file[obj.name];
+        const files = Array.isArray(objFile) ? objFile : [objFile];
+        await this.privUpload(files, obj);
+        delete rev.body[obj.name];
+      }
+      i++;
+    }
+    this.cleanUp(rev.body);
+  }
+  private async handleSingleUpload(rev: RequestEvent, obj: TMultipartUpload) {
+    if (obj.required && rev.body[obj.name] === void 0) {
+      throw new HttpError(
+        400,
+        `Field ${obj.name} is required`,
+        "BadRequestError",
+      );
+    }
+    if (rev.body[obj.name]) {
+      rev.file[obj.name] = rev.body[obj.name];
+      const objFile = rev.file[obj.name];
+      const files = Array.isArray(objFile) ? objFile : [objFile];
+      this.validate(files, obj);
+      await this.privUpload(files, obj);
+      delete rev.body[obj.name];
+    }
+    this.cleanUp(rev.body);
+  }
   /**
    * upload handler multipart/form-data.
    * @example
@@ -142,72 +209,15 @@ class Multipart {
    */
   public upload(options: TMultipartUpload | TMultipartUpload[]): Handler {
     return async (rev, next) => {
-      const headers = rev.headers;
       if (rev.bodyValid) {
-        const isMultipart = acceptContentType(headers, "multipart/form-data");
-        if (
-          rev.bodyUsed === false &&
-          isMultipart
-        ) {
-          if (typeof rev.request.formData === "function") {
-            const formData = await rev.request.formData();
-            rev.body = await this.createBody(formData, {
-              parse: rev.__parseMultipart as TQueryFunc,
-            });
-          } else {
-            rev.body = (await multiParser(rev.request)) || {};
-          }
-        }
+        await this.mutateBody(
+          rev,
+          acceptContentType(rev.headers, "multipart/form-data"),
+        );
         if (Array.isArray(options)) {
-          let j = 0, i = 0;
-          const len = options.length;
-          while (j < len) {
-            const obj = options[j] as TMultipartUpload;
-            if (obj.required && rev.body[obj.name] === void 0) {
-              throw new HttpError(
-                400,
-                `Field ${obj.name} is required`,
-                "BadRequestError",
-              );
-            }
-            if (rev.body[obj.name]) {
-              rev.file[obj.name] = rev.body[obj.name];
-              const objFile = rev.file[obj.name];
-              const files = Array.isArray(objFile) ? objFile : [objFile];
-              this.validate(files, obj);
-            }
-            j++;
-          }
-          while (i < len) {
-            const obj = options[i] as TMultipartUpload;
-            if (rev.body[obj.name]) {
-              rev.file[obj.name] = rev.body[obj.name];
-              const objFile = rev.file[obj.name];
-              const files = Array.isArray(objFile) ? objFile : [objFile];
-              await this.privUpload(files, obj);
-              delete rev.body[obj.name];
-            }
-            i++;
-          }
-          this.cleanUp(rev.body);
+          await this.handleArrayUpload(rev, options);
         } else if (typeof options === "object") {
-          const obj = options as TMultipartUpload;
-          if (obj.required && rev.body[obj.name] === void 0) {
-            throw new HttpError(
-              400,
-              `Field ${obj.name} is required`,
-              "BadRequestError",
-            );
-          }
-          if (rev.body[obj.name]) {
-            rev.file[obj.name] = rev.body[obj.name];
-            const objFile = rev.file[obj.name];
-            const files = Array.isArray(objFile) ? objFile : [objFile];
-            this.validate(files, obj);
-            await this.privUpload(files, obj);
-            delete rev.body[obj.name];
-          }
-          this.cleanUp(rev.body);
+          await this.handleSingleUpload(rev, options);
         }
       }
       return next();

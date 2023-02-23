@@ -51,7 +51,7 @@ Deno.test({
       await res.body?.cancel();
       ac.abort();
       try {
-        app.closeServer();
+        app["closeServer"]();
       } catch (error) {
         assertEquals(error.message, "Server Closed");
       }
