@@ -23,24 +23,24 @@ for (let i = 0; i < 1000; i++) {
   app.get("/route/" + (i + 1), () => "route");
 }
 
-Deno.bench("/home", () => {
-  app.handle(new Request(base));
+Deno.bench("/home", async () => {
+  await app.handle(new Request(base));
 });
-Deno.bench("/about", () => {
-  app.handle(new Request(base + "/about"));
+Deno.bench("/about", async () => {
+  await app.handle(new Request(base + "/about"));
 });
-Deno.bench("/contact", () => {
-  app.handle(new Request(base + "/contact"));
+Deno.bench("/contact", async () => {
+  await app.handle(new Request(base + "/contact"));
 });
-Deno.bench("/product", () => {
-  app.handle(new Request(base + "/product"));
+Deno.bench("/product", async () => {
+  await app.handle(new Request(base + "/product"));
 });
-Deno.bench("/blog/my-title", () => {
-  app.handle(new Request(base + "/blog/my-title"));
+Deno.bench("/blog/my-title", async () => {
+  await app.handle(new Request(base + "/blog/my-title"));
 });
-Deno.bench("/midd-100", () => {
-  app.handle(new Request(base + "/midd-100"));
+Deno.bench("/midd-100", async () => {
+  await app.handle(new Request(base + "/midd-100"));
 });
-Deno.bench("/route/1000", () => {
-  app.handle(new Request(base + "/route/1000"));
+Deno.bench("/route/1000", async () => {
+  await app.handle(new Request(base + "/route/1000"));
 });

@@ -2,7 +2,7 @@
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
 
-// eslint-disable @typescript-eslint/no-explicit-any
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 export type TRet = any;
 export type TObject = { [k: string]: TRet };
 export type TSendBody =

@@ -14,6 +14,6 @@ deno task bench
 /contact          7.87 µs/iter
 /product          7.37 µs/iter
 /blog/my-title    8.56 µs/iter
-/midd-100        10.01 µs/iter
+/midd-100        25.16 µs/iter
 /route/1000       7.90 µs/iter
 ```

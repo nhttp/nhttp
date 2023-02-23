@@ -14,3 +14,4 @@ node_modules
 .vscode
 *.lcov
 cov_profile
+.eslintrc.json

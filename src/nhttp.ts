@@ -28,7 +28,7 @@ import { ROUTE } from "./constant.ts";
 import { ResInit } from "./http_response.ts";
 
 function oldSchool() {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
   // @ts-ignore: Temporary workaround for oldVersion
   Response.json ??= (data: unknown, init: ResInit = {}) => {
     const type = "content-type";
@@ -395,7 +395,7 @@ export class NHttp<
         if (runCallback()) opts.onListen = () => {};
         const handler = opts.handler ?? this.handle;
         if (opts.handler) delete opts.handler;
-        return await Deno.serve(handler, opts);
+        return await (<TObject> Deno).serve(handler, opts);
       }
       runCallback();
       if (opts.signal) {
