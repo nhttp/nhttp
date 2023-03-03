@@ -185,11 +185,7 @@ export class RequestEvent {
    * console.log(bodyValid);
    */
   get bodyValid() {
-    if (this.request.url[0] !== "/") {
-      if (this.request.body) return true;
-      return false;
-    }
-    return true;
+    return this.request.body !== null;
   }
   /**
    * params as json object.
@@ -227,10 +223,7 @@ export class RequestEvent {
    * // => /hello?name=john
    */
   get originalUrl() {
-    if (this.request.url[0] !== "/") {
-      return getUrl(this.request.url);
-    }
-    return this.request.url;
+    return getUrl(this.request.url);
   }
   /**
    * lookup path

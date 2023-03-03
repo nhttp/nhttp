@@ -1,5 +1,4 @@
 export { MIME_LIST } from "./constant";
-export { multipart } from "./multipart";
 export type { TMultipartUpload } from "./multipart";
 export { bodyParser } from "./body";
 export { decoder, decURIComponent, expressMiddleware, findFns, parseQuery, toBytes, } from "./utils";

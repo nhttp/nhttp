@@ -3,13 +3,21 @@ import { Handler, HttpError, TRet } from "./deps.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";
 export * from "npm:class-validator";
 type Class = TRet;
-
-export function validate(_class: Class, opts: ValidatorOptions = {}): Handler {
+type TOptions = ValidatorOptions & {
+  plainToClass?: (...args: TRet) => TRet;
+};
+export function validate(cls: Class, opts: TOptions = {}): Handler {
   return async (rev, next) => {
-    const obj = new _class();
-    Object.assign(obj, rev.body);
     try {
-      await validateOrReject(obj, opts);
+      let obj: TRet;
+      if (opts.plainToClass) {
+        obj = opts.plainToClass(cls, rev.body);
+        delete opts.plainToClass;
+      } else {
+        obj = new cls();
+        Object.assign(obj, rev.body);
+      }
+      await validateOrReject(obj, <TRet> opts);
     } catch (error) {
       throw new HttpError(422, error);
     }
@@ -18,12 +26,12 @@ export function validate(_class: Class, opts: ValidatorOptions = {}): Handler {
 }
 
 export function Validate(
-  _class: Class,
-  opts: ValidatorOptions = {},
+  cls: Class,
+  opts: TOptions = {},
 ): TDecorator {
   return (target: TRet, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
-    joinHandlers(className, prop, [validate(_class, opts)]);
+    joinHandlers(className, prop, [validate(cls, opts)]);
     return des;
   };
 }

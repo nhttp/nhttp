@@ -2,7 +2,6 @@ import { Handler } from "../mod.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
 import {
-  arrayBuffer,
   concatRegexp,
   decURIComponent,
   findFn,
@@ -154,31 +153,6 @@ Deno.test("utils", async (t) => {
       return next();
     };
     middAssets("/")[midd as TRet];
-  });
-  await t.step("miss arrayBuffer", () => {
-    const buf = arrayBuffer({} as TRet);
-    assertEquals(buf instanceof Promise, true);
-    const req = (arr: Array<TRet>) => ({
-      buf: new Uint8Array(),
-      on(type: string, cb: TRet) {
-        if (type === "data") {
-          const buf = this.buf;
-          arr.forEach(() => cb(buf));
-          return this;
-        } else if (type === "end") {
-          cb();
-          return this;
-        } else if (type === "error") {
-          cb("noop");
-          return this;
-        }
-        return this;
-      },
-    } as TRet);
-    const buf2 = arrayBuffer(req([1]));
-    assertEquals(buf2 instanceof Promise, true);
-    const buf3 = arrayBuffer(req([1, 1]));
-    assertEquals(buf3 instanceof Promise, true);
   });
   await t.step("serialize cookie", () => {
     const now = Date.now();

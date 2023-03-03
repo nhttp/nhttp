@@ -1,6 +1,5 @@
 // Credit & Original : https://github.com/deligenius/multiparser
 
-import { TObject } from "./types.ts";
 import { arrayBuffer, decoder, encoder, parseQuery } from "./utils.ts";
 
 const encode = {
@@ -24,15 +23,13 @@ interface Form {
   files: Record<string, FormFile | FormFile[]>;
 }
 
-export function getType(headers: TObject) {
-  return headers.get?.("content-type") ?? headers["content-type"];
+export function getType(headers: Headers): string {
+  return headers.get("content-type") ?? "";
 }
 
-export async function multiParser(request: TObject) {
+export async function multiParser(request: Request) {
   const arrayBuf = await arrayBuffer(request);
-  const buf = arrayBuf instanceof Uint8Array
-    ? arrayBuf
-    : new Uint8Array(arrayBuf);
+  const buf = new Uint8Array(arrayBuf);
   const boundaryByte = getBoundary(getType(request.headers));
   if (!boundaryByte) {
     return undefined;

@@ -15,6 +15,7 @@ const fakeGlob = `declare global {
 
 await Deno.mkdir("npm/src/src", { recursive: true });
 await Deno.mkdir("npm/src/lib/swagger", { recursive: true });
+await Deno.mkdir("npm/src/node", { recursive: true });
 await replaceTs("index.ts", "npm/src/index.ts", fakeGlob);
 const srcFiles = await getNames("src");
 for (let i = 0; i < srcFiles.length; i++) {
@@ -26,6 +27,13 @@ for (let i = 0; i < srcFiles.length; i++) {
 const libFiles = await getNames("lib");
 for (let i = 0; i < libFiles.length; i++) {
   const path = libFiles[i];
+  if (!path.includes("test")) {
+    await replaceTs(path, "npm/src/" + path);
+  }
+}
+const nodeFiles = await getNames("node");
+for (let i = 0; i < nodeFiles.length; i++) {
+  const path = nodeFiles[i];
   if (!path.includes("test")) {
     await replaceTs(path, "npm/src/" + path);
   }
@@ -57,6 +65,7 @@ await Deno.writeTextFile(
 await esbuild.build({
   ...defObj,
   format: "esm",
+  target: ["ES2020"],
   outfile: "npm/dist/esm/index.js",
 });
 await Deno.writeTextFile(
@@ -67,6 +76,7 @@ await Deno.writeTextFile(
 // build mod.js non npm
 await esbuild.build({
   ...defObj,
+  target: ["ES2020"],
   format: "esm",
   outfile: "mod.js",
 });
@@ -125,7 +135,7 @@ const pkg = {
   "name": "nhttp-land",
   "description": "An Simple http framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./types/index.d.ts",

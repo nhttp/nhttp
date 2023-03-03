@@ -1,5 +1,4 @@
 export { MIME_LIST } from "./constant.ts";
-export { multipart } from "./multipart.ts";
 export type { TMultipartUpload } from "./multipart.ts";
 export { bodyParser } from "./body.ts";
 export {

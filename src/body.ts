@@ -6,7 +6,6 @@ import {
   Handler,
   NextFunction,
   TBodyParser,
-  TObject,
   TQueryFunc,
   TValidBody,
 } from "./types.ts";
@@ -40,8 +39,8 @@ type CType =
   | "application/x-www-form-urlencoded"
   | "multipart/form-data"
   | "text/plain";
-export function acceptContentType(headers: TObject, cType: CType) {
-  const type = headers.get?.("content-type") ?? headers["content-type"];
+export function acceptContentType(headers: Headers, cType: CType) {
+  const type = headers.get("content-type");
   return type === cType || type?.includes(cType);
 }
 

@@ -251,12 +251,12 @@ function swagger(app, docUrl, document, opts = {}) {
   const schemas = opts.schemas ?? opts.validationMetadatasToSchemas?.() ?? {};
   const doc_paths = metadata["doc_paths"];
   const schemasOri = metadata["doc_schemas"] || {};
-  let j = 0;
+  let i = 0;
   const paths = {};
-  const aLen = doc_paths.length;
-  for (; j < aLen; j++) {
-    const doc = doc_paths[j];
-    paths[doc.path] = paths[doc.path] || {};
+  const len = doc_paths.length;
+  for (; i < len; i++) {
+    const doc = doc_paths[i];
+    paths[doc.path] ??= {};
     paths[doc.path][doc.method.toLowerCase()] = doc.property;
   }
   document.paths = paths;

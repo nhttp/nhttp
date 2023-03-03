@@ -1,4 +1,4 @@
-import { acceptContentType, bodyParser } from "./body.ts";
+import { bodyParser } from "./body.ts";
 import { assertEquals } from "./deps_test.ts";
 import { RequestEvent } from "./request_event.ts";
 import { TRet } from "./types.ts";
@@ -230,12 +230,5 @@ Deno.test("body parser", async (t) => {
     assertEquals(ret, {});
     const ret2 = await createBody(true);
     assertEquals(ret2, {});
-  });
-  await t.step("acceptContentType", () => {
-    const isAccept = acceptContentType(
-      { "content-type": "noop" } as TRet,
-      "application/json",
-    );
-    assertEquals(isAccept, false);
   });
 });

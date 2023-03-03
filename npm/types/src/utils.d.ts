@@ -45,6 +45,6 @@ export declare function pushRoutes(str: string, wares: Handler[], last: TObject,
 export declare const getUrl: (s: string) => string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
 export declare function getReqCookies(headers: TObject, decode?: boolean, i?: number): Record<string, string>;
-export declare function memoBody(req: TObject, body: TRet): void;
-export declare function arrayBuffer(req: TObject): Promise<ArrayBuffer>;
+export declare function memoBody(req: Request, body: TRet): void;
+export declare function arrayBuffer(req: Request): Promise<ArrayBuffer>;
 export {};

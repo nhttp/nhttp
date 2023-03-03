@@ -130,7 +130,7 @@ class Multipart {
       i++;
     }
   }
-  private async mutateBody(rev: RequestEvent, isMultipart: boolean) {
+  private async mutateBody(rev: RequestEvent, isMultipart?: boolean) {
     if (
       rev.bodyUsed === false &&
       isMultipart

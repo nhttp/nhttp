@@ -91,11 +91,9 @@ Deno.test("nhttp", async (t) => {
     const head = await app.handleEvent(
       { request: myReq("HEAD", "/") },
     );
-    const sendNull = await app.handle(myReq("GET", "/send"));
-    const jsonHeader: Response = await app.handle(myReq("GET", "/json-header"));
-    const jsonHeader2: Response = await app.handle(
-      myReq("GET", "/json-header2"),
-    );
+    const sendNull = await app.req("/send").res();
+    const jsonHeader = await app.req("/json-header").res();
+    const jsonHeader2 = await app.req("/json-header2").res();
     assertEquals(await head.text(), "head");
     assertEquals(sendNull instanceof Response, true);
     assertEquals(jsonHeader.headers.get("name"), "john");
@@ -246,6 +244,23 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.get("/hello/", () => "hello");
     await superdeno(app.handle).get("/hello").expect(200);
+  });
+  await t.step("app.req", async () => {
+    const app = nhttp();
+    app.get("/text", () => "hello");
+    app.get("/json", () => ({ name: "hello" }));
+    const text = await app.req("/text").text();
+    const json = await app.req("/json").json();
+    const ok = await app.req("/text").ok();
+    const status = await app.req("/text").status();
+    const res = await app.req("/text").res();
+    assertEquals(text, "hello");
+    assertEquals(json, { name: "hello" });
+    assertEquals(ok, true);
+    assertEquals(status, 200);
+    assertEquals(res instanceof Response, true);
+    const text2 = await app.req("http://127.0.0.1:8787/text").text();
+    assertEquals(text2, "hello");
   });
   await t.step("class midd", async () => {
     class Midd {

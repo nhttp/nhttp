@@ -5,13 +5,14 @@
   "unstable": false,
   "description": "An Simple http framework for Deno and Friends",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "1.1.14",
+  "version": "1.1.16",
   "files": [
     "deno.json",
     "./mod.js",
     "./mod.ts",
     "./index.ts",
     "./src/**/*",
+    "./node/**/*",
     "./lib/**/*",
     "LICENSE",
     "README.md"

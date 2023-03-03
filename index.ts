@@ -1,92 +1,33 @@
 // deno-lint-ignore-file
 import { NHttp as BaseApp } from "./src/nhttp.ts";
-import {
-  bodyParser,
-  NextFunction,
-  RequestEvent,
-  TApp,
-  TObject,
-  TRet,
-} from "./src/index.ts";
-import { HttpResponse } from "./src/http_response.ts";
+import { RequestEvent, TApp, TRet } from "./src/index.ts";
 import Router, { TRouter } from "./src/router.ts";
-import { JSON_TYPE } from "./src/constant.ts";
-import { s_res } from "./src/symbol.ts";
+import { serveNode } from "./node/index.ts";
+import { NodeResponse } from "./node/response.ts";
+import { NodeRequest } from "./node/request.ts";
+import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 
-function buildRes(response: TObject, send: TRet) {
-  const _res = new HttpResponse(send, {});
-  _res.header = function header(
-    key?: TObject | string,
-    value?: string | string[],
-  ) {
-    if (typeof key === "string") {
-      key = key.toLowerCase();
-      if (!value) return response.getHeader(key);
-      response.setHeader(key, value);
-      return this;
-    }
-    if (typeof key === "object") {
-      for (const k in key) response.setHeader(k.toLowerCase(), key[k]);
-      return this;
-    }
-    return {
-      delete: response.removeHeader,
-      append: (key, value) => {
-        const cur = response.getHeader(key);
-        response.setHeader(key, cur ? (cur + ", " + value) : value);
-        return this;
-      },
-      toJSON: () => response.getHeaders(),
-    };
-  };
-  _res.status = function status(code?: number) {
-    if (code) {
-      response.statusCode = code;
-      return this;
-    }
-    return response.statusCode;
-  };
-  response.header = _res.header.bind(_res);
-  response.status = _res.status.bind(_res);
-  response.clearCookie = _res.clearCookie.bind(_res);
-  response.cookie = _res.cookie.bind(_res);
-  response.json = _res.json.bind(_res);
-  response.params = _res.params;
-  response.redirect = _res.redirect.bind(_res);
-  response.attachment = _res.attachment.bind(_res);
-  response.render = _res.render?.bind(_res);
-  response.send = _res.send.bind(_res);
-  response.sendStatus = _res.sendStatus.bind(_res);
-  response.type = _res.type.bind(_res);
-  return response;
+export function shimNodeRequest() {
+  if (!(<TRet> globalThis).NativeResponse) {
+    (<TRet> globalThis).NativeResponse = Response;
+    (<TRet> globalThis).NativeRequest = Request;
+    (<TRet> globalThis).Response = NodeResponse;
+    (<TRet> globalThis).Request = NodeRequest;
+  }
 }
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends BaseApp<Rev> {
-  private handleWorkers: (req: Request, conn?: TRet, ctx?: TRet) => TRet;
-  private handleNode: (req: TRet, res: TRet) => TRet;
   constructor(opts: TApp = {}) {
     super(opts);
-    this.handleWorkers = this.handle;
-    this.handle = (req, conn, ctx) => {
-      if (typeof (<TObject> req).on === "function") {
-        return this.handleRequestNode(req, conn);
-      }
-      return this["handleRequest"](req, conn, ctx);
-    };
-    this.handleNode = (req, res) => {
-      return this.handleRequestNode(req, res);
-    };
     const oriListen = this.listen.bind(this);
     this.listen = async (opts, callback) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       if (typeof Deno !== "undefined") {
-        this.handle = this.handleWorkers;
         return oriListen(opts, callback);
       }
-      let isTls = false, handler = this.handleWorkers;
+      let isTls = false, handler = this.handle;
       if (typeof opts === "number") {
         opts = { port: opts };
       } else if (typeof opts === "object") {
@@ -119,19 +60,17 @@ export class NHttp<
           runCallback();
           return;
         }
-        if (!opts.handler) handler = this.handleNode;
+        shimNodeRequest();
         if (isTls) {
           // @ts-ignore
           const h = await import("node:https");
-          this.server = h.createServer(opts, handler);
-          this.server.listen(opts.port);
+          this.server = serveNode(handler, h.createServerTls, opts);
           runCallback();
           return;
         }
         // @ts-ignore
         const h = await import("node:http");
-        this.server = h.createServer(handler);
-        this.server.listen(opts.port);
+        this.server = serveNode(handler, h.createServer, opts);
         runCallback();
         return;
       } catch (error) {
@@ -139,73 +78,34 @@ export class NHttp<
       }
     };
   }
-
-  private handleRequestNode(req: TObject, res: TObject) {
-    let i = 0;
-    const rev = new RequestEvent(req as Request);
-    rev.send = (body?: TRet) => {
-      if (typeof body === "string") {
-        res.end(body);
-      } else if (typeof body === "object") {
-        if (typeof body.pipe === "function") {
-          body.pipe(res);
-        } else if (body === null || body instanceof Uint8Array) {
-          res.end(body);
-        } else {
-          const type = "content-type";
-          res.setHeader(type, res.getHeader(type) ?? JSON_TYPE);
-          res.end(JSON.stringify(body));
-        }
-      } else if (typeof body === "number") {
-        res.end(body.toString());
-      } else {
-        try {
-          res.end(body);
-        } catch (_e) { /* noop */ }
-      }
-    };
-    rev[s_res] = buildRes(
-      res,
-      rev.send.bind(rev),
-    );
-    const fns = this.route[rev.method + req.url] ??
-      this.matchFns(rev, req.url);
-    const send = (ret: TRet) => {
-      if (ret) {
-        if (res.writableEnded) return;
-        if (ret instanceof Promise) {
-          ret.then((val) => val && rev.send(val)).catch(next);
-        } else {
-          rev.send(ret);
-        }
-      }
-    };
-    const next: NextFunction = (err) => {
-      try {
-        return send(
-          err
-            ? this["_onError"](err, <Rev> rev)
-            : (fns[i++] ?? this["_on404"])(rev, next),
-        );
-      } catch (e) {
-        return next(e);
-      }
-    };
-    if (rev.method === "GET" || rev.method === "HEAD") {
-      try {
-        return send(fns[i++](rev, next));
-      } catch (e) {
-        return next(e);
-      }
-    }
-    return bodyParser(
-      this["bodyParser"],
-      this["parseQuery"],
-      this["parseMultipart"],
-    )(rev, next);
-  }
 }
-
+let fs_glob: TRet;
+const writeFile = async (...args: TRet) => {
+  // @ts-ignore
+  if (typeof Bun !== "undefined") {
+    // @ts-ignore
+    return await Bun.write(...args);
+  }
+  // @ts-ignore
+  const fs = fs_glob ??= await import("node:fs");
+  return fs.writeFileSync(...args);
+};
+export const multipart = {
+  createBody: multi.createBody,
+  upload: (opts: TMultipartUpload | TMultipartUpload[]) => {
+    if (typeof Deno !== "undefined") {
+      return multi.upload(opts);
+    }
+    if (Array.isArray(opts)) {
+      for (let i = 0; i < opts.length; i++) {
+        opts[i].writeFile ??= writeFile;
+      }
+    } else if (typeof opts === "object") {
+      opts.writeFile ??= writeFile;
+    }
+    return multi.upload(opts);
+  },
+};
 export function nhttp<Rev extends RequestEvent = RequestEvent>(
   opts: TApp = {},
 ) {

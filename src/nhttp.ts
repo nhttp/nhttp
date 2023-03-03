@@ -361,6 +361,37 @@ export class NHttp<
     return { opts, isSecure };
   }
   /**
+   * Mock request.
+   * @example
+   * app.get("/", () => "hello");
+   * app.post("/", () => "hello, post");
+   *
+   * // mock request
+   * const hello = await app.req("/").text();
+   * assertEquals(hello, "hello");
+   *
+   * // mock request POST
+   * const hello_post = await app.req("/", { method: "POST" }).text();
+   * assertEquals(hello_post, "hello, post");
+   */
+  req(url: string, init: RequestInit = {}) {
+    const res: () => Promise<Response> = () => {
+      return this.handle(
+        new Request(
+          url[0] === "/" ? "http://127.0.0.1:8787" + url : url,
+          init,
+        ),
+      );
+    };
+    return {
+      text: async () => await (await res()).text(),
+      json: async () => await (await res()).json(),
+      ok: async () => (await res()).ok,
+      status: async () => (await res()).status,
+      res,
+    };
+  }
+  /**
    * listen the server
    * @example
    * app.listen(8000);

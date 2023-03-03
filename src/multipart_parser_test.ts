@@ -1,4 +1,4 @@
-import { byteIndexOf, getType, multiParser } from "./multipart_parser.ts";
+import { byteIndexOf, multiParser } from "./multipart_parser.ts";
 import { nhttp } from "./nhttp.ts";
 import { superdeno } from "./deps_test.ts";
 import { encoder } from "./utils.ts";
@@ -48,9 +48,5 @@ Deno.test("multipart parser", async (t) => {
     const source = new Uint8Array([12]);
     const ret = byteIndexOf(source, encoder.encode("Content-Type"), 1000);
     assertEquals(ret, -1);
-  });
-  await t.step("getType", () => {
-    const type = getType({ "content-type": "multipart/form-data" });
-    assertEquals(type, "multipart/form-data");
   });
 });

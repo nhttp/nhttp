@@ -1,23 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-
 // npm/src/src/constant.ts
 var JSON_TYPE = "application/json";
 var HTML_TYPE = "text/html; charset=UTF-8";
@@ -155,19 +135,19 @@ function findFn(fn) {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        response.append ??= (a, b) => response.header().append(a, b);
-        response.set ??= response.header;
-        response.get ??= (a) => response.header(a);
-        response.hasHeader ??= (a) => response.header(a) !== void 0;
-        response.removeHeader ??= (a) => response.header().delete(a);
-        response.end ??= response.send;
-        response.writeHead ??= (a, ...b) => {
+        response.append ?? (response.append = (a, b) => response.header().append(a, b));
+        response.set ?? (response.set = response.header);
+        response.get ?? (response.get = (a) => response.header(a));
+        response.hasHeader ?? (response.hasHeader = (a) => response.header(a) !== void 0);
+        response.removeHeader ?? (response.removeHeader = (a) => response.header().delete(a));
+        response.end ?? (response.end = response.send);
+        response.writeHead ?? (response.writeHead = (a, ...b) => {
           response.status(a);
           for (let i = 0; i < b.length; i++) {
             if (typeof b[i] === "object")
               response.header(b[i]);
           }
-        };
+        });
       }
       return fn(rev, response, next);
     };
@@ -233,14 +213,14 @@ function needPatch(data, keys, value) {
   }
   let key = keys.shift();
   if (!key) {
-    data ??= [];
+    data ?? (data = []);
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data ??= [];
+    data ?? (data = []);
     key = index;
   }
   data = data || {};
@@ -434,19 +414,6 @@ function getReqCookies(headers, decode, i = 0) {
   }
   return ret;
 }
-var concatUint8Array = (arr) => {
-  if (arr.length === 1)
-    return arr[0];
-  let len = 0;
-  arr.forEach((el) => len += el.length);
-  const merged = new Uint8Array(len);
-  let i = 0;
-  arr.forEach((el) => {
-    merged.set(el, i);
-    i += el.length;
-  });
-  return merged;
-};
 function cloneReq(req, body) {
   return new Request(req.url, {
     method: req.method,
@@ -465,18 +432,9 @@ function memoBody(req, body) {
   }
 }
 async function arrayBuffer(req) {
-  if (typeof req.arrayBuffer === "function") {
-    const body = await req.arrayBuffer();
-    memoBody(req, body);
-    return body;
-  }
-  if (typeof req.on === "function") {
-    return await new Promise((ok, no) => {
-      const body = [];
-      req.on("data", (buf) => body.push(buf)).on("end", () => ok(concatUint8Array(body))).on("error", (err) => no(err));
-    });
-  }
-  return await Promise.resolve(new ArrayBuffer(0));
+  const body = await req.arrayBuffer();
+  memoBody(req, body);
+  return body;
 }
 
 // npm/src/src/router.ts
@@ -492,7 +450,7 @@ function findParams(el, url) {
     match.shift();
     const wild = match.filter((el2) => el2 !== void 0).filter((el2) => el2.startsWith("/")).join("").split("/");
     wild.shift();
-    const ret = __spreadProps(__spreadValues({}, params), { wild: wild.filter((el2) => el2 !== "") });
+    const ret = { ...params, wild: wild.filter((el2) => el2 !== "") };
     if (path === "*" || path.indexOf("/*") !== -1)
       return ret;
     let wn = path.split("/").find((el2) => el2.startsWith(":") && el2.endsWith("*"));
@@ -547,13 +505,14 @@ var Router = class {
     }
     if (str !== "" && str !== "*" && str !== "/*") {
       const path = this.base + str;
-      this.pmidds ??= {};
+      this.pmidds ?? (this.pmidds = {});
       if (!this.pmidds[path]) {
         this.pmidds[path] = middAssets(path);
         if (this["handle"]) {
           ANY_METHODS.forEach((method) => {
+            var _a;
             const { pattern, wild } = toPathx(path, true);
-            (ROUTE[method] ??= []).push({ path, pattern, wild });
+            ((_a = ROUTE)[method] ?? (_a[method] = [])).push({ path, pattern, wild });
           });
         }
       }
@@ -682,11 +641,11 @@ var encode = {
   carriageReturn: encoder.encode("\r")
 };
 function getType(headers) {
-  return headers.get?.("content-type") ?? headers["content-type"];
+  return headers.get("content-type") ?? "";
 }
 async function multiParser(request) {
   const arrayBuf = await arrayBuffer(request);
-  const buf = arrayBuf instanceof Uint8Array ? arrayBuf : new Uint8Array(arrayBuf);
+  const buf = new Uint8Array(arrayBuf);
   const boundaryByte = getBoundary(getType(request.headers));
   if (!boundaryByte) {
     return void 0;
@@ -723,7 +682,7 @@ function getForm(pieces) {
       }
     }
   }
-  return __spreadValues(__spreadValues({}, parseQuery(arr.join("&"))), form.files);
+  return { ...parseQuery(arr.join("&")), ...form.files };
 }
 function getHeaders(headerByte) {
   const contentTypeIndex = byteIndexOf(headerByte, encode.contentType);
@@ -896,16 +855,16 @@ var Multipart = class {
       if (opts.callback) {
         await opts.callback(file);
       }
-      opts.dest ??= "";
+      opts.dest ?? (opts.dest = "");
       if (opts.dest) {
         if (opts.dest.lastIndexOf("/") === -1)
           opts.dest += "/";
         if (opts.dest[0] === "/")
           opts.dest = opts.dest.substring(1);
       }
-      file.filename ??= uid() + "_" + file.name;
-      file.path ??= opts.dest + file.filename;
-      opts.writeFile ??= Deno.writeFile;
+      file.filename ?? (file.filename = uid() + "_" + file.name);
+      file.path ?? (file.path = opts.dest + file.filename);
+      opts.writeFile ?? (opts.writeFile = Deno.writeFile);
       const arrBuff = await file.arrayBuffer();
       await opts.writeFile(file.path, new Uint8Array(arrBuff));
       i++;
@@ -993,7 +952,7 @@ async function verifyBody(rev, limit = defautl_size) {
   return val ? decURIComponent(val) : void 0;
 }
 function acceptContentType(headers, cType) {
-  const type = headers.get?.("content-type") ?? headers["content-type"];
+  const type = headers.get("content-type");
   return type === cType || type?.includes(cType);
 }
 function isValidBody(validate) {
@@ -1110,12 +1069,13 @@ var s_init = Symbol("res_init");
 
 // npm/src/src/http_response.ts
 var HttpResponse = class {
-  constructor(send, init) {
-    this.send = send;
+  constructor(send2, init) {
+    this.send = send2;
     this.init = init;
   }
   setHeader(key, value) {
-    (this.init.headers ??= {})[key.toLowerCase()] = value;
+    var _a;
+    ((_a = this.init).headers ?? (_a.headers = {}))[key.toLowerCase()] = value;
     return this;
   }
   getHeader(key) {
@@ -1172,7 +1132,8 @@ var HttpResponse = class {
     this.status(val);
   }
   get params() {
-    return this[s_params] ??= {};
+    var _a;
+    return this[_a = s_params] ?? (this[_a] = {});
   }
   set params(val) {
     this[s_params] = val;
@@ -1199,7 +1160,7 @@ var HttpResponse = class {
   }
   clearCookie(name, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append("Set-Cookie", serializeCookie(name, "", __spreadProps(__spreadValues({}, opts), { expires: new Date(0) })));
+    this.header().append("Set-Cookie", serializeCookie(name, "", { ...opts, expires: new Date(0) }));
   }
   [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
@@ -1249,9 +1210,11 @@ var RequestEvent = class {
     this.method = request.method;
   }
   get response() {
-    return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
+    var _a;
+    return this[_a = s_res] ?? (this[_a] = new HttpResponse(this.send.bind(this), this[s_init] = {}));
   }
   get route() {
+    var _a;
     if (this[s_route])
       return this[s_route];
     let path = this.path;
@@ -1268,7 +1231,7 @@ var RequestEvent = class {
       ret.query = this.query;
       ret.params = findParams(ret, path);
     }
-    return this[s_route] ??= ret ?? {};
+    return this[_a = s_route] ?? (this[_a] = ret ?? {});
   }
   get info() {
     return {
@@ -1292,6 +1255,7 @@ var RequestEvent = class {
     this[s_response] = r;
   }
   send(body, lose) {
+    var _a;
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
     } else if (body instanceof Response) {
@@ -1305,14 +1269,15 @@ var RequestEvent = class {
     } else if (typeof body === "number") {
       this[s_response] = new Response(body.toString(), this[s_init]);
     } else if (!lose) {
-      this[s_response] ??= new Response(body, this[s_init]);
+      this[_a = s_response] ?? (this[_a] = new Response(body, this[s_init]));
     }
   }
   get responseInit() {
     return this[s_init] ?? {};
   }
   get search() {
-    return this[s_search] ??= null;
+    var _a;
+    return this[_a = s_search] ?? (this[_a] = null);
   }
   set search(val) {
     this[s_search] = val;
@@ -1324,63 +1289,63 @@ var RequestEvent = class {
     this[s_body_used] = val;
   }
   get bodyValid() {
-    if (this.request.url[0] !== "/") {
-      if (this.request.body)
-        return true;
-      return false;
-    }
-    return true;
+    return this.request.body !== null;
   }
   get params() {
-    return this[s_params] ??= {};
+    var _a;
+    return this[_a = s_params] ?? (this[_a] = {});
   }
   set params(val) {
     this[s_params] = val;
   }
   get url() {
-    return this[s_url] ??= this.originalUrl;
+    var _a;
+    return this[_a = s_url] ?? (this[_a] = this.originalUrl);
   }
   set url(val) {
     this[s_url] = val;
   }
   get originalUrl() {
-    if (this.request.url[0] !== "/") {
-      return getUrl(this.request.url);
-    }
-    return this.request.url;
+    return getUrl(this.request.url);
   }
   get path() {
-    return this[s_path] ??= this.url;
+    var _a;
+    return this[_a = s_path] ?? (this[_a] = this.url);
   }
   set path(val) {
     this[s_path] = val;
   }
   get query() {
-    return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ?? {};
+    var _a;
+    return this[_a = s_query] ?? (this[_a] = this.__parseQuery?.(this[s_search].substring(1)) ?? {});
   }
   set query(val) {
     this[s_query] = val;
   }
   get body() {
-    return this[s_body] ??= {};
+    var _a;
+    return this[_a = s_body] ?? (this[_a] = {});
   }
   set body(val) {
     this[s_body] = val;
   }
   get headers() {
-    return this[s_headers] ??= this.request.headers;
+    var _a;
+    return this[_a = s_headers] ?? (this[_a] = this.request.headers);
   }
   set headers(val) {
     this[s_headers] = val;
   }
   get file() {
-    return this[s_file] ??= {};
+    var _a;
+    return this[_a = s_file] ?? (this[_a] = {});
   }
   set file(val) {
     this[s_file] = val;
   }
   get cookies() {
-    return this[s_cookies] ??= getReqCookies(this.request.headers, true);
+    var _a;
+    return this[_a = s_cookies] ?? (this[_a] = getReqCookies(this.request.headers, true));
   }
   set cookies(val) {
     this[s_cookies] = val;
@@ -1423,16 +1388,17 @@ var RequestEvent = class {
 
 // npm/src/src/nhttp.ts
 function oldSchool() {
-  Response.json ??= (data, init = {}) => {
+  Response.json ?? (Response.json = (data, init = {}) => {
+    var _a;
     const type = "content-type";
-    init.headers ??= {};
+    init.headers ?? (init.headers = {});
     if (init.headers instanceof Headers) {
       init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
     } else {
-      init.headers[type] ??= JSON_TYPE;
+      (_a = init.headers)[type] ?? (_a[type] = JSON_TYPE);
     }
     return new Response(JSON.stringify(data), init);
-  };
+  });
 }
 var defError = (err, rev, stack) => {
   const obj = getError(err, stack);
@@ -1543,8 +1509,9 @@ var NHttp = class extends Router {
     fns = this.midds.concat(fns);
     const { path: oriPath, pattern, wild } = toPathx(path);
     const invoke = (m) => {
+      var _a, _b, _c;
       if (pattern) {
-        const idx = (this.route[m] ??= []).findIndex(({ path: path2 }) => path2 === oriPath);
+        const idx = ((_a = this.route)[m] ?? (_a[m] = [])).findIndex(({ path: path2 }) => path2 === oriPath);
         if (idx != -1) {
           this.route[m][idx].fns = this.route[m][idx].fns.concat(fns);
         } else {
@@ -1554,7 +1521,7 @@ var NHttp = class extends Router {
             fns,
             wild
           });
-          (ROUTE[m] ??= []).push({ path, pattern, wild });
+          ((_b = ROUTE)[m] ?? (_b[m] = [])).push({ path, pattern, wild });
         }
       } else {
         const key = m + path;
@@ -1562,7 +1529,7 @@ var NHttp = class extends Router {
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns;
-          (ROUTE[m] ??= []).push({ path });
+          ((_c = ROUTE)[m] ?? (_c[m] = [])).push({ path });
         }
       }
     };
@@ -1591,7 +1558,7 @@ var NHttp = class extends Router {
             elem = opts.base + elem;
           }
         }
-        params ??= response.params;
+        params ?? (params = response.params);
         response.type(HTML_TYPE);
         const ret = renderFile(elem, params, ...args);
         if (ret) {
@@ -1661,13 +1628,26 @@ var NHttp = class extends Router {
     }
     return { opts, isSecure };
   }
+  req(url, init = {}) {
+    const res = () => {
+      return this.handle(new Request(url[0] === "/" ? "http://127.0.0.1:8787" + url : url, init));
+    };
+    return {
+      text: async () => await (await res()).text(),
+      json: async () => await (await res()).json(),
+      ok: async () => (await res()).ok,
+      status: async () => (await res()).status,
+      res
+    };
+  }
   async listen(options, callback) {
     const { opts, isSecure } = this.buildListenOptions(options);
     const runCallback = (err) => {
       if (callback) {
-        callback(err, __spreadProps(__spreadValues({}, opts), {
+        callback(err, {
+          ...opts,
           hostname: opts.hostname ?? "localhost"
-        }));
+        });
         return true;
       }
       return;
@@ -1743,73 +1723,355 @@ nhttp.Router = function(opts = {}) {
   return new Router(opts);
 };
 
-// npm/src/index.ts
-function buildRes(response, send) {
-  const _res = new HttpResponse(send, {});
-  _res.header = function header(key, value) {
-    if (typeof key === "string") {
-      key = key.toLowerCase();
-      if (!value)
-        return response.getHeader(key);
-      response.setHeader(key, value);
-      return this;
+// npm/src/node/symbol.ts
+var s_body2 = Symbol("input_body");
+var s_init2 = Symbol("init");
+var s_def = Symbol("default");
+var s_body_used2 = Symbol("req_body_used");
+
+// npm/src/node/request.ts
+var typeError = (m) => Promise.reject(new TypeError(m));
+var consumed = "body already consumed";
+var misstype = "missing content-type";
+var mnotbody = "GET/HEAD cannot have body";
+var notBody = (raw) => raw.method === "GET" || raw.method === "HEAD";
+function reqBody(url, body, raw) {
+  return new globalThis.NativeRequest(url, {
+    method: raw.method,
+    headers: raw.headers,
+    body: notBody(raw) ? void 0 : body
+  });
+}
+var NodeRequest = class {
+  constructor(input, init, raw) {
+    this.raw = raw;
+    this[s_body2] = input;
+    this[s_init2] = init;
+  }
+  get rawBody() {
+    if (this[s_body_used2])
+      return typeError(consumed);
+    this[s_body_used2] = true;
+    if (!this.raw.req.headers["content-type"])
+      return typeError(misstype);
+    if (notBody(this.raw.req))
+      return typeError(mnotbody);
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      this.raw.req.on("data", (buf) => chunks.push(buf)).on("end", () => resolve(Buffer.concat(chunks))).on("error", (err) => reject(err));
+    });
+  }
+  get req() {
+    var _a;
+    return this[_a = s_def] ?? (this[_a] = new globalThis.NativeRequest(this[s_body2], this[s_init2]));
+  }
+  get cache() {
+    return this.req.cache;
+  }
+  get credentials() {
+    return this.req.credentials;
+  }
+  get destination() {
+    return this.req.destination;
+  }
+  get headers() {
+    return this.raw ? new Headers(this.raw.req.headers) : this.req.headers;
+  }
+  get integrity() {
+    return this.req.integrity;
+  }
+  get keepalive() {
+    return this.req.keepalive;
+  }
+  get method() {
+    return this.raw ? this.raw.req.method : this.req.method;
+  }
+  get mode() {
+    return this.req.mode;
+  }
+  get redirect() {
+    return this.req.redirect;
+  }
+  get referrer() {
+    return this.req.referrer;
+  }
+  get referrerPolicy() {
+    return this.req.referrerPolicy;
+  }
+  get signal() {
+    return this.req.signal;
+  }
+  get url() {
+    if (typeof this[s_body2] === "string") {
+      return this[s_body2];
     }
-    if (typeof key === "object") {
-      for (const k in key)
-        response.setHeader(k.toLowerCase(), key[k]);
-      return this;
+    return this.req.url;
+  }
+  clone() {
+    const req = new NodeRequest(this[s_body2], this[s_init2], this.raw);
+    return req;
+  }
+  get body() {
+    if (this.raw) {
+      if (notBody(this.raw.req))
+        return null;
+      if (!this.raw.req.headers["content-type"])
+        return null;
+      return new ReadableStream({
+        start: async (ctrl) => {
+          try {
+            const body = await this.rawBody;
+            ctrl.enqueue(body);
+            ctrl.close();
+          } catch (e) {
+            ctrl.close();
+            throw e;
+          }
+        }
+      });
     }
-    return {
-      delete: response.removeHeader,
-      append: (key2, value2) => {
-        const cur = response.getHeader(key2);
-        response.setHeader(key2, cur ? cur + ", " + value2 : value2);
-        return this;
-      },
-      toJSON: () => response.getHeaders()
+    return this.req.body;
+  }
+  get bodyUsed() {
+    if (this.raw) {
+      return this[s_body_used2] ?? false;
+    }
+    return this.req.bodyUsed;
+  }
+  arrayBuffer() {
+    return (async () => {
+      if (this.raw) {
+        return await this.rawBody;
+      }
+      return await this.req.arrayBuffer();
+    })();
+  }
+  blob() {
+    return (async () => {
+      if (this.raw) {
+        const req = reqBody(this[s_body2], await this.rawBody, this.raw.req);
+        return await req.blob();
+      }
+      return await this.req.blob();
+    })();
+  }
+  formData() {
+    return (async () => {
+      if (this.raw) {
+        const req = reqBody(this[s_body2], await this.rawBody, this.raw.req);
+        return await req.formData();
+      }
+      return await this.req.formData();
+    })();
+  }
+  json() {
+    return (async () => {
+      if (this.raw) {
+        return JSON.parse((await this.rawBody).toString());
+      }
+      return await this.req.json();
+    })();
+  }
+  text() {
+    return (async () => {
+      if (this.raw) {
+        return (await this.rawBody).toString();
+      }
+      return await this.req.text();
+    })();
+  }
+  get [Symbol.hasInstance]() {
+    return "Request";
+  }
+  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect) {
+    if (depth < 0) {
+      return opts.stylize("[Request]", "special");
+    }
+    const newOpts = Object.assign({}, opts, {
+      depth: opts.depth === null ? null : opts.depth - 1
+    });
+    const ret = {
+      bodyUsed: this.bodyUsed,
+      headers: this.headers,
+      method: this.method,
+      redirect: this.redirect,
+      url: this.url
     };
-  };
-  _res.status = function status(code) {
-    if (code) {
-      response.statusCode = code;
-      return this;
+    return `${opts.stylize("Request", "special")} ${inspect(ret, newOpts)}`;
+  }
+};
+
+// npm/src/node/index.ts
+async function sendStream(resWeb, res) {
+  if (resWeb[s_body2] instanceof ReadableStream) {
+    for await (const chunk of resWeb[s_body2])
+      res.write(chunk);
+    res.end();
+    return;
+  }
+  const chunks = [];
+  for await (const chunk of resWeb.body)
+    chunks.push(chunk);
+  const data = Buffer.concat(chunks);
+  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+    const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+    res.setHeader("Content-Type", type);
+  }
+  res.end(data);
+}
+function send(resWeb, res) {
+  if (resWeb[s_init2]) {
+    if (resWeb[s_init2].headers) {
+      if (resWeb[s_init2].headers instanceof Headers) {
+        resWeb[s_init2].headers.forEach((val, key) => {
+          res.setHeader(key, val);
+        });
+      } else {
+        for (const k in resWeb[s_init2].headers) {
+          res.setHeader(k, resWeb[s_init2].headers[k]);
+        }
+      }
     }
-    return response.statusCode;
-  };
-  response.header = _res.header.bind(_res);
-  response.status = _res.status.bind(_res);
-  response.clearCookie = _res.clearCookie.bind(_res);
-  response.cookie = _res.cookie.bind(_res);
-  response.json = _res.json.bind(_res);
-  response.params = _res.params;
-  response.redirect = _res.redirect.bind(_res);
-  response.attachment = _res.attachment.bind(_res);
-  response.render = _res.render?.bind(_res);
-  response.send = _res.send.bind(_res);
-  response.sendStatus = _res.sendStatus.bind(_res);
-  response.type = _res.type.bind(_res);
-  return response;
+    if (resWeb[s_init2].status)
+      res.statusCode = resWeb[s_init2].status;
+  }
+  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] instanceof Uint8Array || resWeb[s_body2] === null || resWeb[s_body2] === void 0) {
+    res.end(resWeb[s_body2]);
+  } else {
+    return sendStream(resWeb, res).catch((e) => {
+      throw e;
+    });
+  }
+}
+function serveNode(handler, createServer, config = {}) {
+  const port = config.port ?? 3e3;
+  return createServer(config, (req, res) => handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res })).then((data) => {
+    if (res.writableEnded)
+      return;
+    return send(data, res);
+  }).catch((e) => {
+    throw e;
+  })).listen(port);
+}
+
+// npm/src/node/response.ts
+var C_TYPE = "Content-Type";
+var JSON_TYPE2 = "application/json";
+var NodeResponse = class {
+  constructor(body, init) {
+    this[s_body2] = body;
+    this[s_init2] = init;
+  }
+  static error() {
+    return globalThis.NativeResponse.error();
+  }
+  static redirect(url, status) {
+    return globalThis.NativeResponse.redirect(url, status);
+  }
+  static json(data, init = {}) {
+    var _a;
+    if (init.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.set(C_TYPE, init.headers.get(C_TYPE) ?? JSON_TYPE2);
+      } else {
+        (_a = init.headers)[C_TYPE] ?? (_a[C_TYPE] = JSON_TYPE2);
+      }
+    } else {
+      init.headers = { [C_TYPE]: JSON_TYPE2 };
+    }
+    return new NodeResponse(JSON.stringify(data), init);
+  }
+  get res() {
+    var _a;
+    return this[_a = s_def] ?? (this[_a] = new globalThis.NativeResponse(this[s_body2], this[s_init2]));
+  }
+  get headers() {
+    return this.res.headers;
+  }
+  get ok() {
+    return this.res.ok;
+  }
+  get redirected() {
+    return this.res.redirected;
+  }
+  get status() {
+    return this.res.status;
+  }
+  get statusText() {
+    return this.res.statusText;
+  }
+  get type() {
+    return this.res.type;
+  }
+  get url() {
+    return this.res.url;
+  }
+  get body() {
+    return this.res.body;
+  }
+  get bodyUsed() {
+    return this.res.bodyUsed;
+  }
+  clone() {
+    return new NodeResponse(this[s_body2], this[s_init2]);
+  }
+  arrayBuffer() {
+    return this.res.arrayBuffer();
+  }
+  blob() {
+    return this.res.blob();
+  }
+  formData() {
+    return this.res.formData();
+  }
+  json() {
+    return this.res.json();
+  }
+  text() {
+    return this.res.text();
+  }
+  get [Symbol.hasInstance]() {
+    return "Response";
+  }
+  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect) {
+    if (depth < 0) {
+      return opts.stylize("[Response]", "special");
+    }
+    const newOpts = Object.assign({}, opts, {
+      depth: opts.depth === null ? null : opts.depth - 1
+    });
+    const ret = {
+      body: this.body,
+      bodyUsed: this.bodyUsed,
+      headers: this.headers,
+      status: this.status,
+      statusText: this.statusText,
+      redirected: this.redirected,
+      ok: this.ok,
+      url: this.url
+    };
+    return `${opts.stylize("Response", "special")} ${inspect(ret, newOpts)}`;
+  }
+};
+
+// npm/src/index.ts
+function shimNodeRequest() {
+  if (!globalThis.NativeResponse) {
+    globalThis.NativeResponse = Response;
+    globalThis.NativeRequest = Request;
+    globalThis.Response = NodeResponse;
+    globalThis.Request = NodeRequest;
+  }
 }
 var NHttp2 = class extends NHttp {
   constructor(opts = {}) {
     super(opts);
-    this.handleWorkers = this.handle;
-    this.handle = (req, conn, ctx) => {
-      if (typeof req.on === "function") {
-        return this.handleRequestNode(req, conn);
-      }
-      return this["handleRequest"](req, conn, ctx);
-    };
-    this.handleNode = (req, res) => {
-      return this.handleRequestNode(req, res);
-    };
     const oriListen = this.listen.bind(this);
     this.listen = async (opts2, callback) => {
       if (typeof Deno !== "undefined") {
-        this.handle = this.handleWorkers;
         return oriListen(opts2, callback);
       }
-      let isTls = false, handler = this.handleWorkers;
+      let isTls = false, handler = this.handle;
       if (typeof opts2 === "number") {
         opts2 = { port: opts2 };
       } else if (typeof opts2 === "object") {
@@ -1820,9 +2082,10 @@ var NHttp2 = class extends NHttp {
       const runCallback = (err) => {
         if (callback) {
           const _opts = opts2;
-          callback(err, __spreadProps(__spreadValues({}, _opts), {
+          callback(err, {
+            ..._opts,
             hostname: _opts.hostname || "localhost"
-          }));
+          });
         }
       };
       try {
@@ -1841,18 +2104,15 @@ var NHttp2 = class extends NHttp {
           runCallback();
           return;
         }
-        if (!opts2.handler)
-          handler = this.handleNode;
+        shimNodeRequest();
         if (isTls) {
-          const h2 = await import("node:https");
-          this.server = h2.createServer(opts2, handler);
-          this.server.listen(opts2.port);
+          const h2 = await import("https");
+          this.server = serveNode(handler, h2.createServerTls, opts2);
           runCallback();
           return;
         }
-        const h = await import("node:http");
-        this.server = h.createServer(handler);
-        this.server.listen(opts2.port);
+        const h = await import("http");
+        this.server = serveNode(handler, h.createServer, opts2);
         runCallback();
         return;
       } catch (error) {
@@ -1860,59 +2120,30 @@ var NHttp2 = class extends NHttp {
       }
     };
   }
-  handleRequestNode(req, res) {
-    let i = 0;
-    const rev = new RequestEvent(req);
-    rev.send = (body) => {
-      if (typeof body === "string") {
-        res.end(body);
-      } else if (typeof body === "object") {
-        if (typeof body.pipe === "function") {
-          body.pipe(res);
-        } else if (body === null || body instanceof Uint8Array) {
-          res.end(body);
-        } else {
-          const type = "content-type";
-          res.setHeader(type, res.getHeader(type) ?? JSON_TYPE);
-          res.end(JSON.stringify(body));
-        }
-      } else if (typeof body === "number") {
-        res.end(body.toString());
-      } else {
-        try {
-          res.end(body);
-        } catch (_e) {
-        }
-      }
-    };
-    rev[s_res] = buildRes(res, rev.send.bind(rev));
-    const fns = this.route[rev.method + req.url] ?? this.matchFns(rev, req.url);
-    const send = (ret) => {
-      if (ret) {
-        if (res.writableEnded)
-          return;
-        if (ret instanceof Promise) {
-          ret.then((val) => val && rev.send(val)).catch(next);
-        } else {
-          rev.send(ret);
-        }
-      }
-    };
-    const next = (err) => {
-      try {
-        return send(err ? this["_onError"](err, rev) : (fns[i++] ?? this["_on404"])(rev, next));
-      } catch (e) {
-        return next(e);
-      }
-    };
-    if (rev.method === "GET" || rev.method === "HEAD") {
-      try {
-        return send(fns[i++](rev, next));
-      } catch (e) {
-        return next(e);
-      }
+};
+var fs_glob;
+var writeFile = async (...args) => {
+  if (typeof Bun !== "undefined") {
+    return await Bun.write(...args);
+  }
+  const fs = fs_glob ?? (fs_glob = await import("fs"));
+  return fs.writeFileSync(...args);
+};
+var multipart2 = {
+  createBody: multipart.createBody,
+  upload: (opts) => {
+    var _a;
+    if (typeof Deno !== "undefined") {
+      return multipart.upload(opts);
     }
-    return bodyParser(this["bodyParser"], this["parseQuery"], this["parseMultipart"])(rev, next);
+    if (Array.isArray(opts)) {
+      for (let i = 0; i < opts.length; i++) {
+        (_a = opts[i]).writeFile ?? (_a.writeFile = writeFile);
+      }
+    } else if (typeof opts === "object") {
+      opts.writeFile ?? (opts.writeFile = writeFile);
+    }
+    return multipart.upload(opts);
   }
 };
 function nhttp2(opts = {}) {
@@ -1935,9 +2166,10 @@ export {
   expressMiddleware,
   findFns,
   getError,
-  multipart,
+  multipart2 as multipart,
   nhttp2 as nhttp,
   parseQuery,
   s_response,
+  shimNodeRequest,
   toBytes
 };

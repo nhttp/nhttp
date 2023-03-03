@@ -1,6 +1,8 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
@@ -15,6 +17,9 @@ var __reExport = (target, module2, copyDefault, desc) => {
   }
   return target;
 };
+var __toESM = (module2, isNodeMode) => {
+  return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", !isNodeMode && module2 && module2.__esModule ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
+};
 var __toCommonJS = /* @__PURE__ */ ((cache) => {
   return (module2, temp) => {
     return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
@@ -23,9 +28,12 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 var etag_exports = {};
 __export(etag_exports, {
   etag: () => etag,
+  getContentType: () => getContentType,
   sendFile: () => sendFile
 });
 var import_deps = require("./deps");
+let fs_glob;
+let s_glob;
 const def = '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
 const encoder = new TextEncoder();
 const JSON_TYPE = "application/json";
@@ -59,8 +67,11 @@ async function beforeFile(opts, pathFile) {
     pathFile = pathFile.substring(0, iof);
   }
   try {
-    opts.readFile ??= Deno.readFile;
-    opts.stat ??= Deno.stat;
+    opts.readFile ??= (await getIo()).readFile;
+    if (opts.etag === false) {
+      return { stat: void 0, subfix, path: pathFile };
+    }
+    opts.stat ??= (await getIo()).stat;
     stat = await opts.stat(pathFile);
   } catch (_e) {
   }
@@ -80,11 +91,19 @@ function is304(nonMatch, response, stat, weak, subfix = "", cd) {
 }
 async function sendFile(rev, pathFile, opts = {}) {
   try {
+    opts.etag ??= true;
     const weak = opts.weak !== false;
     const { response, request } = rev;
-    const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
-    response.type(response.header("content-type") ?? getContentType(path));
+    if (stat === void 0) {
+      const file2 = await opts.readFile?.(path);
+      if (!file2) {
+        throw new Error("File error. please add options readFile");
+      }
+      response.type(response.header("content-type") ?? getContentType(path));
+      return file2;
+    }
+    const nonMatch = request.headers.get("if-none-match");
     const cd = response.header("content-disposition");
     if (is304(nonMatch, response, stat, weak, subfix, cd)) {
       return response.status(304).send();
@@ -93,7 +112,8 @@ async function sendFile(rev, pathFile, opts = {}) {
     if (!file) {
       throw new Error("File error. please add options readFile");
     }
-    return response.send(file);
+    response.type(response.header("content-type") ?? getContentType(path));
+    return file;
   } catch (error) {
     throw error;
   }
@@ -106,7 +126,7 @@ const etag = (opts = {}) => {
       if (body) {
         const { response, request } = rev;
         if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob)) {
-          const nonMatch = request.headers?.get?.("if-none-match") ?? request.headers["if-none-match"];
+          const nonMatch = request.headers.get("if-none-match");
           const type = response.header("content-type");
           if (typeof body === "object" && !(body instanceof Uint8Array || body instanceof Response)) {
             try {
@@ -134,9 +154,24 @@ const etag = (opts = {}) => {
     return next();
   };
 };
+async function getIo() {
+  if (s_glob)
+    return s_glob;
+  s_glob = {};
+  if (typeof Deno !== "undefined") {
+    s_glob.readFile = Deno.readFile;
+    s_glob.stat = Deno.stat;
+    return s_glob;
+  }
+  fs_glob ??= await import("node:fs");
+  s_glob.readFile = fs_glob.readFileSync;
+  s_glob.stat = fs_glob.statSync;
+  return s_glob;
+}
 module.exports = __toCommonJS(etag_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   etag,
+  getContentType,
   sendFile
 });

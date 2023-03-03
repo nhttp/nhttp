@@ -15,6 +15,13 @@ export type GenHtmlOpts = {
   jsTplString?: string;
 };
 export type TOptionServe = GenHtmlOpts & {
+  /**
+   * @deprecated
+   * Use `schemas` instead.
+   * @example
+   * const schemas = validationMetadatasToSchemas();
+   * swagger(app, "/api-docs", document, { schemas });
+   */
   validationMetadatasToSchemas?: (...args: TRet) => TRet;
   schemas?: TRet;
 };

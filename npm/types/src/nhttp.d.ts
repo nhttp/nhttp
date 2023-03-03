@@ -60,6 +60,27 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private closeServer;
     private buildListenOptions;
     /**
+     * Mock request.
+     * @example
+     * app.get("/", () => "hello");
+     * app.post("/", () => "hello, post");
+     *
+     * // mock request
+     * const hello = await app.req("/").text();
+     * assertEquals(hello, "hello");
+     *
+     * // mock request POST
+     * const hello_post = await app.req("/", { method: "POST" }).text();
+     * assertEquals(hello_post, "hello, post");
+     */
+    req(url: string, init?: RequestInit): {
+        text: () => Promise<string>;
+        json: () => Promise<any>;
+        ok: () => Promise<boolean>;
+        status: () => Promise<number>;
+        res: () => Promise<Response>;
+    };
+    /**
      * listen the server
      * @example
      * app.listen(8000);

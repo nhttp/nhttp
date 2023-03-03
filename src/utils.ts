@@ -351,26 +351,14 @@ export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
   }
   return ret;
 }
-const concatUint8Array = (arr: TRet[]) => {
-  if (arr.length === 1) return arr[0];
-  let len = 0;
-  arr.forEach((el) => (len += el.length));
-  const merged = new Uint8Array(len);
-  let i = 0;
-  arr.forEach((el) => {
-    merged.set(el, i);
-    i += el.length;
-  });
-  return merged;
-};
-function cloneReq(req: TObject, body: TRet) {
+function cloneReq(req: Request, body: TRet) {
   return new Request(req.url, {
     method: req.method,
     body,
     headers: req.headers,
   });
 }
-export function memoBody(req: TObject, body: TRet) {
+export function memoBody(req: Request, body: TRet) {
   try {
     req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
     req.text = () => Promise.resolve(decoder.decode(body));
@@ -379,19 +367,8 @@ export function memoBody(req: TObject, body: TRet) {
     req.blob = () => cloneReq(req, body).blob();
   } catch (_e) { /* no_^_op */ }
 }
-export async function arrayBuffer(req: TObject): Promise<ArrayBuffer> {
-  if (typeof req.arrayBuffer === "function") {
-    const body = await req.arrayBuffer();
-    memoBody(req, body);
-    return body;
-  }
-  if (typeof req.on === "function") {
-    return await new Promise((ok, no) => {
-      const body: Uint8Array[] = [];
-      req.on("data", (buf: Uint8Array) => body.push(buf))
-        .on("end", () => ok(concatUint8Array(body)))
-        .on("error", (err: Error) => no(err));
-    });
-  }
-  return await Promise.resolve(new ArrayBuffer(0));
+export async function arrayBuffer(req: Request): Promise<ArrayBuffer> {
+  const body = await req.arrayBuffer();
+  memoBody(req, body);
+  return body;
 }

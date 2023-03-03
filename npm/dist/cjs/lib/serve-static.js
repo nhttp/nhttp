@@ -20,43 +20,38 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
     return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
   };
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
-var class_validator_exports = {};
-__export(class_validator_exports, {
-  Validate: () => Validate,
-  validate: () => validate
+var serve_static_exports = {};
+__export(serve_static_exports, {
+  sendFile: () => sendFile,
+  serveStatic: () => serveStatic
 });
-var import_class_validator = require("class-validator");
-var import_deps = require("./deps");
-var import_controller = require("./controller");
-__reExport(class_validator_exports, require("class-validator"));
-function validate(cls, opts = {}) {
+var import_etag = require("./etag");
+const sendFile = import_etag.sendFile;
+function serveStatic(dir, opts = {}) {
+  opts.index ??= "index.html";
+  opts.redirect ??= true;
   return async (rev, next) => {
-    try {
-      let obj;
-      if (opts.plainToClass) {
-        obj = opts.plainToClass(cls, rev.body);
-        delete opts.plainToClass;
-      } else {
-        obj = new cls();
-        Object.assign(obj, rev.body);
-      }
-      await (0, import_class_validator.validateOrReject)(obj, opts);
-    } catch (error) {
-      throw new import_deps.HttpError(422, error);
+    const index = opts.redirect ? opts.index : "";
+    let pathFile = dir + rev.url;
+    if (opts.prefix) {
+      if (opts.prefix[0] !== "/")
+        opts.prefix = "/" + opts.prefix;
+      if (!rev.url.startsWith(opts.prefix))
+        return next();
+      pathFile = pathFile.replace(opts.prefix, "");
     }
-    return next();
+    try {
+      if (pathFile.endsWith("/"))
+        pathFile += index;
+      return await sendFile(rev, pathFile, opts);
+    } catch {
+      return next();
+    }
   };
 }
-function Validate(cls, opts = {}) {
-  return (target, prop, des) => {
-    const className = target.constructor.name;
-    (0, import_controller.joinHandlers)(className, prop, [validate(cls, opts)]);
-    return des;
-  };
-}
-module.exports = __toCommonJS(class_validator_exports);
+module.exports = __toCommonJS(serve_static_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  Validate,
-  validate
+  sendFile,
+  serveStatic
 });
