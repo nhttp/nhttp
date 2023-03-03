@@ -15,32 +15,18 @@ import {
 import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
   findFns,
+  getRequest,
   getUrl,
+  oldSchool,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
 import { bodyParser } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { HTML_TYPE, JSON_TYPE } from "./constant.ts";
+import { HTML_TYPE } from "./constant.ts";
 import { s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
-import { ResInit } from "./http_response.ts";
-
-function oldSchool() {
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-  // @ts-ignore: Temporary workaround for oldVersion
-  Response.json ??= (data: unknown, init: ResInit = {}) => {
-    const type = "content-type";
-    init.headers ??= {};
-    if (init.headers instanceof Headers) {
-      init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
-    } else {
-      init.headers[type] ??= JSON_TYPE;
-    }
-    return new Response(JSON.stringify(data), init);
-  };
-}
 
 const defError = (
   err: TObject,
@@ -375,21 +361,7 @@ export class NHttp<
    * assertEquals(hello_post, "hello, post");
    */
   req(url: string, init: RequestInit = {}) {
-    const res: () => Promise<Response> = () => {
-      return this.handle(
-        new Request(
-          url[0] === "/" ? "http://127.0.0.1:8787" + url : url,
-          init,
-        ),
-      );
-    };
-    return {
-      text: async () => await (await res()).text(),
-      json: async () => await (await res()).json(),
-      ok: async () => (await res()).ok,
-      status: async () => (await res()).status,
-      res,
-    };
+    return getRequest(this.handle, url, init);
   }
   /**
    * listen the server
