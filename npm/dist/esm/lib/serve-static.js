@@ -19,8 +19,13 @@ function serveStatic(dir, opts = {}) {
           return next();
         pathFile = pathFile.replace(opts.prefix, "");
       }
-      if (pathFile.endsWith("/"))
-        pathFile += index;
+      const idx = pathFile.lastIndexOf(".");
+      if (pathFile.slice((idx - 1 >>> 0) + 2) === "") {
+        if (pathFile.endsWith("/"))
+          pathFile += index;
+        else
+          pathFile += "/" + index;
+      }
       return await sendFile(rev, pathFile, opts);
     } catch {
       return next();
