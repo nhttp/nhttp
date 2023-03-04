@@ -1,4 +1,4 @@
-import { EngineOptions, FetchEvent, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
+import { EngineOptions, FetchEvent, FetchHandler, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
 import Router, { TRouter } from "./router";
 import { RequestEvent } from "./request_event";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Router<Rev> {
@@ -11,22 +11,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private alive;
     private track;
     server: TRet;
-    /**
-     * handleEvent
-     * @example
-     * addEventListener("fetch", (event) => {
-     *   event.respondWith(app.handleEvent(event))
-     * });
-     */
-    handleEvent: (event: FetchEvent) => TRet;
-    /**
-     * handle
-     * @example
-     * Deno.serve(app.handle);
-     * // or
-     * Bun.serve({ fetch: app.handle });
-     */
-    handle: (request: Request, conn?: TRet, ctx?: TRet) => TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**
      * global error handling.
@@ -56,7 +40,22 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      */
     engine(renderFile: (...args: TRet) => TRet, opts?: EngineOptions): void;
     matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
-    private handleRequest;
+    /**
+     * handle
+     * @example
+     * Deno.serve(app.handle);
+     * // or
+     * Bun.serve({ fetch: app.handle });
+     */
+    handle: FetchHandler;
+    /**
+     * handleEvent
+     * @example
+     * addEventListener("fetch", (event) => {
+     *   event.respondWith(app.handleEvent(event))
+     * });
+     */
+    handleEvent: (evt: FetchEvent) => Response | Promise<Response>;
     private closeServer;
     private buildListenOptions;
     /**
@@ -78,7 +77,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
         json: () => Promise<any>;
         ok: () => Promise<boolean>;
         status: () => Promise<number>;
-        res: () => Promise<Response>;
+        res: () => Response | Promise<Response>;
     };
     /**
      * listen the server

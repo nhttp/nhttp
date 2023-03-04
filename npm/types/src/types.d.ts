@@ -5,7 +5,7 @@ export type TObject = {
     [k: string]: TRet;
 };
 export type TSendBody = string | Response | ReadableStream | Blob | TObject | null | number;
-export type NextFunction = (err?: Error) => TRet | Promise<TRet>;
+export type NextFunction = (err?: Error) => Promise<Response>;
 export type RetHandler = Promise<void | string | TObject> | void | string | TObject;
 export type Handler<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction, ...args: TRet) => RetHandler;
 export type Handlers<Rev extends RequestEvent = RequestEvent> = Array<Handler<Rev> | Handler<Rev>[]>;
@@ -108,7 +108,7 @@ export type TApp = {
 };
 export type FetchEvent = TRet;
 export type RouterOrWare<Rev extends RequestEvent = RequestEvent> = Handler<Rev> | Handler<Rev>[] | Router<Rev> | Router<Rev>[] | TObject | TObject[];
-export type CustomHandler = (request: Request, ...args: TRet) => TRet;
+export type FetchHandler = (request: Request, ...args: TRet) => Response | Promise<Response>;
 export type ListenOptions = {
     port: number;
     hostname?: string;
@@ -118,7 +118,7 @@ export type ListenOptions = {
     certFile?: string;
     transport?: "tcp";
     alpnProtocols?: string[];
-    handler?: CustomHandler;
+    handler?: FetchHandler;
     signal?: AbortSignal;
     [k: string]: TRet;
 };

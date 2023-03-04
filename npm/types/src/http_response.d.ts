@@ -153,7 +153,8 @@ export declare class HttpResponse {
     clearCookie(name: string, opts?: Cookie): void;
     [k: string | symbol]: TRet;
 }
+export declare function oldSchool(): void;
 export declare class JsonResponse extends Response {
-    constructor(body: TObject | null, resInit?: ResponseInit);
+    constructor(body: unknown, init?: ResponseInit);
 }
 export {};

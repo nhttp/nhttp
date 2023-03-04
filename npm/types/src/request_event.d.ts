@@ -1,4 +1,4 @@
-import { MatchRoute, TObject, TRet, TSendBody } from "./types";
+import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types";
 import { HttpResponse } from "./http_response";
 type TInfo = {
     conn: Partial<Deno.Conn>;
@@ -189,4 +189,11 @@ export declare class RequestEvent {
     getCookies(decode?: boolean): Record<string, string>;
     [k: string | symbol]: TRet;
 }
+export declare function createRequest(handle: FetchHandler, url: string, init?: RequestInit): {
+    text: () => Promise<string>;
+    json: () => Promise<any>;
+    ok: () => Promise<boolean>;
+    status: () => Promise<number>;
+    res: () => Response | Promise<Response>;
+};
 export {};

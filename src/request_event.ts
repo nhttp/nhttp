@@ -16,7 +16,7 @@ import {
   s_search,
   s_url,
 } from "./symbol.ts";
-import { MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
+import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
 import { getReqCookies, getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
 import { HttpResponse } from "./http_response.ts";
@@ -354,4 +354,25 @@ export class RequestEvent {
   }
 
   [k: string | symbol]: TRet;
+}
+export function createRequest(
+  handle: FetchHandler,
+  url: string,
+  init: RequestInit = {},
+) {
+  const res = () => {
+    return handle(
+      new Request(
+        url[0] === "/" ? "http://127.0.0.1:8787" + url : url,
+        init,
+      ),
+    );
+  };
+  return {
+    text: async () => await (await res()).text(),
+    json: async () => await (await res()).json(),
+    ok: async () => (await res()).ok,
+    status: async () => (await res()).status,
+    res,
+  };
 }

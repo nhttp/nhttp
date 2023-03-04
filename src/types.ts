@@ -15,7 +15,7 @@ export type TSendBody =
   | number;
 export type NextFunction = (
   err?: Error,
-) => TRet | Promise<TRet>;
+) => Promise<Response>;
 export type RetHandler =
   | Promise<void | string | TObject>
   | void
@@ -145,7 +145,10 @@ export type RouterOrWare<
   | TObject
   | TObject[];
 
-export type CustomHandler = (request: Request, ...args: TRet) => TRet;
+export type FetchHandler = (
+  request: Request,
+  ...args: TRet
+) => Response | Promise<Response>;
 
 export type ListenOptions = {
   port: number;
@@ -156,7 +159,7 @@ export type ListenOptions = {
   certFile?: string;
   transport?: "tcp";
   alpnProtocols?: string[];
-  handler?: CustomHandler;
+  handler?: FetchHandler;
   signal?: AbortSignal;
   [k: string]: TRet;
 };

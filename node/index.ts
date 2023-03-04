@@ -1,10 +1,10 @@
 // deno-lint-ignore-file
 import { TRet } from "../index.ts";
+import { FetchHandler } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
 import { s_body, s_init } from "./symbol.ts";
 
-type FetchHandler = (req: TRet) => Promise<TRet>;
 async function sendStream(resWeb: NodeResponse, res: TRet) {
   if (resWeb[s_body] instanceof ReadableStream) {
     for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
@@ -13,7 +13,8 @@ async function sendStream(resWeb: NodeResponse, res: TRet) {
   }
   const chunks = [];
   for await (const chunk of resWeb.body as TRet) chunks.push(chunk);
-  // @ts-ignore
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+  // @ts-ignore: Buffer for nodejs
   const data = Buffer.concat(chunks);
   if (
     resWeb[s_body] instanceof FormData && !res.getHeader("Content-Type")
@@ -61,18 +62,24 @@ export function serveNode(
   const port = config.port ?? 3000;
   return createServer(
     config,
-    (req: TRet, res: TRet) =>
-      handler(
+    (req: TRet, res: TRet) => {
+      const ret = handler(
         new NodeRequest(
           `http://${req.headers.host}${req.url}`,
           void 0,
           { req, res },
-        ),
-      ).then((data) => {
-        if (res.writableEnded) return;
-        return send(data, res);
-      }).catch((e) => {
-        throw e;
-      }),
+        ) as unknown as Request,
+      );
+      if (ret instanceof Promise) {
+        return ret.then((data) => {
+          if (res.writableEnded) return;
+          return send(data as NodeResponse, res);
+        }).catch((e) => {
+          throw e;
+        });
+      }
+      if (res.writableEnded) return;
+      return send(ret as NodeResponse, res);
+    },
   ).listen(port);
 }

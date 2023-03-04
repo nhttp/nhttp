@@ -4,6 +4,7 @@ import { RequestEvent } from "./request_event.ts";
 import { TRet } from "./types.ts";
 import { encoder } from "./utils.ts";
 const base = "http://127.0.0.1:8000";
+type MyNext = (err?: Error) => TRet;
 Deno.test("body parser", async (t) => {
   const request = (
     content: string | FormData,
@@ -33,7 +34,10 @@ Deno.test("body parser", async (t) => {
       lose2?: boolean,
     ) => {
       const rev = new RequestEvent(request(content, type, lose, lose2) as TRet);
-      await bodyParser()(rev, (err?: Error) => err?.message || "noop");
+      await bodyParser()(
+        rev,
+        ((err?: Error) => err?.message || "noop") as MyNext,
+      );
       return rev.body;
     };
     await t.step("content-type json", async () => {
@@ -96,7 +100,7 @@ Deno.test("body parser", async (t) => {
           urlencoded: 0,
           raw: 0,
           multipart: 0,
-        })(rev, (err?: Error) => err?.message || "noop");
+        })(rev, ((err?: Error) => err?.message || "noop") as MyNext);
         return rev.body;
       };
       await t.step("disable value 0 json", async () => {
@@ -132,7 +136,7 @@ Deno.test("body parser", async (t) => {
           urlencoded: false,
           raw: false,
           multipart: false,
-        })(rev, (err?: Error) => err?.message || "noop");
+        })(rev, ((err?: Error) => err?.message || "noop") as MyNext);
         return rev.body;
       };
 
@@ -173,7 +177,7 @@ Deno.test("body parser", async (t) => {
         json: 1,
         raw: 1,
         urlencoded: 1,
-      })(rev, (err?: Error) => err?.message || "noop");
+      })(rev, ((err?: Error) => err?.message || "noop") as MyNext);
     };
     const errMessage = "Body is too large. max limit 1";
     await t.step("verify json", async () => {
@@ -206,7 +210,10 @@ Deno.test("body parser", async (t) => {
           headers: { "content-type": type },
         }),
       );
-      await bodyParser()(rev, (err?: Error) => err?.message || "noop");
+      await bodyParser()(
+        rev,
+        ((err?: Error) => err?.message || "noop") as MyNext,
+      );
       return rev.body;
     };
     const ret = await createBody("application/json");
@@ -223,7 +230,10 @@ Deno.test("body parser", async (t) => {
     });
     const createBody = async (status: boolean) => {
       const rev = new RequestEvent(req);
-      await bodyParser(status)(rev, (err?: Error) => err?.message || "noop");
+      await bodyParser(status)(
+        rev,
+        ((err?: Error) => err?.message || "noop") as MyNext,
+      );
       return rev.body;
     };
     const ret = await createBody(false);

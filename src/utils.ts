@@ -1,4 +1,3 @@
-import { JSON_TYPE } from "./constant.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Cookie,
@@ -372,37 +371,4 @@ export async function arrayBuffer(req: Request): Promise<ArrayBuffer> {
   const body = await req.arrayBuffer();
   memoBody(req, body);
   return body;
-}
-
-export function oldSchool() {
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-  // @ts-ignore: Temporary workaround for oldVersion
-  Response.json ??= (data: unknown, init: ResInit = {}) => {
-    const type = "content-type";
-    init.headers ??= {};
-    if (init.headers instanceof Headers) {
-      init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
-    } else {
-      init.headers[type] ??= JSON_TYPE;
-    }
-    return new Response(JSON.stringify(data), init);
-  };
-}
-
-export function getRequest(handle: TRet, url: string, init: RequestInit = {}) {
-  const res: () => Promise<Response> = () => {
-    return handle(
-      new Request(
-        url[0] === "/" ? "http://127.0.0.1:8787" + url : url,
-        init,
-      ),
-    );
-  };
-  return {
-    text: async () => await (await res()).text(),
-    json: async () => await (await res()).json(),
-    ok: async () => (await res()).ok,
-    status: async () => (await res()).status,
-    res,
-  };
 }

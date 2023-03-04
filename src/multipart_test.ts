@@ -3,7 +3,7 @@ import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
 import { myParse } from "./utils.ts";
 import { RequestEvent } from "./request_event.ts";
-
+type MyNext = (err?: Error) => TRet;
 Deno.test("multipart upload", async (t) => {
   const req = (body: TRet) =>
     new Request("http://127.0.0.1:8000/", { method: "POST", body });
@@ -22,7 +22,7 @@ Deno.test("multipart upload", async (t) => {
     const form = new FormData();
     form.set("myfile", new File(["hello world"], "text.txt"));
     const rev = new RequestEvent(req(form));
-    const data = await upload(rev, (err) => err);
+    const data = await upload(rev, ((err) => err) as MyNext);
     const ok = data === undefined;
     assertEquals(ok, true);
   });
@@ -34,7 +34,7 @@ Deno.test("multipart upload", async (t) => {
     const form = new FormData();
     form.set("myfile", new File(["hello world"], "text.txt"));
     const rev = new RequestEvent(req(form));
-    const data = await upload(rev, (err) => err);
+    const data = await upload(rev, ((err) => err) as MyNext);
     const ok = data === undefined;
     assertEquals(ok, true);
   });
@@ -61,7 +61,7 @@ Deno.test("multipart upload", async (t) => {
     form.set("myfile", new File(["hello world"], "text.txt"));
     form.set("myfile2", new File(["html {color: black}"], "text.css"));
     const rev = new RequestEvent(req(form));
-    const data = await upload(rev, (err) => err);
+    const data = await upload(rev, ((err) => err) as MyNext);
     const ok = data === undefined;
     assertEquals(ok, true);
   });
@@ -168,7 +168,7 @@ Deno.test("multipart upload", async (t) => {
     });
     const form = new FormData();
     const rev = new RequestEvent(req(form));
-    const data = await upload(rev, (err) => err);
+    const data = await upload(rev, ((err) => err) as MyNext);
     const ok = data === undefined;
     assertEquals(ok, true);
   });

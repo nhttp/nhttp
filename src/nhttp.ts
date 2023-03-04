@@ -1,6 +1,7 @@
 import {
   EngineOptions,
   FetchEvent,
+  FetchHandler,
   Handlers,
   ListenOptions,
   NextFunction,
@@ -15,18 +16,17 @@ import {
 import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
   findFns,
-  getRequest,
   getUrl,
-  oldSchool,
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
-import { bodyParser } from "./body.ts";
+import { bodyParser as bodyParserOri } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
-import { RequestEvent } from "./request_event.ts";
+import { createRequest, RequestEvent } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
 import { s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
+import { oldSchool } from "./http_response.ts";
 
 const defError = (
   err: TObject,
@@ -48,10 +48,10 @@ const awaiter = (rev: RequestEvent) => {
   })(0, 100);
 };
 const respond = async (
-  ret: TSendBody | Promise<TSendBody>,
+  ret: Promise<TSendBody>,
   rev: RequestEvent,
   next: NextFunction,
-) => {
+): Promise<Response> => {
   try {
     rev.send(await ret, 1);
     return rev[s_response] ?? awaiter(rev);
@@ -71,22 +71,7 @@ export class NHttp<
   private alive = true;
   private track = new Set<Deno.HttpConn>();
   server!: TRet;
-  /**
-   * handleEvent
-   * @example
-   * addEventListener("fetch", (event) => {
-   *   event.respondWith(app.handleEvent(event))
-   * });
-   */
-  handleEvent: (event: FetchEvent) => TRet;
-  /**
-   * handle
-   * @example
-   * Deno.serve(app.handle);
-   * // or
-   * Bun.serve({ fetch: app.handle });
-   */
-  handle: (request: Request, conn?: TRet, ctx?: TRet) => TRet;
+
   constructor(
     { parseQuery, bodyParser, env, flash, stackError }: TApp = {},
   ) {
@@ -99,12 +84,6 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
-    this.handleEvent = (event) => {
-      return this.handleRequest(event.request);
-    };
-    this.handle = (request, conn, ctx) => {
-      return this.handleRequest(request, conn, ctx);
-    };
     if (parseQuery) {
       this.use((rev: RequestEvent, next) => {
         rev.__parseMultipart = parseQuery;
@@ -133,12 +112,16 @@ export class NHttp<
         let status: number = err.status || err.statusCode || err.code || 500;
         if (typeof status !== "number") status = 500;
         rev.response.status(status);
-        return fn(err, rev, (e: TRet) => {
-          if (e) {
-            return rev.response.status(e.status ?? 500).send(String(e));
-          }
-          return this._on404(rev);
-        });
+        return fn(
+          err,
+          rev,
+          ((e: TRet) => {
+            if (e) {
+              return rev.response.status(e.status ?? 500).send(String(e));
+            }
+            return this._on404(rev);
+          }) as TRet,
+        );
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -162,12 +145,15 @@ export class NHttp<
     this._on404 = (rev) => {
       try {
         rev.response.status(404);
-        return fn(rev, (e) => {
-          if (e) {
-            return this._onError(e, rev);
-          }
-          return def(rev);
-        });
+        return fn(
+          rev,
+          ((e: TRet) => {
+            if (e) {
+              return this._onError(e, rev);
+            }
+            return def(rev);
+          }) as TRet,
+        );
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -290,8 +276,14 @@ export class NHttp<
       this._on404,
     );
   }
-
-  private handleRequest(req: Request, conn?: TRet, ctx?: TRet) {
+  /**
+   * handle
+   * @example
+   * Deno.serve(app.handle);
+   * // or
+   * Bun.serve({ fetch: app.handle });
+   */
+  handle: FetchHandler = (req: Request, conn?: TRet, ctx?: TRet) => {
     let i = 0;
     const url = getUrl(req.url);
     const rev = <Rev> new RequestEvent(req, conn, ctx);
@@ -315,12 +307,20 @@ export class NHttp<
         return next(e);
       }
     }
-    return bodyParser(
+    return bodyParserOri(
       this.bodyParser,
       this.parseQuery,
       this.parseMultipart,
-    )(rev, next);
-  }
+    )(rev, next) as Promise<Response>;
+  };
+  /**
+   * handleEvent
+   * @example
+   * addEventListener("fetch", (event) => {
+   *   event.respondWith(app.handleEvent(event))
+   * });
+   */
+  handleEvent = (evt: FetchEvent) => this.handle(evt.request);
   private closeServer() {
     try {
       if (!this.alive) {
@@ -361,7 +361,7 @@ export class NHttp<
    * assertEquals(hello_post, "hello, post");
    */
   req(url: string, init: RequestInit = {}) {
-    return getRequest(this.handle, url, init);
+    return createRequest(this.handle, url, init);
   }
   /**
    * listen the server

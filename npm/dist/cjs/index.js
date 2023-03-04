@@ -1136,6 +1136,7 @@ var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 
 // npm/src/src/http_response.ts
+var TYPE = "content-type";
 var HttpResponse = class {
   constructor(send2, init) {
     this.send = send2;
@@ -1254,16 +1255,19 @@ var HttpResponse = class {
     return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
 };
+function oldSchool() {
+  Response.json ??= (data, init = {}) => new JsonResponse(data, init);
+}
 var JsonResponse = class extends Response {
-  constructor(body, resInit = {}) {
-    if (resInit.headers) {
-      if (resInit.headers instanceof Headers) {
-        resInit.headers.set("content-type", JSON_TYPE);
-      } else
-        resInit.headers["content-type"] = JSON_TYPE;
+  constructor(body, init = {}) {
+    if (init.headers) {
+      if (init.headers instanceof Headers)
+        init.headers.set(TYPE, JSON_TYPE);
+      else
+        init.headers[TYPE] = JSON_TYPE;
     } else
-      resInit.headers = { "content-type": JSON_TYPE };
-    super(JSON.stringify(body), resInit);
+      init.headers = { [TYPE]: JSON_TYPE };
+    super(JSON.stringify(body), init);
   }
 };
 
@@ -1439,20 +1443,20 @@ var RequestEvent = class {
     return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
 };
-
-// npm/src/src/nhttp.ts
-function oldSchool() {
-  Response.json ??= (data, init = {}) => {
-    const type = "content-type";
-    init.headers ??= {};
-    if (init.headers instanceof Headers) {
-      init.headers.set(type, init.headers.get(type) ?? JSON_TYPE);
-    } else {
-      init.headers[type] ??= JSON_TYPE;
-    }
-    return new Response(JSON.stringify(data), init);
+function createRequest(handle, url, init = {}) {
+  const res = () => {
+    return handle(new Request(url[0] === "/" ? "http://127.0.0.1:8787" + url : url, init));
+  };
+  return {
+    text: async () => await (await res()).text(),
+    json: async () => await (await res()).json(),
+    ok: async () => (await res()).ok,
+    status: async () => (await res()).status,
+    res
   };
 }
+
+// npm/src/src/nhttp.ts
 var defError = (err, rev, stack) => {
   const obj = getError(err, stack);
   rev.response.status(obj.status);
@@ -1482,6 +1486,28 @@ var NHttp = class extends Router {
     super();
     this.alive = true;
     this.track = /* @__PURE__ */ new Set();
+    this.handle = (req, conn, ctx) => {
+      let i = 0;
+      const url = getUrl(req.url);
+      const rev = new RequestEvent(req, conn, ctx);
+      const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
+      const next = (err) => {
+        try {
+          return respond(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
+        } catch (e) {
+          return next(e);
+        }
+      };
+      if (rev.method === "GET" || rev.method === "HEAD") {
+        try {
+          return respond(fns[i++](rev, next), rev, next);
+        } catch (e) {
+          return next(e);
+        }
+      }
+      return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
+    };
+    this.handleEvent = (evt) => this.handle(evt.request);
     oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
     this.stackError = stackError !== false;
@@ -1490,12 +1516,6 @@ var NHttp = class extends Router {
       this.stackError = false;
     }
     this.flash = flash;
-    this.handleEvent = (event) => {
-      return this.handleRequest(event.request);
-    };
-    this.handle = (request, conn, ctx) => {
-      return this.handleRequest(request, conn, ctx);
-    };
     if (parseQuery2) {
       this.use((rev, next) => {
         rev.__parseMultipart = parseQuery2;
@@ -1634,27 +1654,6 @@ var NHttp = class extends Router {
     }
     return this.find(rev.method, path, (obj) => rev.params = obj, this._on404);
   }
-  handleRequest(req, conn, ctx) {
-    let i = 0;
-    const url = getUrl(req.url);
-    const rev = new RequestEvent(req, conn, ctx);
-    const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
-    const next = (err) => {
-      try {
-        return respond(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
-      } catch (e) {
-        return next(e);
-      }
-    };
-    if (rev.method === "GET" || rev.method === "HEAD") {
-      try {
-        return respond(fns[i++](rev, next), rev, next);
-      } catch (e) {
-        return next(e);
-      }
-    }
-    return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
-  }
   closeServer() {
     try {
       if (!this.alive) {
@@ -1681,16 +1680,7 @@ var NHttp = class extends Router {
     return { opts, isSecure };
   }
   req(url, init = {}) {
-    const res = () => {
-      return this.handle(new Request(url[0] === "/" ? "http://127.0.0.1:8787" + url : url, init));
-    };
-    return {
-      text: async () => await (await res()).text(),
-      json: async () => await (await res()).json(),
-      ok: async () => (await res()).ok,
-      status: async () => (await res()).status,
-      res
-    };
+    return createRequest(this.handle, url, init);
   }
   async listen(options, callback) {
     const { opts, isSecure } = this.buildListenOptions(options);
@@ -1995,13 +1985,21 @@ function send(resWeb, res) {
 }
 function serveNode(handler, createServer, config = {}) {
   const port = config.port ?? 3e3;
-  return createServer(config, (req, res) => handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res })).then((data) => {
+  return createServer(config, (req, res) => {
+    const ret = handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+    if (ret instanceof Promise) {
+      return ret.then((data) => {
+        if (res.writableEnded)
+          return;
+        return send(data, res);
+      }).catch((e) => {
+        throw e;
+      });
+    }
     if (res.writableEnded)
       return;
-    return send(data, res);
-  }).catch((e) => {
-    throw e;
-  })).listen(port);
+    return send(ret, res);
+  }).listen(port);
 }
 
 // npm/src/node/response.ts

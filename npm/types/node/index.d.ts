@@ -1,4 +1,3 @@
 import { TRet } from "../index";
-type FetchHandler = (req: TRet) => Promise<TRet>;
+import { FetchHandler } from "../src/types";
 export declare function serveNode(handler: FetchHandler, createServer: TRet, config?: TRet): any;
-export {};

@@ -2,7 +2,7 @@ import { JSON_TYPE, MIME_LIST } from "./constant.ts";
 import { s_params } from "./symbol.ts";
 import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
-
+const TYPE = "content-type";
 export type ResInit = {
   headers?: TObject;
   status?: number;
@@ -270,13 +270,21 @@ export class HttpResponse {
   [k: string | symbol]: TRet;
 }
 
+export function oldSchool() {
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+  // @ts-ignore: Temporary workaround for oldVersion
+  Response.json ??= (
+    data: unknown,
+    init: ResInit = {},
+  ) => new JsonResponse(data, init);
+}
+
 export class JsonResponse extends Response {
-  constructor(body: TObject | null, resInit: ResponseInit = {}) {
-    if (resInit.headers) {
-      if (resInit.headers instanceof Headers) {
-        resInit.headers.set("content-type", JSON_TYPE);
-      } else (resInit.headers as TObject)["content-type"] = JSON_TYPE;
-    } else resInit.headers = { "content-type": JSON_TYPE };
-    super(JSON.stringify(body), resInit);
+  constructor(body: unknown, init: ResponseInit = {}) {
+    if (init.headers) {
+      if (init.headers instanceof Headers) init.headers.set(TYPE, JSON_TYPE);
+      else (<TObject> init.headers)[TYPE] = JSON_TYPE;
+    } else init.headers = { [TYPE]: JSON_TYPE };
+    super(JSON.stringify(body), init);
   }
 }

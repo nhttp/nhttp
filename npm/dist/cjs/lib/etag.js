@@ -67,12 +67,13 @@ async function beforeFile(opts, pathFile) {
     pathFile = pathFile.substring(0, iof);
   }
   try {
-    opts.readFile ??= (await getIo()).readFile;
+    const { readFile, stat: statFn } = await getIo();
+    opts.readFile ??= readFile;
     if (opts.etag === false) {
       return { stat: void 0, subfix, path: pathFile };
     }
-    opts.stat ??= (await getIo()).stat;
-    stat = await opts.stat(pathFile);
+    opts.stat ??= statFn;
+    stat = await opts.stat?.(pathFile) ?? {};
   } catch (_e) {
   }
   return { stat, subfix, path: pathFile };
@@ -163,10 +164,14 @@ async function getIo() {
     s_glob.stat = Deno.stat;
     return s_glob;
   }
-  fs_glob ??= await import("node:fs");
-  s_glob.readFile = fs_glob.readFileSync;
-  s_glob.stat = fs_glob.statSync;
-  return s_glob;
+  try {
+    fs_glob ??= await import("node:fs");
+    s_glob.readFile = fs_glob.readFileSync;
+    s_glob.stat = fs_glob.statSync;
+    return s_glob;
+  } catch {
+  }
+  return s_glob = {};
 }
 module.exports = __toCommonJS(etag_exports);
 // Annotate the CommonJS export names for ESM import in node:
