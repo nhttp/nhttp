@@ -135,7 +135,7 @@ const pkg = {
   "name": "nhttp-land",
   "description": "An Simple http framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./types/index.d.ts",
@@ -191,6 +191,9 @@ await Deno.writeTextFile(
   "npm/package.json",
   JSON.stringify(pkg, null, 2),
 );
-const p = Deno.run({ cmd: ["tsc"] });
-await p.status();
+const p = new Deno.Command("tsc", {
+  stderr: "null",
+  stdout: "null",
+});
+await p.spawn().status;
 await Deno.remove("npm/src", { recursive: true });

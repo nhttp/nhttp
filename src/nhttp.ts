@@ -311,7 +311,7 @@ export class NHttp<
       this.bodyParser,
       this.parseQuery,
       this.parseMultipart,
-    )(rev, next) as Promise<Response>;
+    )(rev, next) as Response;
   };
   /**
    * handleEvent
