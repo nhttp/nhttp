@@ -43,6 +43,25 @@ export function findParams(el: TObject, url: string) {
   return params;
 }
 
+function mutatePath(base: string, str: string) {
+  let ori = base + str;
+  if (ori !== "/" && ori.endsWith("/")) ori = ori.slice(0, -1);
+  let path = ori;
+  if (typeof path === "string" && !path.endsWith("*")) {
+    if (path === "/") path += "*";
+    else path += "/*";
+  }
+  return { path, ori };
+}
+
+function addGlobRoute(ori: string | RegExp | undefined, obj: TObject) {
+  ANY_METHODS.forEach((method) => {
+    ROUTE[method] ??= [];
+    const not = !ROUTE[method].find(({ path }: TRet) => path === ori);
+    if (not) ROUTE[method].push(obj);
+  });
+}
+
 export type TRouter = { base?: string };
 export const ANY_METHODS = [
   "GET",
@@ -99,13 +118,7 @@ export default class Router<
       return this;
     }
     if (str !== "" && str !== "*" && str !== "/*") {
-      let ori = this.base + str;
-      if (ori !== "/" && ori.endsWith("/")) ori = ori.slice(0, -1);
-      let path = ori;
-      if (typeof path === "string" && !path.endsWith("*")) {
-        if (path === "/") path += "*";
-        else path += "/*";
-      }
+      const { path, ori } = mutatePath(this.base, str);
       const { pattern, wild, path: _path } = toPathx(path, true);
       (this.pmidds ??= []).push({
         pattern,
@@ -114,11 +127,7 @@ export default class Router<
         fns: middAssets(ori).concat(findFns(args)),
       });
       if ((this as TRet)["handle"]) {
-        ANY_METHODS.forEach((method) => {
-          ROUTE[method] ??= [];
-          const not = !ROUTE[method].find(({ path }: TRet) => path === _path);
-          if (not) ROUTE[method].push({ path, pattern, wild });
-        });
+        addGlobRoute(_path, { path, pattern, wild });
       }
       return this;
     }
