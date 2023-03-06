@@ -17,6 +17,7 @@
         "dev.tsx",
         "bench.ts",
         "dev.js",
+        "backup/",
         "cf_workers/",
         "node_modules/",
         "npm/",

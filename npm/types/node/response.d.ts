@@ -5,10 +5,10 @@ export declare class NodeResponse {
     static redirect(url: string | URL, status?: number): Response;
     static json(data: unknown, init?: ResponseInit): Response;
     private get res();
-    get headers(): Headers;
+    get headers(): any;
     get ok(): boolean;
     get redirected(): boolean;
-    get status(): number;
+    get status(): any;
     get statusText(): string;
     get type(): ResponseType;
     get url(): string;

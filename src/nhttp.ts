@@ -167,21 +167,19 @@ export class NHttp<
   ): this {
     let fns = findFns<Rev>(handlers);
     if (typeof path === "string") {
-      if (path !== "/" && path.endsWith("/")) {
-        path = path.slice(0, -1);
-      }
-      for (const k in this.pmidds) {
-        if (
-          k === path || toPathx(k).pattern?.test(path)
-        ) {
-          fns = this.pmidds[k].concat([(rev, next) => {
-            if (rev.__url && rev.__path) {
-              rev.url = rev.__url;
-              rev.path = rev.__path;
-            }
-            return next();
-          }] as Handlers, fns);
-        }
+      if (path !== "/" && path.endsWith("/")) path = path.slice(0, -1);
+      if (this.pmidds) {
+        const arr = [] as TRet[];
+        this.pmidds.forEach((el) => {
+          if (el.pattern.test(path)) arr.push(...el.fns);
+        });
+        fns = arr.concat([(rev, next) => {
+          if (rev.__url && rev.__path) {
+            rev.url = rev.__url;
+            rev.path = rev.__path;
+          }
+          return next();
+        }] as Handlers, fns);
       }
     }
     fns = this.midds.concat(fns);
@@ -457,7 +455,7 @@ export class NHttp<
     const obj = getError(
       new HttpError(
         404,
-        `Route ${rev.method}${rev.url} not found`,
+        `Route ${rev.method}${rev.originalUrl} not found`,
         "NotFoundError",
       ),
     );

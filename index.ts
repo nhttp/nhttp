@@ -1,4 +1,9 @@
 // deno-lint-ignore-file
+declare global {
+  var bunServer: { reload: (...args: TRet) => TRet };
+  var NativeResponse: TRet;
+  var NativeRequest: TRet;
+}
 import { NHttp as BaseApp } from "./src/nhttp.ts";
 import { RequestEvent, TApp, TRet } from "./src/index.ts";
 import Router, { TRouter } from "./src/router.ts";
@@ -8,9 +13,9 @@ import { NodeRequest } from "./node/request.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 
 export function shimNodeRequest() {
-  if (!(<TRet> globalThis).NativeResponse) {
-    (<TRet> globalThis).NativeResponse = Response;
-    (<TRet> globalThis).NativeRequest = Request;
+  if (!globalThis.NativeResponse) {
+    globalThis.NativeResponse = Response;
+    globalThis.NativeRequest = Request;
     (<TRet> globalThis).Response = NodeResponse;
     (<TRet> globalThis).Request = NodeRequest;
   }
@@ -55,9 +60,13 @@ export class NHttp<
         // @ts-ignore
         if (typeof Bun !== "undefined") {
           opts.fetch = handler;
-          // @ts-ignore
-          this.server = Bun.serve(opts);
-          runCallback();
+          if (!globalThis.bunServer) {
+            // @ts-ignore
+            globalThis.bunServer = this.server = Bun.serve(opts);
+            runCallback();
+          } else {
+            globalThis.bunServer.reload(opts);
+          }
           return;
         }
         shimNodeRequest();
@@ -81,21 +90,18 @@ export class NHttp<
 }
 let fs_glob: TRet;
 const writeFile = async (...args: TRet) => {
-  // @ts-ignore
-  if (typeof Bun !== "undefined") {
-    // @ts-ignore
-    return await Bun.write(...args);
-  }
-  // @ts-ignore
-  const fs = fs_glob ??= await import("node:fs");
-  return fs.writeFileSync(...args);
+  try {
+    if (fs_glob) return fs_glob?.writeFileSync(...args);
+    fs_glob = await import("node:fs");
+    return fs_glob.writeFileSync(...args);
+  } catch (_e) { /* noop */ }
+  fs_glob = {};
+  return void 0;
 };
 export const multipart = {
   createBody: multi.createBody,
   upload: (opts: TMultipartUpload | TMultipartUpload[]) => {
-    if (typeof Deno !== "undefined") {
-      return multi.upload(opts);
-    }
+    if (typeof Deno !== "undefined") return multi.upload(opts);
     if (Array.isArray(opts)) {
       for (let i = 0; i < opts.length; i++) {
         opts[i].writeFile ??= writeFile;

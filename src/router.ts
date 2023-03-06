@@ -43,12 +43,6 @@ export function findParams(el: TObject, url: string) {
   return params;
 }
 
-export function base(url: string) {
-  const iof = url.indexOf("/", 1);
-  if (iof != -1) return url.substring(0, iof);
-  return url;
-}
-
 export type TRouter = { base?: string };
 export const ANY_METHODS = [
   "GET",
@@ -71,7 +65,7 @@ export default class Router<
   route: TObject = {};
   c_routes: TObject[] = [];
   midds: TRet[] = [];
-  pmidds: TObject | undefined;
+  pmidds?: TRet[];
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
@@ -105,18 +99,27 @@ export default class Router<
       return this;
     }
     if (str !== "" && str !== "*" && str !== "/*") {
-      const path = this.base + str;
-      this.pmidds ??= {};
-      if (!this.pmidds[path]) {
-        this.pmidds[path] = middAssets(path);
-        if ((this as TRet)["handle"]) {
-          ANY_METHODS.forEach((method) => {
-            const { pattern, wild } = toPathx(path, true);
-            (ROUTE[method] ??= []).push({ path, pattern, wild });
-          });
-        }
+      let ori = this.base + str;
+      if (ori !== "/" && ori.endsWith("/")) ori = ori.slice(0, -1);
+      let path = ori;
+      if (typeof path === "string" && !path.endsWith("*")) {
+        if (path === "/") path += "*";
+        else path += "/*";
       }
-      this.pmidds[path] = this.pmidds[path].concat(findFns<Rev>(args));
+      const { pattern, wild, path: _path } = toPathx(path, true);
+      (this.pmidds ??= []).push({
+        pattern,
+        wild,
+        path: _path,
+        fns: middAssets(ori).concat(findFns(args)),
+      });
+      if ((this as TRet)["handle"]) {
+        ANY_METHODS.forEach((method) => {
+          ROUTE[method] ??= [];
+          const not = !ROUTE[method].find(({ path }: TRet) => path === _path);
+          if (not) ROUTE[method].push({ path, pattern, wild });
+        });
+      }
       return this;
     }
     this.midds = this.midds.concat(findFns<Rev>(args));
@@ -218,16 +221,6 @@ export default class Router<
   connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this {
     return this.on("CONNECT", path, ...handlers);
   }
-  private findPathAssets(path: string) {
-    const paths = path.split("/");
-    paths.shift();
-    return paths.reduce((acc, curr, i, arr) => {
-      if (this.pmidds?.[acc + "/" + curr]) {
-        arr.splice(i);
-      }
-      return acc + "/" + curr;
-    }, "");
-  }
   find(
     method: string,
     path: string,
@@ -245,10 +238,10 @@ export default class Router<
       if (this.route[k]) return this.route[k];
     }
     if (this.pmidds) {
-      let p = this.pmidds[path] ? path : base(path);
-      if (!this.pmidds[p] && path.startsWith(p)) p = this.findPathAssets(path);
-      if (this.pmidds[p]) {
-        return this.midds.concat(this.pmidds[p], [notFound]);
+      const a = this.pmidds.find((el) => el.pattern.test(path));
+      if (a) {
+        setParam(findParams(a, path));
+        return this.midds.concat(a.fns, [notFound]);
       }
     }
     return this.midds.concat([notFound]);

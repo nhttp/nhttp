@@ -6,8 +6,15 @@ declare global {
         }
     }
 }
+declare global {
+    var bunServer: {
+        reload: (...args: TRet) => TRet;
+    };
+    var NativeResponse: TRet;
+    var NativeRequest: TRet;
+}
 import { NHttp as BaseApp } from "./src/nhttp";
-import { RequestEvent, TApp } from "./src/index";
+import { RequestEvent, TApp, TRet } from "./src/index";
 import Router, { TRouter } from "./src/router";
 import { TMultipartUpload } from "./src/multipart";
 export declare function shimNodeRequest(): void;

@@ -1,4 +1,4 @@
-import Router, { base, findParams } from "./router.ts";
+import Router, { findParams } from "./router.ts";
 import { assertEquals } from "./deps_test.ts";
 
 Deno.test("router", async (t) => {
@@ -19,7 +19,6 @@ Deno.test("router", async (t) => {
     assertEquals(wild3, {});
   });
   await t.step("router miss", () => {
-    assertEquals(base("/"), "/");
     const router = new Router();
     router.use("/hello", () => {});
     router.options("/", () => {});

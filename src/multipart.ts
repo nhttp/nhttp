@@ -1,6 +1,6 @@
-import { acceptContentType } from "./body.ts";
+import { acceptContentType, memoBody } from "./body.ts";
+import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
-import { multiParser } from "./multipart_parser.ts";
 import { RequestEvent } from "./request_event.ts";
 import { Handler, TObject, TQueryFunc, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
@@ -86,10 +86,10 @@ class Multipart {
       }
     }
     while (j < len) {
-      const file = files[j] as File;
-      const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
+      const file = files[j];
       if (opts?.accept) {
-        if (!opts.accept.includes(ext)) {
+        const type = revMimeList(file.type);
+        if (!opts.accept.includes(type)) {
           throw new HttpError(
             400,
             `${opts.name} only accept ${opts.accept}`,
@@ -122,7 +122,7 @@ class Multipart {
         if (opts.dest.lastIndexOf("/") === -1) opts.dest += "/";
         if (opts.dest[0] === "/") opts.dest = opts.dest.substring(1);
       }
-      file.filename ??= uid() + "_" + file.name;
+      file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
       opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
@@ -135,14 +135,11 @@ class Multipart {
       rev.bodyUsed === false &&
       isMultipart
     ) {
-      if (typeof rev.request.formData === "function") {
-        const formData = await rev.request.clone().formData();
-        rev.body = await this.createBody(formData, {
-          parse: rev.__parseMultipart as TQueryFunc,
-        });
-      } else {
-        rev.body = (await multiParser(rev.request)) || {};
-      }
+      const formData = await rev.request.formData();
+      rev.body = await this.createBody(formData, {
+        parse: rev.__parseMultipart as TQueryFunc,
+      });
+      memoBody(rev.request, formData);
     }
   }
   private async handleArrayUpload(rev: RequestEvent, opts: TMultipartUpload[]) {

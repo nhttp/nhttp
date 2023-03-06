@@ -1,29 +1,45 @@
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
-import { multiParser } from "./multipart_parser.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Handler,
   NextFunction,
   TBodyParser,
   TQueryFunc,
+  TRet,
   TValidBody,
 } from "./types.ts";
 import {
-  arrayBuffer,
   decoder,
   decURIComponent,
   parseQuery as parseQueryOri,
   toBytes,
 } from "./utils.ts";
 
+function cloneReq(req: Request, body: TRet) {
+  return new Request(req.url, {
+    method: req.method,
+    body,
+    headers: req.headers,
+  });
+}
+
+export function memoBody(req: Request, body: TRet) {
+  try {
+    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
+    req.text = () => cloneReq(req, body).text();
+    req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
+    req.formData = () => cloneReq(req, body).formData();
+    req.blob = () => cloneReq(req, body).blob();
+  } catch (_e) { /* no_^_op */ }
+}
 // binary bytes (1mb)
 const defautl_size = 1048576;
 async function verifyBody(
-  rev: RequestEvent,
+  req: Request,
   limit: number | string = defautl_size,
 ) {
-  const arrBuff = await arrayBuffer(rev.request);
+  const arrBuff = await req.arrayBuffer();
   if (arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(
       400,
@@ -32,7 +48,9 @@ async function verifyBody(
     );
   }
   const val = decoder.decode(arrBuff);
-  return val ? decURIComponent(val) : void 0;
+  if (!val) return;
+  memoBody(req, arrBuff);
+  return decURIComponent(val);
 }
 type CType =
   | "application/json"
@@ -56,7 +74,7 @@ async function jsonBody(
 ) {
   if (!isValidBody(validate)) return next();
   try {
-    const body = await verifyBody(rev, <number> validate);
+    const body = await verifyBody(rev.request, <number> validate);
     rev.bodyUsed = true;
     if (!body) return next();
     rev.body = JSON.parse(body);
@@ -75,7 +93,7 @@ async function urlencodedBody(
   if (!isValidBody(validate)) return next();
   try {
     const body = await verifyBody(
-      rev,
+      rev.request,
       <number> validate,
     );
     rev.bodyUsed = true;
@@ -95,7 +113,7 @@ async function rawBody(
 ) {
   if (!isValidBody(validate)) return next();
   try {
-    const body = await verifyBody(rev, <number> validate);
+    const body = await verifyBody(rev.request, <number> validate);
     rev.bodyUsed = true;
     if (!body) return next();
     try {
@@ -116,18 +134,13 @@ async function multipartBody(
 ) {
   if (validate === false || validate === 0) return next();
   try {
-    let body;
-    if (typeof rev.request.formData === "function") {
-      const formData = await rev.request.clone().formData();
-      body = await multipart.createBody(formData, {
-        parse: parseMultipart,
-      });
-    } else {
-      body = await multiParser(rev.request);
-    }
+    const formData = await rev.request.formData();
+    const body = await multipart.createBody(formData, {
+      parse: parseMultipart,
+    });
     rev.bodyUsed = true;
-    if (!body) return next();
     rev.body = body;
+    memoBody(rev.request, formData);
     return next();
   } catch (error) {
     return next(error);

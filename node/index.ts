@@ -3,7 +3,7 @@ import { TRet } from "../index.ts";
 import { FetchHandler } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
-import { s_body, s_init } from "./symbol.ts";
+import { s_body, s_headers, s_init } from "./symbol.ts";
 
 async function sendStream(resWeb: NodeResponse, res: TRet) {
   if (resWeb[s_body] instanceof ReadableStream) {
@@ -40,6 +40,11 @@ function send(resWeb: NodeResponse, res: TRet) {
       }
     }
     if (resWeb[s_init].status) res.statusCode = resWeb[s_init].status;
+  }
+  if (resWeb[s_headers]) {
+    (<Headers> resWeb[s_headers]).forEach((val, key) => {
+      res.setHeader(key, val);
+    });
   }
   if (
     typeof resWeb[s_body] === "string" ||

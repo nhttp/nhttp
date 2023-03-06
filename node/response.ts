@@ -1,5 +1,5 @@
 import { TRet } from "../index.ts";
-import { s_body, s_def, s_init } from "./symbol.ts";
+import { s_body, s_def, s_headers, s_init } from "./symbol.ts";
 
 const C_TYPE = "Content-Type";
 const JSON_TYPE = "application/json";
@@ -37,7 +37,7 @@ export class NodeResponse {
     );
   }
   get headers() {
-    return this.res.headers;
+    return this[s_headers] ??= new Headers(this[s_init]?.headers);
   }
   get ok() {
     return this.res.ok;
@@ -46,7 +46,7 @@ export class NodeResponse {
     return this.res.redirected;
   }
   get status() {
-    return this.res.status;
+    return this[s_init]?.status ?? 200;
   }
   get statusText() {
     return this.res.statusText;

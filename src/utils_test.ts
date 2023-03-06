@@ -1,4 +1,5 @@
 import { Handler } from "../mod.ts";
+import { memoBody } from "./body.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
 import {
@@ -7,7 +8,6 @@ import {
   findFn,
   findFns,
   getReqCookies,
-  memoBody,
   middAssets,
   needPatch,
   parseQuery,

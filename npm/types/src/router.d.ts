@@ -1,7 +1,6 @@
 import { RequestEvent } from "./request_event";
 import { Handler, Handlers, NextFunction, RouterOrWare, TObject, TRet } from "./types";
 export declare function findParams(el: TObject, url: string): any;
-export declare function base(url: string): string;
 export type TRouter = {
     base?: string;
 };
@@ -16,7 +15,7 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
     route: TObject;
     c_routes: TObject[];
     midds: TRet[];
-    pmidds: TObject | undefined;
+    pmidds?: TRet[];
     private base;
     constructor({ base }?: TRouter);
     /**
@@ -92,6 +91,5 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T>(path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
-    private findPathAssets;
     find(method: string, path: string, setParam: (obj: TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
 }

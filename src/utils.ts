@@ -224,7 +224,7 @@ export function expressMiddleware(...middlewares: TRet): TRet {
 export function middAssets(str: string) {
   return [
     ((rev, next) => {
-      if (rev.path.startsWith(str)) {
+      if (str !== "/" && rev.path.startsWith(str)) {
         rev.__url = rev.url;
         rev.__path = rev.path;
         rev.url = rev.url.substring(str.length) || "/";
@@ -250,9 +250,13 @@ export function pushRoutes(
       if (path instanceof RegExp) _path = concatRegexp(str, path);
       else _path = str + path;
       if (pmidds) {
-        const obj = {} as TObject;
-        for (const k in pmidds) obj[str + k] = pmidds[k];
-        base.pmidds = obj;
+        const arr = [] as TRet[];
+        pmidds.forEach((el: TObject) => {
+          el.path = str + el.path;
+          el.pattern = toPathx(el.path, true).pattern;
+          arr.push(el);
+        });
+        base.pmidds = arr;
       }
       base.on(method, _path, [wares, fns]);
     });
@@ -350,25 +354,4 @@ export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
     i++;
   }
   return ret;
-}
-function cloneReq(req: Request, body: TRet) {
-  return new Request(req.url, {
-    method: req.method,
-    body,
-    headers: req.headers,
-  });
-}
-export function memoBody(req: Request, body: TRet) {
-  try {
-    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => Promise.resolve(decoder.decode(body));
-    req.arrayBuffer = () => Promise.resolve(body);
-    req.formData = () => cloneReq(req, body).formData();
-    req.blob = () => cloneReq(req, body).blob();
-  } catch (_e) { /* no_^_op */ }
-}
-export async function arrayBuffer(req: Request): Promise<ArrayBuffer> {
-  const body = await req.arrayBuffer();
-  memoBody(req, body);
-  return body;
 }

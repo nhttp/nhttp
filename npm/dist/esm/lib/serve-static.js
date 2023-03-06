@@ -13,11 +13,13 @@ function serveStatic(dir, opts = {}) {
         pathFile = new URL(pathFile).pathname;
       }
       if (opts.prefix) {
-        if (opts.prefix[0] !== "/")
-          opts.prefix = "/" + opts.prefix;
-        if (!rev.path.startsWith(opts.prefix))
-          return next();
-        pathFile = pathFile.replace(opts.prefix, "");
+        if (opts.prefix !== "/") {
+          if (opts.prefix[0] !== "/")
+            opts.prefix = "/" + opts.prefix;
+          if (!rev.path.startsWith(opts.prefix))
+            return next();
+          pathFile = pathFile.replace(opts.prefix, "");
+        }
       }
       const idx = pathFile.lastIndexOf(".");
       if (pathFile.slice((idx - 1 >>> 0) + 2) === "") {

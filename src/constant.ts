@@ -117,3 +117,11 @@ export const MIME_LIST: Record<string, string> = {
   "3gp2": "video/3gpp2",
   "7z": "application/x-7z-compressed",
 };
+let cc: Record<string, string> | undefined;
+export const revMimeList = (name: string) => {
+  if (name.includes(";")) name = name.split(/;/)[0];
+  if (cc) return cc[name] ?? name;
+  cc = {};
+  for (const k in MIME_LIST) cc[MIME_LIST[k]] = k;
+  return cc[name] ?? name;
+};

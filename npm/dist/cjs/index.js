@@ -184,6 +184,17 @@ var MIME_LIST = {
   "3gp2": "video/3gpp2",
   "7z": "application/x-7z-compressed"
 };
+var cc;
+var revMimeList = (name) => {
+  if (name.includes(";"))
+    name = name.split(/;/)[0];
+  if (cc)
+    return cc[name] ?? name;
+  cc = {};
+  for (const k in MIME_LIST)
+    cc[MIME_LIST[k]] = k;
+  return cc[name] ?? name;
+};
 
 // npm/src/src/utils.ts
 var encoder = new TextEncoder();
@@ -367,7 +378,7 @@ function expressMiddleware(...middlewares) {
 function middAssets(str) {
   return [
     (rev, next) => {
-      if (rev.path.startsWith(str)) {
+      if (str !== "/" && rev.path.startsWith(str)) {
         rev.__url = rev.url;
         rev.__path = rev.path;
         rev.url = rev.url.substring(str.length) || "/";
@@ -377,7 +388,7 @@ function middAssets(str) {
     }
   ];
 }
-function pushRoutes(str, wares, last, base2) {
+function pushRoutes(str, wares, last, base) {
   str = str === "/" ? "" : str;
   last = Array.isArray(last) ? last : [last];
   last.forEach((obj) => {
@@ -389,12 +400,15 @@ function pushRoutes(str, wares, last, base2) {
       else
         _path = str + path;
       if (pmidds) {
-        const obj2 = {};
-        for (const k in pmidds)
-          obj2[str + k] = pmidds[k];
-        base2.pmidds = obj2;
+        const arr = [];
+        pmidds.forEach((el) => {
+          el.path = str + el.path;
+          el.pattern = toPathx(el.path, true).pattern;
+          arr.push(el);
+        });
+        base.pmidds = arr;
       }
-      base2.on(method, _path, [wares, fns]);
+      base.on(method, _path, [wares, fns]);
     });
   });
 }
@@ -483,28 +497,6 @@ function getReqCookies(headers, decode, i = 0) {
   }
   return ret;
 }
-function cloneReq(req, body) {
-  return new Request(req.url, {
-    method: req.method,
-    body,
-    headers: req.headers
-  });
-}
-function memoBody(req, body) {
-  try {
-    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => Promise.resolve(decoder.decode(body));
-    req.arrayBuffer = () => Promise.resolve(body);
-    req.formData = () => cloneReq(req, body).formData();
-    req.blob = () => cloneReq(req, body).blob();
-  } catch (_e) {
-  }
-}
-async function arrayBuffer(req) {
-  const body = await req.arrayBuffer();
-  memoBody(req, body);
-  return body;
-}
 
 // npm/src/src/router.ts
 function findParams(el, url) {
@@ -532,12 +524,6 @@ function findParams(el, url) {
   }
   return params;
 }
-function base(url) {
-  const iof = url.indexOf("/", 1);
-  if (iof != -1)
-    return url.substring(0, iof);
-  return url;
-}
 var ANY_METHODS = [
   "GET",
   "POST",
@@ -548,12 +534,12 @@ var ANY_METHODS = [
   "HEAD"
 ];
 var Router = class {
-  constructor({ base: base2 = "" } = {}) {
+  constructor({ base = "" } = {}) {
     this.route = {};
     this.c_routes = [];
     this.midds = [];
     this.base = "";
-    this.base = base2;
+    this.base = base;
     if (this.base == "/")
       this.base = "";
   }
@@ -573,18 +559,31 @@ var Router = class {
       return this;
     }
     if (str !== "" && str !== "*" && str !== "/*") {
-      const path = this.base + str;
-      this.pmidds ??= {};
-      if (!this.pmidds[path]) {
-        this.pmidds[path] = middAssets(path);
-        if (this["handle"]) {
-          ANY_METHODS.forEach((method) => {
-            const { pattern, wild } = toPathx(path, true);
-            (ROUTE[method] ??= []).push({ path, pattern, wild });
-          });
-        }
+      let ori = this.base + str;
+      if (ori !== "/" && ori.endsWith("/"))
+        ori = ori.slice(0, -1);
+      let path = ori;
+      if (typeof path === "string" && !path.endsWith("*")) {
+        if (path === "/")
+          path += "*";
+        else
+          path += "/*";
       }
-      this.pmidds[path] = this.pmidds[path].concat(findFns(args));
+      const { pattern, wild, path: _path } = toPathx(path, true);
+      (this.pmidds ??= []).push({
+        pattern,
+        wild,
+        path: _path,
+        fns: middAssets(ori).concat(findFns(args))
+      });
+      if (this["handle"]) {
+        ANY_METHODS.forEach((method) => {
+          ROUTE[method] ??= [];
+          const not = !ROUTE[method].find(({ path: path2 }) => path2 === _path);
+          if (not)
+            ROUTE[method].push({ path, pattern, wild });
+        });
+      }
       return this;
     }
     this.midds = this.midds.concat(findFns(args));
@@ -633,16 +632,6 @@ var Router = class {
   connect(path, ...handlers) {
     return this.on("CONNECT", path, ...handlers);
   }
-  findPathAssets(path) {
-    const paths = path.split("/");
-    paths.shift();
-    return paths.reduce((acc, curr, i, arr) => {
-      if (this.pmidds?.[acc + "/" + curr]) {
-        arr.splice(i);
-      }
-      return acc + "/" + curr;
-    }, "");
-  }
   find(method, path, setParam, notFound) {
     if (this.route[method + path])
       return this.route[method + path];
@@ -657,11 +646,10 @@ var Router = class {
         return this.route[k];
     }
     if (this.pmidds) {
-      let p = this.pmidds[path] ? path : base(path);
-      if (!this.pmidds[p] && path.startsWith(p))
-        p = this.findPathAssets(path);
-      if (this.pmidds[p]) {
-        return this.midds.concat(this.pmidds[p], [notFound]);
+      const a = this.pmidds.find((el) => el.pattern.test(path));
+      if (a) {
+        setParam(findParams(a, path));
+        return this.midds.concat(a.fns, [notFound]);
       }
     }
     return this.midds.concat([notFound]);
@@ -696,171 +684,6 @@ function getError(err, isStack) {
     name: err.name ?? "HttpError",
     stack
   };
-}
-
-// npm/src/src/multipart_parser.ts
-var encode = {
-  contentType: encoder.encode("Content-Type"),
-  filename: encoder.encode("filename"),
-  name: encoder.encode(`name="`),
-  dashdash: encoder.encode("--"),
-  boundaryEqual: encoder.encode("boundary="),
-  returnNewline2: encoder.encode("\r\n\r\n"),
-  carriageReturn: encoder.encode("\r")
-};
-function getType(headers) {
-  return headers.get("content-type") ?? "";
-}
-async function multiParser(request) {
-  const arrayBuf = await arrayBuffer(request);
-  const buf = new Uint8Array(arrayBuf);
-  const boundaryByte = getBoundary(getType(request.headers));
-  if (!boundaryByte) {
-    return void 0;
-  }
-  const pieces = getFieldPieces(buf, boundaryByte);
-  const form = getForm(pieces);
-  return form;
-}
-function getForm(pieces) {
-  const form = { files: {} };
-  const arr = [];
-  for (const piece of pieces) {
-    const { headerByte, contentByte } = splitPiece(piece);
-    const headers = getHeaders(headerByte);
-    if (typeof headers === "string") {
-      if (contentByte.byteLength === 1 && contentByte[0] === 13) {
-        continue;
-      } else {
-        arr.push(`${headers}=${decoder.decode(contentByte)}`);
-      }
-    } else {
-      const file = {
-        name: headers.filename,
-        type: headers.contentType,
-        size: contentByte.byteLength,
-        arrayBuffer: () => Promise.resolve(contentByte.buffer)
-      };
-      if (form.files[headers.name] instanceof Array) {
-        form.files[headers.name].push(file);
-      } else if (form.files[headers.name]) {
-        form.files[headers.name] = [form.files[headers.name], file];
-      } else {
-        form.files[headers.name] = file;
-      }
-    }
-  }
-  return __spreadValues(__spreadValues({}, parseQuery(arr.join("&"))), form.files);
-}
-function getHeaders(headerByte) {
-  const contentTypeIndex = byteIndexOf(headerByte, encode.contentType);
-  if (contentTypeIndex < 0) {
-    return getNameOnly(headerByte);
-  } else {
-    return getHeaderNContentType(headerByte, contentTypeIndex);
-  }
-}
-function getHeaderNContentType(headerByte, contentTypeIndex) {
-  let headers = {};
-  const contentDispositionByte = headerByte.slice(0, contentTypeIndex - 2);
-  headers = getHeaderOnly(contentDispositionByte);
-  const contentTypeByte = headerByte.slice(contentTypeIndex + encode.contentType.byteLength + 2);
-  headers.contentType = decoder.decode(contentTypeByte);
-  return headers;
-}
-function getHeaderOnly(headerLineByte) {
-  let headers = {};
-  const filenameIndex = byteIndexOf(headerLineByte, encode.filename);
-  if (filenameIndex < 0) {
-    headers.name = getNameOnly(headerLineByte);
-  } else {
-    headers = getNameNFilename(headerLineByte, filenameIndex);
-  }
-  return headers;
-}
-function getNameNFilename(headerLineByte, filenameIndex) {
-  const nameByte = headerLineByte.slice(0, filenameIndex - 2);
-  const filenameByte = headerLineByte.slice(filenameIndex + encode.filename.byteLength + 2, headerLineByte.byteLength - 1);
-  const name = getNameOnly(nameByte);
-  const filename = decoder.decode(filenameByte);
-  return { name, filename };
-}
-function getNameOnly(headerLineByte) {
-  const nameIndex = byteIndexOf(headerLineByte, encode.name);
-  const nameByte = headerLineByte.slice(nameIndex + encode.name.byteLength, headerLineByte.byteLength - 1);
-  return decoder.decode(nameByte);
-}
-function splitPiece(piece) {
-  const contentIndex = byteIndexOf(piece, encode.returnNewline2);
-  const headerByte = piece.slice(0, contentIndex);
-  const contentByte = piece.slice(contentIndex + 4);
-  return { headerByte, contentByte };
-}
-function getFieldPieces(buf, boundaryByte) {
-  const startBoundaryByte = concat(encode.dashdash, boundaryByte);
-  const endBoundaryByte = concat(startBoundaryByte, encode.dashdash);
-  const pieces = [];
-  while (!startsWith(buf, endBoundaryByte)) {
-    buf = buf.slice(startBoundaryByte.byteLength + 2);
-    const boundaryIndex = byteIndexOf(buf, startBoundaryByte);
-    pieces.push(buf.slice(0, boundaryIndex - 2));
-    buf = buf.slice(boundaryIndex);
-  }
-  return pieces;
-}
-function getBoundary(contentType) {
-  const contentTypeByte = encoder.encode(contentType);
-  const boundaryIndex = byteIndexOf(contentTypeByte, encode.boundaryEqual);
-  if (boundaryIndex >= 0) {
-    const boundary = contentTypeByte.slice(boundaryIndex + encode.boundaryEqual.byteLength);
-    return boundary;
-  } else {
-    return void 0;
-  }
-}
-function byteIndexOf(source, pattern, fromIndex = 0) {
-  if (fromIndex >= source.length) {
-    return -1;
-  }
-  const s = pattern[0];
-  for (let i = fromIndex; i < source.length; i++) {
-    if (source[i] !== s)
-      continue;
-    const pin = i;
-    let matched = 1;
-    let j = i;
-    while (matched < pattern.length) {
-      j++;
-      if (source[j] !== pattern[j - pin]) {
-        break;
-      }
-      matched++;
-    }
-    if (matched === pattern.length) {
-      return pin;
-    }
-  }
-  return -1;
-}
-function startsWith(source, prefix) {
-  for (let i = 0, max = prefix.length; i < max; i++) {
-    if (source[i] !== prefix[i])
-      return false;
-  }
-  return true;
-}
-function concat(...buf) {
-  let length = 0;
-  for (const b of buf) {
-    length += b.length;
-  }
-  const output = new Uint8Array(length);
-  let index = 0;
-  for (const b1 of buf) {
-    output.set(b1, index);
-    index += b1.length;
-  }
-  return output;
 }
 
 // npm/src/src/multipart.ts
@@ -901,9 +724,9 @@ var Multipart = class {
     }
     while (j < len) {
       const file = files[j];
-      const ext = file.name.substring(file.name.lastIndexOf(".") + 1);
       if (opts?.accept) {
-        if (!opts.accept.includes(ext)) {
+        const type = revMimeList(file.type);
+        if (!opts.accept.includes(type)) {
           throw new HttpError(400, `${opts.name} only accept ${opts.accept}`, "BadRequestError");
         }
       }
@@ -930,7 +753,7 @@ var Multipart = class {
         if (opts.dest[0] === "/")
           opts.dest = opts.dest.substring(1);
       }
-      file.filename ??= uid() + "_" + file.name;
+      file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
       opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
@@ -940,14 +763,11 @@ var Multipart = class {
   }
   async mutateBody(rev, isMultipart) {
     if (rev.bodyUsed === false && isMultipart) {
-      if (typeof rev.request.formData === "function") {
-        const formData = await rev.request.clone().formData();
-        rev.body = await this.createBody(formData, {
-          parse: rev.__parseMultipart
-        });
-      } else {
-        rev.body = await multiParser(rev.request) || {};
-      }
+      const formData = await rev.request.formData();
+      rev.body = await this.createBody(formData, {
+        parse: rev.__parseMultipart
+      });
+      memoBody(rev.request, formData);
     }
   }
   async handleArrayUpload(rev, opts) {
@@ -1010,14 +830,34 @@ var Multipart = class {
 var multipart = new Multipart();
 
 // npm/src/src/body.ts
+function cloneReq(req, body) {
+  return new Request(req.url, {
+    method: req.method,
+    body,
+    headers: req.headers
+  });
+}
+function memoBody(req, body) {
+  try {
+    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
+    req.text = () => cloneReq(req, body).text();
+    req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
+    req.formData = () => cloneReq(req, body).formData();
+    req.blob = () => cloneReq(req, body).blob();
+  } catch (_e) {
+  }
+}
 var defautl_size = 1048576;
-async function verifyBody(rev, limit = defautl_size) {
-  const arrBuff = await arrayBuffer(rev.request);
+async function verifyBody(req, limit = defautl_size) {
+  const arrBuff = await req.arrayBuffer();
   if (arrBuff.byteLength > toBytes(limit)) {
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
   const val = decoder.decode(arrBuff);
-  return val ? decURIComponent(val) : void 0;
+  if (!val)
+    return;
+  memoBody(req, arrBuff);
+  return decURIComponent(val);
 }
 function acceptContentType(headers, cType) {
   const type = headers.get("content-type");
@@ -1032,7 +872,7 @@ async function jsonBody(validate, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev, validate);
+    const body = await verifyBody(rev.request, validate);
     rev.bodyUsed = true;
     if (!body)
       return next();
@@ -1046,7 +886,7 @@ async function urlencodedBody(validate, parseQuery2, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev, validate);
+    const body = await verifyBody(rev.request, validate);
     rev.bodyUsed = true;
     if (!body)
       return next();
@@ -1061,7 +901,7 @@ async function rawBody(validate, rev, next) {
   if (!isValidBody(validate))
     return next();
   try {
-    const body = await verifyBody(rev, validate);
+    const body = await verifyBody(rev.request, validate);
     rev.bodyUsed = true;
     if (!body)
       return next();
@@ -1079,19 +919,13 @@ async function multipartBody(validate, parseMultipart, rev, next) {
   if (validate === false || validate === 0)
     return next();
   try {
-    let body;
-    if (typeof rev.request.formData === "function") {
-      const formData = await rev.request.clone().formData();
-      body = await multipart.createBody(formData, {
-        parse: parseMultipart
-      });
-    } else {
-      body = await multiParser(rev.request);
-    }
+    const formData = await rev.request.formData();
+    const body = await multipart.createBody(formData, {
+      parse: parseMultipart
+    });
     rev.bodyUsed = true;
-    if (!body)
-      return next();
     rev.body = body;
+    memoBody(rev.request, formData);
     return next();
   } catch (error) {
     return next(error);
@@ -1564,19 +1398,21 @@ var NHttp = class extends Router {
   on(method, path, ...handlers) {
     let fns = findFns(handlers);
     if (typeof path === "string") {
-      if (path !== "/" && path.endsWith("/")) {
+      if (path !== "/" && path.endsWith("/"))
         path = path.slice(0, -1);
-      }
-      for (const k in this.pmidds) {
-        if (k === path || toPathx(k).pattern?.test(path)) {
-          fns = this.pmidds[k].concat([(rev, next) => {
-            if (rev.__url && rev.__path) {
-              rev.url = rev.__url;
-              rev.path = rev.__path;
-            }
-            return next();
-          }], fns);
-        }
+      if (this.pmidds) {
+        const arr = [];
+        this.pmidds.forEach((el) => {
+          if (el.pattern.test(path))
+            arr.push(...el.fns);
+        });
+        fns = arr.concat([(rev, next) => {
+          if (rev.__url && rev.__path) {
+            rev.url = rev.__url;
+            rev.path = rev.__path;
+          }
+          return next();
+        }], fns);
       }
     }
     fns = this.midds.concat(fns);
@@ -1752,7 +1588,7 @@ var NHttp = class extends Router {
     return defError(err, rev, this.stackError);
   }
   _on404(rev) {
-    const obj = getError(new HttpError(404, `Route ${rev.method}${rev.url} not found`, "NotFoundError"));
+    const obj = getError(new HttpError(404, `Route ${rev.method}${rev.originalUrl} not found`, "NotFoundError"));
     rev.response.status(obj.status);
     return obj;
   }
@@ -1769,6 +1605,7 @@ var s_body2 = Symbol("input_body");
 var s_init2 = Symbol("init");
 var s_def = Symbol("default");
 var s_body_used2 = Symbol("req_body_used");
+var s_headers2 = Symbol("s_headers");
 
 // npm/src/node/request.ts
 var typeError = (m) => Promise.reject(new TypeError(m));
@@ -1975,6 +1812,11 @@ function send(resWeb, res) {
     if (resWeb[s_init2].status)
       res.statusCode = resWeb[s_init2].status;
   }
+  if (resWeb[s_headers2]) {
+    resWeb[s_headers2].forEach((val, key) => {
+      res.setHeader(key, val);
+    });
+  }
   if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] instanceof Uint8Array || resWeb[s_body2] === null || resWeb[s_body2] === void 0) {
     res.end(resWeb[s_body2]);
   } else {
@@ -2032,7 +1874,7 @@ var NodeResponse = class {
     return this[s_def] ??= new globalThis.NativeResponse(this[s_body2], this[s_init2]);
   }
   get headers() {
-    return this.res.headers;
+    return this[s_headers2] ??= new Headers(this[s_init2]?.headers);
   }
   get ok() {
     return this.res.ok;
@@ -2041,7 +1883,7 @@ var NodeResponse = class {
     return this.res.redirected;
   }
   get status() {
-    return this.res.status;
+    return this[s_init2]?.status ?? 200;
   }
   get statusText() {
     return this.res.statusText;
@@ -2145,8 +1987,12 @@ var NHttp2 = class extends NHttp {
         }
         if (typeof Bun !== "undefined") {
           opts2.fetch = handler;
-          this.server = Bun.serve(opts2);
-          runCallback();
+          if (!globalThis.bunServer) {
+            globalThis.bunServer = this.server = Bun.serve(opts2);
+            runCallback();
+          } else {
+            globalThis.bunServer.reload(opts2);
+          }
           return;
         }
         shimNodeRequest();
@@ -2168,18 +2014,21 @@ var NHttp2 = class extends NHttp {
 };
 var fs_glob;
 var writeFile = async (...args) => {
-  if (typeof Bun !== "undefined") {
-    return await Bun.write(...args);
+  try {
+    if (fs_glob)
+      return fs_glob?.writeFileSync(...args);
+    fs_glob = await import("node:fs");
+    return fs_glob.writeFileSync(...args);
+  } catch (_e) {
   }
-  const fs = fs_glob ??= await import("node:fs");
-  return fs.writeFileSync(...args);
+  fs_glob = {};
+  return void 0;
 };
 var multipart2 = {
   createBody: multipart.createBody,
   upload: (opts) => {
-    if (typeof Deno !== "undefined") {
+    if (typeof Deno !== "undefined")
       return multipart.upload(opts);
-    }
     if (Array.isArray(opts)) {
       for (let i = 0; i < opts.length; i++) {
         opts[i].writeFile ??= writeFile;

@@ -301,17 +301,29 @@ Deno.test("nhttp", async (t) => {
     const book = new Router({ base: "/book" });
     const name = new Router({ base: "/" });
     const hobby = new Router();
+    const home = new Router();
     item.use("/item", (rev, next) => {
       rev.name = "item";
       return next();
     });
+    book.use("/", (rev, next) => {
+      rev.name = "book";
+      return next();
+    });
+    home.use("/", (rev, next) => {
+      rev.name = "home";
+      return next();
+    });
     item.get("/item", ({ name }) => name);
     user.get("/user", () => "user");
-    book.get("/", () => "book");
+    book.get("/", ({ name }) => name);
+    home.get("/", ({ name }) => name);
     name.get("/name", () => "name");
     hobby.get(/\/hobby/, () => "hobby");
     app.use("/api/v1", user);
     app.use("/api/v2", [item, book, name, hobby]);
+    app.use(home);
+    await superdeno(app.handle).get("/").expect("home");
     await superdeno(app.handle).get("/api/v1/user").expect("user");
     await superdeno(app.handle).get("/api/v2/item").expect("item");
     await superdeno(app.handle).get("/api/v2/book").expect("book");
