@@ -49,7 +49,7 @@ Deno.test("multipart upload", async (t) => {
       {
         name: "myfile",
         required: true,
-        accept: "txt",
+        accept: ["txt"],
         dest: "/dummy",
         maxSize: "2 mb",
         writeFile: () => {},

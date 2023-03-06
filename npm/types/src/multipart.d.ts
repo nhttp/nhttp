@@ -3,7 +3,7 @@ export type TMultipartUpload = {
     name: string;
     maxCount?: number;
     maxSize?: number | string;
-    accept?: string;
+    accept?: string | string[];
     callback?: (file: File & {
         filename: string;
     }) => void | Promise<void>;

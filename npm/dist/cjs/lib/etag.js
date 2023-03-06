@@ -106,12 +106,12 @@ async function sendFile(rev, pathFile, opts = {}) {
     opts.setHeaders?.(rev, pathFile, stat);
     const cType = response.header("content-type") ?? getContentType(path);
     if (stat === void 0) {
-      const file2 = await getFile(path);
+      const file2 = await getFile(path, opts.readFile);
       response.type(cType);
       return file2;
     }
     if (request.headers.get("range") && stat.size) {
-      const file2 = await getFile(path);
+      const file2 = await getFile(path, opts.readFile);
       const start = 0;
       const end = stat.size - 1;
       if (start >= stat.size || end >= stat.size) {
@@ -130,7 +130,7 @@ async function sendFile(rev, pathFile, opts = {}) {
     if (is304(nonMatch, response, stat, weak, subfix, cd)) {
       return response.status(304).send();
     }
-    const file = await getFile(path);
+    const file = await getFile(path, opts.readFile);
     response.type(cType);
     return file;
   } catch (error) {

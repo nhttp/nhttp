@@ -12,7 +12,7 @@ export type TMultipartUpload = {
   name: string;
   maxCount?: number;
   maxSize?: number | string;
-  accept?: string;
+  accept?: string | string[];
   callback?: (file: File & { filename: string }) => void | Promise<void>;
   dest?: string;
   required?: boolean;
@@ -92,7 +92,7 @@ class Multipart {
         if (!opts.accept.includes(type)) {
           throw new HttpError(
             400,
-            `${opts.name} only accept ${opts.accept}`,
+            `${opts.name} only accept ${opts.accept.toString()}`,
             "BadRequestError",
           );
         }

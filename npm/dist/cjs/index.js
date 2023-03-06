@@ -734,7 +734,7 @@ var Multipart = class {
       if (opts?.accept) {
         const type = revMimeList(file.type);
         if (!opts.accept.includes(type)) {
-          throw new HttpError(400, `${opts.name} only accept ${opts.accept}`, "BadRequestError");
+          throw new HttpError(400, `${opts.name} only accept ${opts.accept.toString()}`, "BadRequestError");
         }
       }
       if (opts?.maxSize) {
