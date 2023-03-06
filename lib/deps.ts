@@ -1,4 +1,5 @@
 export {
+  decURIComponent,
   findFns,
   HttpError,
   HttpResponse,

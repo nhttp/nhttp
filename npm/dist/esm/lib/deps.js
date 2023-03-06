@@ -1,4 +1,5 @@
 import {
+  decURIComponent,
   findFns,
   HttpError,
   HttpResponse,
@@ -12,6 +13,7 @@ export {
   HttpResponse,
   MIME_LIST,
   RequestEvent,
+  decURIComponent,
   findFns,
   multipart,
   s_response

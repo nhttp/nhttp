@@ -524,6 +524,27 @@ function findParams(el, url) {
   }
   return params;
 }
+function mutatePath(base, str) {
+  let ori = base + str;
+  if (ori !== "/" && ori.endsWith("/"))
+    ori = ori.slice(0, -1);
+  let path = ori;
+  if (typeof path === "string" && !path.endsWith("*")) {
+    if (path === "/")
+      path += "*";
+    else
+      path += "/*";
+  }
+  return { path, ori };
+}
+function addGlobRoute(ori, obj) {
+  ANY_METHODS.forEach((method) => {
+    ROUTE[method] ??= [];
+    const not = !ROUTE[method].find(({ path }) => path === ori);
+    if (not)
+      ROUTE[method].push(obj);
+  });
+}
 var ANY_METHODS = [
   "GET",
   "POST",
@@ -559,16 +580,7 @@ var Router = class {
       return this;
     }
     if (str !== "" && str !== "*" && str !== "/*") {
-      let ori = this.base + str;
-      if (ori !== "/" && ori.endsWith("/"))
-        ori = ori.slice(0, -1);
-      let path = ori;
-      if (typeof path === "string" && !path.endsWith("*")) {
-        if (path === "/")
-          path += "*";
-        else
-          path += "/*";
-      }
+      const { path, ori } = mutatePath(this.base, str);
       const { pattern, wild, path: _path } = toPathx(path, true);
       (this.pmidds ??= []).push({
         pattern,
@@ -577,12 +589,7 @@ var Router = class {
         fns: middAssets(ori).concat(findFns(args))
       });
       if (this["handle"]) {
-        ANY_METHODS.forEach((method) => {
-          ROUTE[method] ??= [];
-          const not = !ROUTE[method].find(({ path: path2 }) => path2 === _path);
-          if (not)
-            ROUTE[method].push({ path, pattern, wild });
-        });
+        addGlobRoute(_path, { path, pattern, wild });
       }
       return this;
     }

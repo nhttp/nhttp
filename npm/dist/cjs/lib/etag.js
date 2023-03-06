@@ -90,18 +90,39 @@ function is304(nonMatch, response, stat, weak, subfix = "", cd) {
   response.header("etag", etag2);
   return nonMatch && nonMatch === etag2;
 }
+async function getFile(path, readFile) {
+  const file = await readFile?.(path);
+  if (!file) {
+    throw new Error("File error. please add options readFile");
+  }
+  return file;
+}
 async function sendFile(rev, pathFile, opts = {}) {
   try {
     opts.etag ??= true;
     const weak = opts.weak !== false;
     const { response, request } = rev;
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
+    opts.setHeaders?.(rev, pathFile, stat);
+    const cType = response.header("content-type") ?? getContentType(path);
     if (stat === void 0) {
-      const file2 = await opts.readFile?.(path);
-      if (!file2) {
-        throw new Error("File error. please add options readFile");
+      const file2 = await getFile(path);
+      response.type(cType);
+      return file2;
+    }
+    if (request.headers.get("range") && stat.size) {
+      const file2 = await getFile(path);
+      const start = 0;
+      const end = stat.size - 1;
+      if (start >= stat.size || end >= stat.size) {
+        return response.status(416).header("Content-Range", `bytes */${stat.size}`).send();
       }
-      response.type(response.header("content-type") ?? getContentType(path));
+      response.status(206).header({
+        "Content-Range": `bytes ${start}-${end}/${stat.size}`,
+        "Content-Length": (end - start + 1).toString(),
+        "Accept-Ranges": response.header("Accept-Ranges") ?? "bytes"
+      });
+      response.type(cType);
       return file2;
     }
     const nonMatch = request.headers.get("if-none-match");
@@ -109,11 +130,8 @@ async function sendFile(rev, pathFile, opts = {}) {
     if (is304(nonMatch, response, stat, weak, subfix, cd)) {
       return response.status(304).send();
     }
-    const file = await opts.readFile?.(path);
-    if (!file) {
-      throw new Error("File error. please add options readFile");
-    }
-    response.type(response.header("content-type") ?? getContentType(path));
+    const file = await getFile(path);
+    response.type(cType);
     return file;
   } catch (error) {
     throw error;

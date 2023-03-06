@@ -26,6 +26,7 @@ __export(deps_exports, {
   HttpResponse: () => import__.HttpResponse,
   MIME_LIST: () => import__.MIME_LIST,
   RequestEvent: () => import__.RequestEvent,
+  decURIComponent: () => import__.decURIComponent,
   findFns: () => import__.findFns,
   multipart: () => import__.multipart,
   s_response: () => import__.s_response
@@ -38,6 +39,7 @@ module.exports = __toCommonJS(deps_exports);
   HttpResponse,
   MIME_LIST,
   RequestEvent,
+  decURIComponent,
   findFns,
   multipart,
   s_response

@@ -5,7 +5,7 @@
   "unstable": false,
   "description": "An Simple http framework for Deno and Friends",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "1.1.18",
+  "version": "1.1.19",
   "files": [
     "deno.json",
     "./mod.js",

@@ -4,6 +4,7 @@ export interface TOptsSendFile {
     stat?: (...args: TRet) => TRet;
     readFile?: (...args: TRet) => TRet;
     etag?: boolean;
+    setHeaders?: (rev: RequestEvent, pathFile: string, stat: TRet) => void;
 }
 export declare function getContentType(path: string): string;
 export declare function sendFile(rev: RequestEvent, pathFile: string, opts?: TOptsSendFile): Promise<any>;

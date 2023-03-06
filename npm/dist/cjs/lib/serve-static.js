@@ -25,6 +25,7 @@ __export(serve_static_exports, {
   sendFile: () => sendFile,
   serveStatic: () => serveStatic
 });
+var import_deps = require("./deps");
 var import_etag = require("./etag");
 const sendFile = import_etag.sendFile;
 function serveStatic(dir, opts = {}) {
@@ -34,6 +35,12 @@ function serveStatic(dir, opts = {}) {
     dir = dir.slice(0, -1);
   const index = opts.redirect ? opts.index : "";
   return async (rev, next) => {
+    if (rev.method !== "GET" && rev.method !== "HEAD") {
+      return new Response(null, {
+        status: 405,
+        headers: { "Allow": "GET, HEAD" }
+      });
+    }
     try {
       let pathFile = dir + rev.path;
       if (pathFile.startsWith("file://")) {
@@ -55,7 +62,7 @@ function serveStatic(dir, opts = {}) {
         else
           pathFile += "/" + index;
       }
-      return await sendFile(rev, pathFile, opts);
+      return await sendFile(rev, (0, import_deps.decURIComponent)(pathFile), opts);
     } catch {
       return next();
     }

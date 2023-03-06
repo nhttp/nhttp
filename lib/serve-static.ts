@@ -1,4 +1,4 @@
-import { NextFunction, RequestEvent } from "./deps.ts";
+import { decURIComponent, NextFunction, RequestEvent } from "./deps.ts";
 import { sendFile as sendFileEtag, TOptsSendFile } from "./etag.ts";
 
 interface StaticOptions extends TOptsSendFile {
@@ -13,6 +13,12 @@ export function serveStatic(dir: string, opts: StaticOptions = {}) {
   if (dir.endsWith("/")) dir = dir.slice(0, -1);
   const index = opts.redirect ? opts.index : "";
   return async (rev: RequestEvent, next: NextFunction) => {
+    if (rev.method !== "GET" && rev.method !== "HEAD") {
+      return new Response(null, {
+        status: 405,
+        headers: { "Allow": "GET, HEAD" },
+      });
+    }
     try {
       let pathFile = dir + rev.path;
       if (pathFile.startsWith("file://")) {
@@ -30,7 +36,7 @@ export function serveStatic(dir: string, opts: StaticOptions = {}) {
         if (pathFile.endsWith("/")) pathFile += index;
         else pathFile += "/" + index;
       }
-      return await sendFile(rev, pathFile, opts);
+      return await sendFile(rev, decURIComponent(pathFile), opts);
     } catch {
       return next();
     }
