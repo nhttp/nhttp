@@ -1,0 +1,31 @@
+import { TRet } from "../index";
+export declare class NodeRequest {
+    raw?: TRet;
+    constructor(input: RequestInfo, init?: RequestInit);
+    constructor(input: RequestInfo, init?: RequestInit, raw?: TRet);
+    private get rawBody();
+    private get req();
+    get cache(): RequestCache;
+    get credentials(): RequestCredentials;
+    get destination(): RequestDestination;
+    get headers(): Headers;
+    get integrity(): string;
+    get keepalive(): boolean;
+    get method(): any;
+    get mode(): RequestMode;
+    get redirect(): RequestRedirect;
+    get referrer(): string;
+    get referrerPolicy(): ReferrerPolicy;
+    get signal(): AbortSignal;
+    get url(): string;
+    clone(): Request;
+    get body(): ReadableStream<any>;
+    get bodyUsed(): any;
+    arrayBuffer(): Promise<ArrayBuffer>;
+    blob(): Promise<Blob>;
+    formData(): Promise<FormData>;
+    json(): Promise<TRet>;
+    text(): Promise<string>;
+    get [Symbol.hasInstance](): string;
+    [k: string | symbol]: TRet;
+}
