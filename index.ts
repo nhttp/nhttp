@@ -3,6 +3,11 @@ declare global {
   var bunServer: { reload: (...args: TRet) => TRet };
   var NativeResponse: TRet;
   var NativeRequest: TRet;
+  // @ts-ignore
+  namespace Deno {
+    interface Conn {}
+    interface HttpConn {}
+  }
 }
 import { NHttp as BaseApp } from "./src/nhttp.ts";
 import { RequestEvent, TApp, TRet } from "./src/index.ts";
@@ -12,7 +17,7 @@ import { NodeResponse } from "./node/response.ts";
 import { NodeRequest } from "./node/request.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 
-export function shimNodeRequest() {
+function shimNodeRequest() {
   if (!globalThis.NativeResponse) {
     globalThis.NativeResponse = Response;
     globalThis.NativeRequest = Request;
@@ -92,6 +97,7 @@ let fs_glob: TRet;
 const writeFile = async (...args: TRet) => {
   try {
     if (fs_glob) return fs_glob?.writeFileSync(...args);
+    // @ts-ignore
     fs_glob = await import("node:fs");
     return fs_glob.writeFileSync(...args);
   } catch (_e) { /* noop */ }
@@ -100,6 +106,17 @@ const writeFile = async (...args: TRet) => {
 };
 export const multipart = {
   createBody: multi.createBody,
+  /**
+   * upload handler multipart/form-data.
+   * @example
+   * const upload = multipart.upload({ name: "image" });
+   *
+   * app.post("/save", upload, (rev) => {
+   *    console.log("file", rev.file.image);
+   *    console.log(rev.body);
+   *    return "success upload";
+   * });
+   */
   upload: (opts: TMultipartUpload | TMultipartUpload[]) => {
     if (typeof Deno !== "undefined") return multi.upload(opts);
     if (Array.isArray(opts)) {

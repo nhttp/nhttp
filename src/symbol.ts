@@ -9,6 +9,5 @@ export const s_search = Symbol("search");
 export const s_headers = Symbol("headers");
 export const s_cookies = Symbol("cookies");
 export const s_res = Symbol("http_res");
-export const s_body_used = Symbol("req_body_used");
 export const s_response = Symbol("res");
 export const s_init = Symbol("res_init");

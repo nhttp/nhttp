@@ -2,7 +2,6 @@ import { ROUTE } from "./constant.ts";
 import { findParams } from "./router.ts";
 import {
   s_body,
-  s_body_used,
   s_cookies,
   s_file,
   s_headers,
@@ -26,6 +25,7 @@ type TInfo = {
   env: TObject;
   context: TObject;
 };
+
 export class RequestEvent {
   constructor(
     /**
@@ -139,7 +139,7 @@ export class RequestEvent {
         this[s_response] = new Response(<TRet> body, this[s_init]);
       } else {
         /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-        // @ts-ignore: Temporary workaround for oldVersion
+        // @ts-ignore: Temporary workaround for send json
         this[s_response] = Response.json(body, this[s_init]);
       }
     } else if (typeof body === "number") {
@@ -165,27 +165,6 @@ export class RequestEvent {
   }
   set search(val: string | null) {
     this[s_search] = val;
-  }
-  /**
-   * bodyUsed.
-   * @example
-   * const bodyUsed = rev.bodyUsed;
-   * console.log(bodyUsed);
-   */
-  get bodyUsed() {
-    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
-  }
-  set bodyUsed(val: boolean) {
-    this[s_body_used] = val;
-  }
-  /**
-   * bodyValid.
-   * @example
-   * const bodyValid = rev.bodyValid;
-   * console.log(bodyValid);
-   */
-  get bodyValid() {
-    return this.request.body !== null;
   }
   /**
    * params as json object.
@@ -324,8 +303,6 @@ export class RequestEvent {
   [Symbol.for("Deno.customInspect")](inspect: TRet, opts: TRet) {
     const ret = <TRet> {
       body: this.body,
-      bodyUsed: this.bodyUsed,
-      bodyValid: this.bodyValid,
       cookies: this.cookies,
       file: this.file,
       headers: this.headers,
@@ -352,9 +329,9 @@ export class RequestEvent {
     }
     return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
-
   [k: string | symbol]: TRet;
 }
+
 export function createRequest(
   handle: FetchHandler,
   url: string,

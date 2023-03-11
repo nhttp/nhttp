@@ -3,20 +3,13 @@ import * as esbuild from "https://deno.land/x/esbuild@v0.14.25/mod.js";
 import { getNames, replaceTs } from "./convert.ts";
 
 await emptyDir("./npm");
-
+const except_libs = ["./jsx"];
 const dir = Deno.cwd();
-
-const fakeGlob = `declare global {
-  export namespace Deno { 
-    interface Conn { }
-    interface HttpConn { }
-  }
-}`;
-
 await Deno.mkdir("npm/src/src", { recursive: true });
 await Deno.mkdir("npm/src/lib/swagger", { recursive: true });
+await Deno.mkdir("npm/src/lib/jsx", { recursive: true });
 await Deno.mkdir("npm/src/node", { recursive: true });
-await replaceTs("index.ts", "npm/src/index.ts", fakeGlob);
+await replaceTs("index.ts", "npm/src/index.ts");
 const srcFiles = await getNames("src");
 for (let i = 0; i < srcFiles.length; i++) {
   const path = srcFiles[i];
@@ -43,10 +36,7 @@ const defObj: esbuild.BuildOptions = {
   platform: "node",
   absWorkingDir: dir,
   bundle: true,
-  // minify: true,
-  target: [
-    "node18",
-  ],
+  // target: ["ES2022"],
   entryPoints: ["npm/src/index.ts"],
 };
 
@@ -65,7 +55,6 @@ await Deno.writeTextFile(
 await esbuild.build({
   ...defObj,
   format: "esm",
-  target: ["ES2020"],
   outfile: "npm/dist/esm/index.js",
 });
 await Deno.writeTextFile(
@@ -76,7 +65,6 @@ await Deno.writeTextFile(
 // build mod.js non npm
 await esbuild.build({
   ...defObj,
-  target: ["ES2020"],
   format: "esm",
   outfile: "mod.js",
 });
@@ -133,12 +121,12 @@ esbuild.stop();
 
 const pkg = {
   "name": "nhttp-land",
-  "description": "An Simple http framework for Deno and Friends",
+  "description": "An Simple web-framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.1.20",
+  "version": "1.2.0",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
-  "types": "./types/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -148,7 +136,7 @@ const pkg = {
     "url": "https://github.com/nhttp/nhttp/issues",
   },
   "engines": {
-    "node": ">=18.14.0",
+    "node": ">=18.0.0",
   },
   "keywords": [
     "nhttp",
@@ -165,27 +153,48 @@ const pkg = {
 const EXP = await getNames("npm/dist/esm/lib");
 pkg["exports"] = {};
 pkg["exports"]["."] = {
-  "types": "./types/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "require": "./dist/cjs/index.js",
   "import": "./dist/esm/index.js",
 };
-pkg["typesVersions"] = { "*": {} };
-for (let i = 0; i < EXP.length; i++) {
-  const path = EXP[i];
-  if (path.indexOf(".") != -1) {
-    const name = "." + path.replace("npm/dist/esm/lib", "").replace(".js", "");
-    if (name.split("/").length < 3 && name !== "deps") {
-      const _path = path.replace("npm/", "./");
-      pkg["exports"][name] = {
-        "types": _path.replace("/dist/esm/", "/types/").replace(".js", ".d.ts"),
-        "require": _path.replace("/esm/", "/cjs/"),
-        "import": _path,
-      };
-      pkg["typesVersions"]["*"][name] = [
-        _path.replace("/dist/esm/", "/types/").replace(".js", ".d.ts"),
-      ];
+pkg["typesVersions"] = {
+  "*": {
+    "*": ["./dist/types/index.d.ts"],
+  },
+};
+function attachPack(arr: any[], force?: boolean) {
+  for (let i = 0; i < arr.length; i++) {
+    const path = arr[i];
+    if (path.indexOf(".") != -1) {
+      let name = "." + path.replace("npm/dist/esm/lib", "").replace(".js", "");
+      const lose = force ?? name.split("/").length < 3;
+      if (lose && name !== "deps") {
+        const _path = path.replace("npm/", "./");
+        if (!except_libs.includes(name)) {
+          if (name.endsWith("/index")) {
+            name = name.replace("/index", "");
+          }
+          pkg["exports"][name] = {
+            "types": _path.replace("/dist/esm/", "/dist/types/").replace(
+              ".js",
+              ".d.ts",
+            ),
+            "import": _path,
+            "require": _path.replace("/esm/", "/cjs/"),
+          };
+          pkg["typesVersions"]["*"][name.slice(2)] = [
+            _path.replace("/dist/esm/", "/dist/types/").replace(".js", ".d.ts"),
+          ];
+        }
+      }
     }
   }
+}
+attachPack(EXP);
+for (let i = 0; i < except_libs.length; i++) {
+  const lib = except_libs[i];
+  const fromExceptLibs = await getNames("npm/dist/esm/lib/" + lib.slice(2));
+  attachPack(fromExceptLibs, true);
 }
 await Deno.writeTextFile(
   "npm/package.json",

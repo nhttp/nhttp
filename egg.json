@@ -2,10 +2,10 @@
   "$schema": "https://deno.land/x/eggs@0.3.40/src/schema.json",
   "name": "nhttp",
   "entry": "./mod.ts",
-  "unstable": false,
-  "description": "An Simple http framework for Deno and Friends",
+  "stable": true,
+  "description": "An Simple web-framework for Deno and Friends",
   "homepage": "https://github.com/nhttp/nhttp",
-  "version": "1.1.20",
+  "version": "1.2.0",
   "files": [
     "deno.json",
     "./mod.js",
@@ -25,5 +25,5 @@
   "unlisted": false,
   "checkAll": true,
   "repository": "https://github.com/nhttp/nhttp",
-  "releaseType": "patch"
+  "releaseType": false
 }

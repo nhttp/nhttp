@@ -150,6 +150,13 @@ Deno.test("nhttp", async (t) => {
     });
     await superdeno(app.handle).get("/").expect(500);
   });
+  await t.step("engine jsx", async () => {
+    const renderToHtml = (elem: TRet) => elem;
+    const app = nhttp();
+    app.engine(renderToHtml);
+    app.get("/", () => "hello");
+    await superdeno(app.handle).get("/").expect(200);
+  });
   await t.step("middleware", async () => {
     const app = nhttp();
     const midd: Handler = (rev, next) => {

@@ -1,26 +1,9 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   for (var name in all)
@@ -63,13 +46,12 @@ __export(src_exports, {
   nhttp: () => nhttp2,
   parseQuery: () => parseQuery,
   s_response: () => s_response,
-  shimNodeRequest: () => shimNodeRequest,
   toBytes: () => toBytes
 });
 
 // npm/src/src/constant.ts
 var JSON_TYPE = "application/json";
-var HTML_TYPE = "text/html; charset=UTF-8";
+var HTML_TYPE = "text/html; charset=utf-8";
 var STATUS_ERROR_LIST = {
   400: "Bad Request",
   401: "Unauthorized",
@@ -511,7 +493,7 @@ function findParams(el, url) {
     match.shift();
     const wild = match.filter((el2) => el2 !== void 0).filter((el2) => el2.startsWith("/")).join("").split("/");
     wild.shift();
-    const ret = __spreadProps(__spreadValues({}, params), { wild: wild.filter((el2) => el2 !== "") });
+    const ret = { ...params, wild: wild.filter((el2) => el2 !== "") };
     if (path === "*" || path.indexOf("/*") !== -1)
       return ret;
     let wn = path.split("/").find((el2) => el2.startsWith(":") && el2.endsWith("*"));
@@ -768,8 +750,9 @@ var Multipart = class {
       i++;
     }
   }
-  async mutateBody(rev, isMultipart) {
-    if (rev.bodyUsed === false && isMultipart) {
+  async mutateBody(rev) {
+    const type = rev.headers.get("content-type");
+    if (rev.request.bodyUsed === false && type?.includes("multipart/form-data")) {
       const formData = await rev.request.formData();
       rev.body = await this.createBody(formData, {
         parse: rev.__parseMultipart
@@ -822,8 +805,8 @@ var Multipart = class {
   }
   upload(options) {
     return async (rev, next) => {
-      if (rev.bodyValid) {
-        await this.mutateBody(rev, acceptContentType(rev.headers, "multipart/form-data"));
+      if (rev.request.body !== null) {
+        await this.mutateBody(rev);
         if (Array.isArray(options)) {
           await this.handleArrayUpload(rev, options);
         } else if (typeof options === "object") {
@@ -837,6 +820,15 @@ var Multipart = class {
 var multipart = new Multipart();
 
 // npm/src/src/body.ts
+var c_types = [
+  "application/json",
+  "application/x-www-form-urlencoded",
+  "text/plain",
+  "multipart/form-data"
+];
+var isTypeBody = (a, b) => {
+  return a === b || a.includes(b);
+};
 function cloneReq(req, body) {
   return new Request(req.url, {
     method: req.method,
@@ -847,7 +839,7 @@ function cloneReq(req, body) {
 function memoBody(req, body) {
   try {
     req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => cloneReq(req, body).text();
+    req.text = () => Promise.resolve(decoder.decode(body));
     req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
     req.formData = () => cloneReq(req, body).formData();
     req.blob = () => cloneReq(req, body).blob();
@@ -855,32 +847,26 @@ function memoBody(req, body) {
   }
 }
 var defautl_size = 1048576;
-async function verifyBody(req, limit = defautl_size) {
-  const arrBuff = await req.arrayBuffer();
-  if (arrBuff.byteLength > toBytes(limit)) {
+async function verifyBody(rev, limit = defautl_size) {
+  const arrBuff = await rev.request.arrayBuffer();
+  const len = arrBuff.byteLength;
+  if (len > toBytes(limit)) {
+    rev.body = {};
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
-  const val = decoder.decode(arrBuff);
-  if (!val)
+  if (len === 0)
     return;
-  memoBody(req, arrBuff);
-  return decURIComponent(val);
+  memoBody(rev.request, arrBuff);
+  return decURIComponent(decoder.decode(arrBuff));
 }
-function acceptContentType(headers, cType) {
-  const type = headers.get("content-type");
-  return type === cType || type?.includes(cType);
-}
-function isValidBody(validate) {
-  if (validate === false || validate === 0)
-    return false;
-  return true;
-}
+var isNotValid = (v) => v === false || v === 0;
 async function jsonBody(validate, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
     rev.body = JSON.parse(body);
@@ -890,14 +876,15 @@ async function jsonBody(validate, rev, next) {
   }
 }
 async function urlencodedBody(validate, parseQuery2, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
-    const parse = parseQuery2 || parseQuery;
+    const parse = parseQuery2 ?? parseQuery;
     rev.body = parse(body);
     return next();
   } catch (error) {
@@ -905,11 +892,12 @@ async function urlencodedBody(validate, parseQuery2, rev, next) {
   }
 }
 async function rawBody(validate, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
     try {
@@ -923,14 +911,15 @@ async function rawBody(validate, rev, next) {
   }
 }
 async function multipartBody(validate, parseMultipart, rev, next) {
-  if (validate === false || validate === 0)
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
     const formData = await rev.request.formData();
     const body = await multipart.createBody(formData, {
       parse: parseMultipart
     });
-    rev.bodyUsed = true;
     rev.body = body;
     memoBody(rev.request, formData);
     return next();
@@ -940,20 +929,23 @@ async function multipartBody(validate, parseMultipart, rev, next) {
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
   return (rev, next) => {
-    if (opts === false || rev.bodyUsed)
+    if (opts === false)
       return next();
     if (opts === true)
-      opts = {};
-    if (acceptContentType(rev.request.headers, "application/json")) {
+      opts = void 0;
+    const type = rev.request.raw ? rev.request.raw.req.headers["content-type"] : rev.request.headers.get("content-type");
+    if (!type)
+      return next();
+    if (isTypeBody(type, c_types[0])) {
       return jsonBody(opts?.json, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "application/x-www-form-urlencoded")) {
+    if (isTypeBody(type, c_types[1])) {
       return urlencodedBody(opts?.urlencoded, parseQuery2, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "text/plain")) {
+    if (isTypeBody(type, c_types[2])) {
       return rawBody(opts?.raw, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "multipart/form-data")) {
+    if (isTypeBody(type, c_types[3])) {
       return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();
@@ -972,7 +964,6 @@ var s_search = Symbol("search");
 var s_headers = Symbol("headers");
 var s_cookies = Symbol("cookies");
 var s_res = Symbol("http_res");
-var s_body_used = Symbol("req_body_used");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 
@@ -1068,7 +1059,7 @@ var HttpResponse = class {
   }
   clearCookie(name, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append("Set-Cookie", serializeCookie(name, "", __spreadProps(__spreadValues({}, opts), { expires: new Date(0) })));
+    this.header().append("Set-Cookie", serializeCookie(name, "", { ...opts, expires: new Date(0) }));
   }
   [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
@@ -1189,15 +1180,6 @@ var RequestEvent = class {
   set search(val) {
     this[s_search] = val;
   }
-  get bodyUsed() {
-    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
-  }
-  set bodyUsed(val) {
-    this[s_body_used] = val;
-  }
-  get bodyValid() {
-    return this.request.body !== null;
-  }
   get params() {
     return this[s_params] ??= {};
   }
@@ -1255,8 +1237,6 @@ var RequestEvent = class {
   [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
       body: this.body,
-      bodyUsed: this.bodyUsed,
-      bodyValid: this.bodyValid,
       cookies: this.cookies,
       file: this.file,
       headers: this.headers,
@@ -1454,9 +1434,23 @@ var NHttp = class extends Router {
       invoke(method);
     return this;
   }
-  engine(renderFile, opts = {}) {
-    this.use(({ response }, next) => {
-      response.render = (elem, params, ...args) => {
+  engine(render, opts = {}) {
+    const isHtml = render.name === "renderToHtml";
+    this.use((rev, next) => {
+      if (isHtml) {
+        const send2 = rev.send.bind(rev);
+        rev.send = (body, lose) => {
+          if (typeof body === "string") {
+            rev[s_init] ??= {};
+            rev[s_init].headers ??= {};
+            rev[s_init].headers["content-type"] ??= HTML_TYPE;
+            rev[s_response] = new Response(render(body), rev[s_init]);
+          } else {
+            send2(body, lose);
+          }
+        };
+      }
+      rev.response.render = (elem, params, ...args) => {
         if (typeof elem === "string") {
           if (opts.ext) {
             if (!elem.includes(".")) {
@@ -1473,14 +1467,14 @@ var NHttp = class extends Router {
             elem = opts.base + elem;
           }
         }
-        params ??= response.params;
-        response.type(HTML_TYPE);
-        const ret = renderFile(elem, params, ...args);
+        params ??= rev.response.params;
+        rev.response.type(HTML_TYPE);
+        const ret = render(elem, params, ...args);
         if (ret) {
           if (ret instanceof Promise) {
-            return ret.then((val) => response.send(val)).catch(next);
+            return ret.then((val) => rev.response.send(val)).catch(next);
           }
-          return response.send(ret);
+          return rev.response.send(ret);
         }
         return ret;
       };
@@ -1529,9 +1523,10 @@ var NHttp = class extends Router {
     const { opts, isSecure } = this.buildListenOptions(options);
     const runCallback = (err) => {
       if (callback) {
-        callback(err, __spreadProps(__spreadValues({}, opts), {
+        callback(err, {
+          ...opts,
           hostname: opts.hostname ?? "localhost"
-        }));
+        });
         return true;
       }
       return;
@@ -1611,7 +1606,7 @@ nhttp.Router = function(opts = {}) {
 var s_body2 = Symbol("input_body");
 var s_init2 = Symbol("init");
 var s_def = Symbol("default");
-var s_body_used2 = Symbol("req_body_used");
+var s_body_used = Symbol("req_body_used");
 var s_headers2 = Symbol("s_headers");
 
 // npm/src/node/request.ts
@@ -1634,9 +1629,9 @@ var NodeRequest = class {
     this[s_init2] = init;
   }
   get rawBody() {
-    if (this[s_body_used2])
+    if (this[s_body_used])
       return typeError(consumed);
-    this[s_body_used2] = true;
+    this[s_body_used] = true;
     if (!this.raw.req.headers["content-type"])
       return typeError(misstype);
     if (notBody(this.raw.req))
@@ -1718,7 +1713,7 @@ var NodeRequest = class {
   }
   get bodyUsed() {
     if (this.raw) {
-      return this[s_body_used2] ?? false;
+      return this[s_body_used] ?? false;
     }
     return this.req.bodyUsed;
   }
@@ -1977,9 +1972,10 @@ var NHttp2 = class extends NHttp {
       const runCallback = (err) => {
         if (callback) {
           const _opts = opts2;
-          callback(err, __spreadProps(__spreadValues({}, _opts), {
+          callback(err, {
+            ..._opts,
             hostname: _opts.hostname || "localhost"
-          }));
+          });
         }
       };
       try {
@@ -2072,6 +2068,5 @@ module.exports = __toCommonJS(src_exports);
   nhttp,
   parseQuery,
   s_response,
-  shimNodeRequest,
   toBytes
 });

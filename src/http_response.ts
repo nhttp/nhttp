@@ -174,8 +174,7 @@ export class HttpResponse {
   /**
    * render `requires app.engine configs`
    * @example
-   * await response.render("index.html");
-   * await response.render("index.ejs", {
+   * await response.render("index", {
    *   key: "value"
    * });
    * await response.render(<h1>Hello Jsx</h1>);
@@ -184,7 +183,7 @@ export class HttpResponse {
     fileOrElem: TRet,
     params?: TObject,
     ...args: TRet
-  ) => Promise<void | Response>;
+  ) => Promise<void>;
   /**
    * shorthand for send json body
    * @example

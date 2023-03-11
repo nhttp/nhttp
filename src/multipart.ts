@@ -1,4 +1,4 @@
-import { acceptContentType, memoBody } from "./body.ts";
+import { memoBody } from "./body.ts";
 import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
@@ -130,10 +130,11 @@ class Multipart {
       i++;
     }
   }
-  private async mutateBody(rev: RequestEvent, isMultipart?: boolean) {
+  private async mutateBody(rev: RequestEvent) {
+    const type = rev.headers.get("content-type");
     if (
-      rev.bodyUsed === false &&
-      isMultipart
+      rev.request.bodyUsed === false &&
+      type?.includes("multipart/form-data")
     ) {
       const formData = await rev.request.formData();
       rev.body = await this.createBody(formData, {
@@ -206,11 +207,8 @@ class Multipart {
    */
   public upload(options: TMultipartUpload | TMultipartUpload[]): Handler {
     return async (rev, next) => {
-      if (rev.bodyValid) {
-        await this.mutateBody(
-          rev,
-          acceptContentType(rev.headers, "multipart/form-data"),
-        );
+      if (rev.request.body !== null) {
+        await this.mutateBody(rev);
         if (Array.isArray(options)) {
           await this.handleArrayUpload(rev, options);
         } else if (typeof options === "object") {

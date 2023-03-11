@@ -15,7 +15,15 @@ import {
   parseQuery as parseQueryOri,
   toBytes,
 } from "./utils.ts";
-
+const c_types = [
+  "application/json",
+  "application/x-www-form-urlencoded",
+  "text/plain",
+  "multipart/form-data",
+];
+export const isTypeBody = (a: string, b: string) => {
+  return a === b || a.includes(b);
+};
 function cloneReq(req: Request, body: TRet) {
   return new Request(req.url, {
     method: req.method,
@@ -27,7 +35,7 @@ function cloneReq(req: Request, body: TRet) {
 export function memoBody(req: Request, body: TRet) {
   try {
     req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => cloneReq(req, body).text();
+    req.text = () => Promise.resolve(decoder.decode(body));
     req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
     req.formData = () => cloneReq(req, body).formData();
     req.blob = () => cloneReq(req, body).blob();
@@ -35,47 +43,39 @@ export function memoBody(req: Request, body: TRet) {
 }
 // binary bytes (1mb)
 const defautl_size = 1048576;
+
 async function verifyBody(
-  req: Request,
+  rev: RequestEvent,
   limit: number | string = defautl_size,
 ) {
-  const arrBuff = await req.arrayBuffer();
-  if (arrBuff.byteLength > toBytes(limit)) {
+  const arrBuff = await rev.request.arrayBuffer();
+  const len = arrBuff.byteLength;
+  if (len > toBytes(limit)) {
+    rev.body = {};
     throw new HttpError(
       400,
       `Body is too large. max limit ${limit}`,
       "BadRequestError",
     );
   }
-  const val = decoder.decode(arrBuff);
-  if (!val) return;
-  memoBody(req, arrBuff);
-  return decURIComponent(val);
-}
-type CType =
-  | "application/json"
-  | "application/x-www-form-urlencoded"
-  | "multipart/form-data"
-  | "text/plain";
-export function acceptContentType(headers: Headers, cType: CType) {
-  const type = headers.get("content-type");
-  return type === cType || type?.includes(cType);
+  if (len === 0) return;
+  memoBody(rev.request, arrBuff);
+  return decURIComponent(decoder.decode(arrBuff));
 }
 
-function isValidBody(validate: TValidBody) {
-  if (validate === false || validate === 0) return false;
-  return true;
-}
+const isNotValid = (v: TValidBody) => v === false || v === 0;
 
 async function jsonBody(
   validate: TValidBody,
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (!isValidBody(validate)) return next();
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
   try {
-    const body = await verifyBody(rev.request, <number> validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, <number> validate);
     if (!body) return next();
     rev.body = JSON.parse(body);
     return next();
@@ -90,15 +90,14 @@ async function urlencodedBody(
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (!isValidBody(validate)) return next();
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
   try {
-    const body = await verifyBody(
-      rev.request,
-      <number> validate,
-    );
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, <number> validate);
     if (!body) return next();
-    const parse = parseQuery || parseQueryOri;
+    const parse = parseQuery ?? parseQueryOri;
     rev.body = parse(body);
     return next();
   } catch (error) {
@@ -111,10 +110,12 @@ async function rawBody(
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (!isValidBody(validate)) return next();
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
   try {
-    const body = await verifyBody(rev.request, <number> validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, <number> validate);
     if (!body) return next();
     try {
       rev.body = JSON.parse(body);
@@ -132,13 +133,15 @@ async function multipartBody(
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (validate === false || validate === 0) return next();
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
   try {
     const formData = await rev.request.formData();
     const body = await multipart.createBody(formData, {
       parse: parseMultipart,
     });
-    rev.bodyUsed = true;
     rev.body = body;
     memoBody(rev.request, formData);
     return next();
@@ -153,23 +156,22 @@ export function bodyParser(
   parseMultipart?: TQueryFunc,
 ): Handler {
   return (rev, next) => {
-    if (opts === false || rev.bodyUsed) return next();
-    if (opts === true) opts = {};
-    if (acceptContentType(rev.request.headers, "application/json")) {
+    if (opts === false) return next();
+    if (opts === true) opts = void 0;
+    const type = (<TRet> rev.request).raw
+      ? (<TRet> rev.request).raw.req.headers["content-type"]
+      : rev.request.headers.get("content-type");
+    if (!type) return next();
+    if (isTypeBody(type, c_types[0])) {
       return jsonBody(opts?.json, rev, next);
     }
-    if (
-      acceptContentType(
-        rev.request.headers,
-        "application/x-www-form-urlencoded",
-      )
-    ) {
+    if (isTypeBody(type, c_types[1])) {
       return urlencodedBody(opts?.urlencoded, parseQuery, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "text/plain")) {
+    if (isTypeBody(type, c_types[2])) {
       return rawBody(opts?.raw, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "multipart/form-data")) {
+    if (isTypeBody(type, c_types[3])) {
       return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();

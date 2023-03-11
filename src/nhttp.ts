@@ -24,7 +24,7 @@ import { bodyParser as bodyParserOri } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { createRequest, RequestEvent } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
-import { s_response } from "./symbol.ts";
+import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
 
@@ -224,11 +224,25 @@ export class NHttp<
    * });
    */
   engine(
-    renderFile: (...args: TRet) => TRet,
+    render: (...args: TRet) => TRet,
     opts: EngineOptions = {},
   ) {
-    this.use(({ response }, next) => {
-      response.render = (elem, params, ...args) => {
+    const isHtml = render.name === "renderToHtml";
+    this.use((rev: RequestEvent, next) => {
+      if (isHtml) {
+        const send = rev.send.bind(rev);
+        rev.send = (body, lose) => {
+          if (typeof body === "string") {
+            rev[s_init] ??= {};
+            rev[s_init].headers ??= {};
+            rev[s_init].headers["content-type"] ??= HTML_TYPE;
+            rev[s_response] = new Response(render(body), rev[s_init]);
+          } else {
+            send(body, lose);
+          }
+        };
+      }
+      rev.response.render = (elem, params, ...args) => {
         if (typeof elem === "string") {
           if (opts.ext) {
             if (!elem.includes(".")) {
@@ -245,14 +259,14 @@ export class NHttp<
             elem = opts.base + elem;
           }
         }
-        params ??= response.params;
-        response.type(HTML_TYPE);
-        const ret = renderFile(elem, params, ...args);
+        params ??= rev.response.params;
+        rev.response.type(HTML_TYPE);
+        const ret = render(elem, params, ...args);
         if (ret) {
           if (ret instanceof Promise) {
-            return ret.then((val) => response.send(val)).catch(next);
+            return ret.then((val) => rev.response.send(val)).catch(next);
           }
-          return response.send(ret);
+          return rev.response.send(ret);
         }
         return ret;
       };

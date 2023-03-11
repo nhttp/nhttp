@@ -66,11 +66,6 @@ Deno.test("RequestEvent", async (t) => {
   rev.method = "POST";
   assertEquals(rev.method, "POST");
 
-  assertEquals(rev.search, null);
-  assertEquals(rev.bodyUsed, false);
-  rev.bodyUsed = true;
-  assertEquals(rev.bodyUsed, true);
-
   assertEquals(rev.url, "/");
   rev.url = "/hello";
   assertEquals(rev.url, "/hello");
@@ -84,12 +79,6 @@ Deno.test("RequestEvent", async (t) => {
   await t.step("original url", () => {
     const rev = new RequestEvent({ url: "/" } as TRet);
     assertEquals(rev.originalUrl, "/");
-  });
-  await t.step("bodyValid", () => {
-    const rev = new RequestEvent({ url: "/" } as TRet);
-    assertEquals(rev.bodyValid, true);
-    const rev2 = new RequestEvent({ url: "http://x.x", body: null } as TRet);
-    assertEquals(rev2.bodyValid, false);
   });
   await t.step("rev.route", () => {
     const base = "http://127.0.0.1:8000";
@@ -133,7 +122,6 @@ Deno.test("RequestEvent", async (t) => {
       () => ({}),
     );
     assertEquals(typeof rev.request, "object");
-    assertEquals(rev.bodyUsed, false);
   });
   await t.step("waitUntil", () => {
     const rev = new RequestEvent(

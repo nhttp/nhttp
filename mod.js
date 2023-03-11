@@ -1,6 +1,6 @@
 // npm/src/src/constant.ts
 var JSON_TYPE = "application/json";
-var HTML_TYPE = "text/html; charset=UTF-8";
+var HTML_TYPE = "text/html; charset=utf-8";
 var STATUS_ERROR_LIST = {
   400: "Bad Request",
   401: "Unauthorized",
@@ -146,19 +146,19 @@ function findFn(fn) {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        response.append ?? (response.append = (a, b) => response.header().append(a, b));
-        response.set ?? (response.set = response.header);
-        response.get ?? (response.get = (a) => response.header(a));
-        response.hasHeader ?? (response.hasHeader = (a) => response.header(a) !== void 0);
-        response.removeHeader ?? (response.removeHeader = (a) => response.header().delete(a));
-        response.end ?? (response.end = response.send);
-        response.writeHead ?? (response.writeHead = (a, ...b) => {
+        response.append ??= (a, b) => response.header().append(a, b);
+        response.set ??= response.header;
+        response.get ??= (a) => response.header(a);
+        response.hasHeader ??= (a) => response.header(a) !== void 0;
+        response.removeHeader ??= (a) => response.header().delete(a);
+        response.end ??= response.send;
+        response.writeHead ??= (a, ...b) => {
           response.status(a);
           for (let i = 0; i < b.length; i++) {
             if (typeof b[i] === "object")
               response.header(b[i]);
           }
-        });
+        };
       }
       return fn(rev, response, next);
     };
@@ -224,14 +224,14 @@ function needPatch(data, keys, value) {
   }
   let key = keys.shift();
   if (!key) {
-    data ?? (data = []);
+    data ??= [];
     if (Array.isArray(data)) {
       key = data.length;
     }
   }
   const index = +key;
   if (!isNaN(index)) {
-    data ?? (data = []);
+    data ??= [];
     key = index;
   }
   data = data || {};
@@ -470,8 +470,7 @@ function mutatePath(base, str) {
 }
 function addGlobRoute(ori, obj) {
   ANY_METHODS.forEach((method) => {
-    var _a;
-    (_a = ROUTE)[method] ?? (_a[method] = []);
+    ROUTE[method] ??= [];
     const not = !ROUTE[method].find(({ path }) => path === ori);
     if (not)
       ROUTE[method].push(obj);
@@ -514,7 +513,7 @@ var Router = class {
     if (str !== "" && str !== "*" && str !== "/*") {
       const { path, ori } = mutatePath(this.base, str);
       const { pattern, wild, path: _path } = toPathx(path, true);
-      (this.pmidds ?? (this.pmidds = [])).push({
+      (this.pmidds ??= []).push({
         pattern,
         wild,
         path: _path,
@@ -685,23 +684,24 @@ var Multipart = class {
       if (opts.callback) {
         await opts.callback(file);
       }
-      opts.dest ?? (opts.dest = "");
+      opts.dest ??= "";
       if (opts.dest) {
         if (opts.dest.lastIndexOf("/") === -1)
           opts.dest += "/";
         if (opts.dest[0] === "/")
           opts.dest = opts.dest.substring(1);
       }
-      file.filename ?? (file.filename = uid() + `.${revMimeList(file.type)}`);
-      file.path ?? (file.path = opts.dest + file.filename);
-      opts.writeFile ?? (opts.writeFile = Deno.writeFile);
+      file.filename ??= uid() + `.${revMimeList(file.type)}`;
+      file.path ??= opts.dest + file.filename;
+      opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
       await opts.writeFile(file.path, new Uint8Array(arrBuff));
       i++;
     }
   }
-  async mutateBody(rev, isMultipart) {
-    if (rev.bodyUsed === false && isMultipart) {
+  async mutateBody(rev) {
+    const type = rev.headers.get("content-type");
+    if (rev.request.bodyUsed === false && type?.includes("multipart/form-data")) {
       const formData = await rev.request.formData();
       rev.body = await this.createBody(formData, {
         parse: rev.__parseMultipart
@@ -754,8 +754,8 @@ var Multipart = class {
   }
   upload(options) {
     return async (rev, next) => {
-      if (rev.bodyValid) {
-        await this.mutateBody(rev, acceptContentType(rev.headers, "multipart/form-data"));
+      if (rev.request.body !== null) {
+        await this.mutateBody(rev);
         if (Array.isArray(options)) {
           await this.handleArrayUpload(rev, options);
         } else if (typeof options === "object") {
@@ -769,6 +769,15 @@ var Multipart = class {
 var multipart = new Multipart();
 
 // npm/src/src/body.ts
+var c_types = [
+  "application/json",
+  "application/x-www-form-urlencoded",
+  "text/plain",
+  "multipart/form-data"
+];
+var isTypeBody = (a, b) => {
+  return a === b || a.includes(b);
+};
 function cloneReq(req, body) {
   return new Request(req.url, {
     method: req.method,
@@ -779,7 +788,7 @@ function cloneReq(req, body) {
 function memoBody(req, body) {
   try {
     req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => cloneReq(req, body).text();
+    req.text = () => Promise.resolve(decoder.decode(body));
     req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
     req.formData = () => cloneReq(req, body).formData();
     req.blob = () => cloneReq(req, body).blob();
@@ -787,32 +796,26 @@ function memoBody(req, body) {
   }
 }
 var defautl_size = 1048576;
-async function verifyBody(req, limit = defautl_size) {
-  const arrBuff = await req.arrayBuffer();
-  if (arrBuff.byteLength > toBytes(limit)) {
+async function verifyBody(rev, limit = defautl_size) {
+  const arrBuff = await rev.request.arrayBuffer();
+  const len = arrBuff.byteLength;
+  if (len > toBytes(limit)) {
+    rev.body = {};
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
-  const val = decoder.decode(arrBuff);
-  if (!val)
+  if (len === 0)
     return;
-  memoBody(req, arrBuff);
-  return decURIComponent(val);
+  memoBody(rev.request, arrBuff);
+  return decURIComponent(decoder.decode(arrBuff));
 }
-function acceptContentType(headers, cType) {
-  const type = headers.get("content-type");
-  return type === cType || type?.includes(cType);
-}
-function isValidBody(validate) {
-  if (validate === false || validate === 0)
-    return false;
-  return true;
-}
+var isNotValid = (v) => v === false || v === 0;
 async function jsonBody(validate, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
     rev.body = JSON.parse(body);
@@ -822,14 +825,15 @@ async function jsonBody(validate, rev, next) {
   }
 }
 async function urlencodedBody(validate, parseQuery2, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
-    const parse = parseQuery2 || parseQuery;
+    const parse = parseQuery2 ?? parseQuery;
     rev.body = parse(body);
     return next();
   } catch (error) {
@@ -837,11 +841,12 @@ async function urlencodedBody(validate, parseQuery2, rev, next) {
   }
 }
 async function rawBody(validate, rev, next) {
-  if (!isValidBody(validate))
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
-    const body = await verifyBody(rev.request, validate);
-    rev.bodyUsed = true;
+    const body = await verifyBody(rev, validate);
     if (!body)
       return next();
     try {
@@ -855,14 +860,15 @@ async function rawBody(validate, rev, next) {
   }
 }
 async function multipartBody(validate, parseMultipart, rev, next) {
-  if (validate === false || validate === 0)
+  if (isNotValid(validate)) {
+    rev.body = {};
     return next();
+  }
   try {
     const formData = await rev.request.formData();
     const body = await multipart.createBody(formData, {
       parse: parseMultipart
     });
-    rev.bodyUsed = true;
     rev.body = body;
     memoBody(rev.request, formData);
     return next();
@@ -872,20 +878,23 @@ async function multipartBody(validate, parseMultipart, rev, next) {
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
   return (rev, next) => {
-    if (opts === false || rev.bodyUsed)
+    if (opts === false)
       return next();
     if (opts === true)
-      opts = {};
-    if (acceptContentType(rev.request.headers, "application/json")) {
+      opts = void 0;
+    const type = rev.request.raw ? rev.request.raw.req.headers["content-type"] : rev.request.headers.get("content-type");
+    if (!type)
+      return next();
+    if (isTypeBody(type, c_types[0])) {
       return jsonBody(opts?.json, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "application/x-www-form-urlencoded")) {
+    if (isTypeBody(type, c_types[1])) {
       return urlencodedBody(opts?.urlencoded, parseQuery2, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "text/plain")) {
+    if (isTypeBody(type, c_types[2])) {
       return rawBody(opts?.raw, rev, next);
     }
-    if (acceptContentType(rev.request.headers, "multipart/form-data")) {
+    if (isTypeBody(type, c_types[3])) {
       return multipartBody(opts?.multipart, parseMultipart, rev, next);
     }
     return next();
@@ -904,7 +913,6 @@ var s_search = Symbol("search");
 var s_headers = Symbol("headers");
 var s_cookies = Symbol("cookies");
 var s_res = Symbol("http_res");
-var s_body_used = Symbol("req_body_used");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 
@@ -916,8 +924,7 @@ var HttpResponse = class {
     this.init = init;
   }
   setHeader(key, value) {
-    var _a;
-    ((_a = this.init).headers ?? (_a.headers = {}))[key.toLowerCase()] = value;
+    (this.init.headers ??= {})[key.toLowerCase()] = value;
     return this;
   }
   getHeader(key) {
@@ -974,8 +981,7 @@ var HttpResponse = class {
     this.status(val);
   }
   get params() {
-    var _a;
-    return this[_a = s_params] ?? (this[_a] = {});
+    return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
@@ -1031,7 +1037,7 @@ var HttpResponse = class {
   }
 };
 function oldSchool() {
-  Response.json ?? (Response.json = (data, init = {}) => new JsonResponse(data, init));
+  Response.json ??= (data, init = {}) => new JsonResponse(data, init);
 }
 var JsonResponse = class extends Response {
   constructor(body, init = {}) {
@@ -1055,11 +1061,9 @@ var RequestEvent = class {
     this.method = request.method;
   }
   get response() {
-    var _a;
-    return this[_a = s_res] ?? (this[_a] = new HttpResponse(this.send.bind(this), this[s_init] = {}));
+    return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
   }
   get route() {
-    var _a;
     if (this[s_route])
       return this[s_route];
     let path = this.path;
@@ -1076,7 +1080,7 @@ var RequestEvent = class {
       ret.query = this.query;
       ret.params = findParams(ret, path);
     }
-    return this[_a = s_route] ?? (this[_a] = ret ?? {});
+    return this[s_route] ??= ret ?? {};
   }
   get info() {
     return {
@@ -1100,7 +1104,6 @@ var RequestEvent = class {
     this[s_response] = r;
   }
   send(body, lose) {
-    var _a;
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
     } else if (body instanceof Response) {
@@ -1114,38 +1117,26 @@ var RequestEvent = class {
     } else if (typeof body === "number") {
       this[s_response] = new Response(body.toString(), this[s_init]);
     } else if (!lose) {
-      this[_a = s_response] ?? (this[_a] = new Response(body, this[s_init]));
+      this[s_response] ??= new Response(body, this[s_init]);
     }
   }
   get responseInit() {
     return this[s_init] ?? {};
   }
   get search() {
-    var _a;
-    return this[_a = s_search] ?? (this[_a] = null);
+    return this[s_search] ??= null;
   }
   set search(val) {
     this[s_search] = val;
   }
-  get bodyUsed() {
-    return this[s_body_used] ?? this.request?.bodyUsed ?? false;
-  }
-  set bodyUsed(val) {
-    this[s_body_used] = val;
-  }
-  get bodyValid() {
-    return this.request.body !== null;
-  }
   get params() {
-    var _a;
-    return this[_a = s_params] ?? (this[_a] = {});
+    return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
   }
   get url() {
-    var _a;
-    return this[_a = s_url] ?? (this[_a] = this.originalUrl);
+    return this[s_url] ??= this.originalUrl;
   }
   set url(val) {
     this[s_url] = val;
@@ -1154,43 +1145,37 @@ var RequestEvent = class {
     return getUrl(this.request.url);
   }
   get path() {
-    var _a;
-    return this[_a = s_path] ?? (this[_a] = this.url);
+    return this[s_path] ??= this.url;
   }
   set path(val) {
     this[s_path] = val;
   }
   get query() {
-    var _a;
-    return this[_a = s_query] ?? (this[_a] = this.__parseQuery?.(this[s_search].substring(1)) ?? {});
+    return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ?? {};
   }
   set query(val) {
     this[s_query] = val;
   }
   get body() {
-    var _a;
-    return this[_a = s_body] ?? (this[_a] = {});
+    return this[s_body] ??= {};
   }
   set body(val) {
     this[s_body] = val;
   }
   get headers() {
-    var _a;
-    return this[_a = s_headers] ?? (this[_a] = this.request.headers);
+    return this[s_headers] ??= this.request.headers;
   }
   set headers(val) {
     this[s_headers] = val;
   }
   get file() {
-    var _a;
-    return this[_a = s_file] ?? (this[_a] = {});
+    return this[s_file] ??= {};
   }
   set file(val) {
     this[s_file] = val;
   }
   get cookies() {
-    var _a;
-    return this[_a = s_cookies] ?? (this[_a] = getReqCookies(this.request.headers, true));
+    return this[s_cookies] ??= getReqCookies(this.request.headers, true);
   }
   set cookies(val) {
     this[s_cookies] = val;
@@ -1201,8 +1186,6 @@ var RequestEvent = class {
   [Symbol.for("Deno.customInspect")](inspect, opts) {
     const ret = {
       body: this.body,
-      bodyUsed: this.bodyUsed,
-      bodyValid: this.bodyValid,
       cookies: this.cookies,
       file: this.file,
       headers: this.headers,
@@ -1371,9 +1354,8 @@ var NHttp = class extends Router {
     fns = this.midds.concat(fns);
     const { path: oriPath, pattern, wild } = toPathx(path);
     const invoke = (m) => {
-      var _a, _b, _c;
       if (pattern) {
-        const idx = ((_a = this.route)[m] ?? (_a[m] = [])).findIndex(({ path: path2 }) => path2 === oriPath);
+        const idx = (this.route[m] ??= []).findIndex(({ path: path2 }) => path2 === oriPath);
         if (idx != -1) {
           this.route[m][idx].fns = this.route[m][idx].fns.concat(fns);
         } else {
@@ -1383,7 +1365,7 @@ var NHttp = class extends Router {
             fns,
             wild
           });
-          ((_b = ROUTE)[m] ?? (_b[m] = [])).push({ path, pattern, wild });
+          (ROUTE[m] ??= []).push({ path, pattern, wild });
         }
       } else {
         const key = m + path;
@@ -1391,7 +1373,7 @@ var NHttp = class extends Router {
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns;
-          ((_c = ROUTE)[m] ?? (_c[m] = [])).push({ path });
+          (ROUTE[m] ??= []).push({ path });
         }
       }
     };
@@ -1401,9 +1383,23 @@ var NHttp = class extends Router {
       invoke(method);
     return this;
   }
-  engine(renderFile, opts = {}) {
-    this.use(({ response }, next) => {
-      response.render = (elem, params, ...args) => {
+  engine(render, opts = {}) {
+    const isHtml = render.name === "renderToHtml";
+    this.use((rev, next) => {
+      if (isHtml) {
+        const send2 = rev.send.bind(rev);
+        rev.send = (body, lose) => {
+          if (typeof body === "string") {
+            rev[s_init] ??= {};
+            rev[s_init].headers ??= {};
+            rev[s_init].headers["content-type"] ??= HTML_TYPE;
+            rev[s_response] = new Response(render(body), rev[s_init]);
+          } else {
+            send2(body, lose);
+          }
+        };
+      }
+      rev.response.render = (elem, params, ...args) => {
         if (typeof elem === "string") {
           if (opts.ext) {
             if (!elem.includes(".")) {
@@ -1420,14 +1416,14 @@ var NHttp = class extends Router {
             elem = opts.base + elem;
           }
         }
-        params ?? (params = response.params);
-        response.type(HTML_TYPE);
-        const ret = renderFile(elem, params, ...args);
+        params ??= rev.response.params;
+        rev.response.type(HTML_TYPE);
+        const ret = render(elem, params, ...args);
         if (ret) {
           if (ret instanceof Promise) {
-            return ret.then((val) => response.send(val)).catch(next);
+            return ret.then((val) => rev.response.send(val)).catch(next);
           }
-          return response.send(ret);
+          return rev.response.send(ret);
         }
         return ret;
       };
@@ -1559,7 +1555,7 @@ nhttp.Router = function(opts = {}) {
 var s_body2 = Symbol("input_body");
 var s_init2 = Symbol("init");
 var s_def = Symbol("default");
-var s_body_used2 = Symbol("req_body_used");
+var s_body_used = Symbol("req_body_used");
 var s_headers2 = Symbol("s_headers");
 
 // npm/src/node/request.ts
@@ -1582,9 +1578,9 @@ var NodeRequest = class {
     this[s_init2] = init;
   }
   get rawBody() {
-    if (this[s_body_used2])
+    if (this[s_body_used])
       return typeError(consumed);
-    this[s_body_used2] = true;
+    this[s_body_used] = true;
     if (!this.raw.req.headers["content-type"])
       return typeError(misstype);
     if (notBody(this.raw.req))
@@ -1595,8 +1591,7 @@ var NodeRequest = class {
     });
   }
   get req() {
-    var _a;
-    return this[_a = s_def] ?? (this[_a] = new globalThis.NativeRequest(this[s_body2], this[s_init2]));
+    return this[s_def] ??= new globalThis.NativeRequest(this[s_body2], this[s_init2]);
   }
   get cache() {
     return this.req.cache;
@@ -1667,7 +1662,7 @@ var NodeRequest = class {
   }
   get bodyUsed() {
     if (this.raw) {
-      return this[s_body_used2] ?? false;
+      return this[s_body_used] ?? false;
     }
     return this.req.bodyUsed;
   }
@@ -1815,12 +1810,11 @@ var NodeResponse = class {
     return globalThis.NativeResponse.redirect(url, status);
   }
   static json(data, init = {}) {
-    var _a;
     if (init.headers) {
       if (init.headers instanceof Headers) {
         init.headers.set(C_TYPE, init.headers.get(C_TYPE) ?? JSON_TYPE2);
       } else {
-        (_a = init.headers)[C_TYPE] ?? (_a[C_TYPE] = JSON_TYPE2);
+        init.headers[C_TYPE] ??= JSON_TYPE2;
       }
     } else {
       init.headers = { [C_TYPE]: JSON_TYPE2 };
@@ -1828,12 +1822,10 @@ var NodeResponse = class {
     return new NodeResponse(JSON.stringify(data), init);
   }
   get res() {
-    var _a;
-    return this[_a = s_def] ?? (this[_a] = new globalThis.NativeResponse(this[s_body2], this[s_init2]));
+    return this[s_def] ??= new globalThis.NativeResponse(this[s_body2], this[s_init2]);
   }
   get headers() {
-    var _a;
-    return this[_a = s_headers2] ?? (this[_a] = new Headers(this[s_init2]?.headers));
+    return this[s_headers2] ??= new Headers(this[s_init2]?.headers);
   }
   get ok() {
     return this.res.ok;
@@ -1957,12 +1949,12 @@ var NHttp2 = class extends NHttp {
         }
         shimNodeRequest();
         if (isTls) {
-          const h2 = await import("https");
+          const h2 = await import("node:https");
           this.server = serveNode(handler, h2.createServerTls, opts2);
           runCallback();
           return;
         }
-        const h = await import("http");
+        const h = await import("node:http");
         this.server = serveNode(handler, h.createServer, opts2);
         runCallback();
         return;
@@ -1977,7 +1969,7 @@ var writeFile = async (...args) => {
   try {
     if (fs_glob)
       return fs_glob?.writeFileSync(...args);
-    fs_glob = await import("fs");
+    fs_glob = await import("node:fs");
     return fs_glob.writeFileSync(...args);
   } catch (_e) {
   }
@@ -1987,15 +1979,14 @@ var writeFile = async (...args) => {
 var multipart2 = {
   createBody: multipart.createBody,
   upload: (opts) => {
-    var _a;
     if (typeof Deno !== "undefined")
       return multipart.upload(opts);
     if (Array.isArray(opts)) {
       for (let i = 0; i < opts.length; i++) {
-        (_a = opts[i]).writeFile ?? (_a.writeFile = writeFile);
+        opts[i].writeFile ??= writeFile;
       }
     } else if (typeof opts === "object") {
-      opts.writeFile ?? (opts.writeFile = writeFile);
+      opts.writeFile ??= writeFile;
     }
     return multipart.upload(opts);
   }
@@ -2024,6 +2015,5 @@ export {
   nhttp2 as nhttp,
   parseQuery,
   s_response,
-  shimNodeRequest,
   toBytes
 };

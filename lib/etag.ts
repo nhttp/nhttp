@@ -137,7 +137,7 @@ export const etag = (
   return (rev, next) => {
     const weak = opts.weak !== false;
     const send = rev.send.bind(rev);
-    rev.send = (body: TRet) => {
+    rev.send = (body, lose) => {
       if (body) {
         const { response, request } = rev;
         if (
@@ -171,7 +171,7 @@ export const etag = (
           }
         }
       }
-      send(body);
+      send(body, lose);
     };
     return next();
   };
