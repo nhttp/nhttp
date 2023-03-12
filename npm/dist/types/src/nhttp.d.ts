@@ -38,7 +38,9 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *   await response.render("index", { title: "hello ejs" });
      * });
      */
-    engine(render: (...args: TRet) => TRet, opts?: EngineOptions): void;
+    engine(render: ((...args: TRet) => TRet) & {
+        directly?: boolean;
+    }, opts?: EngineOptions): void;
     matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
     /**
      * handle

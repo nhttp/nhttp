@@ -1384,9 +1384,8 @@ var NHttp = class extends Router {
     return this;
   }
   engine(render, opts = {}) {
-    const isHtml = render.name === "renderToHtml";
     this.use((rev, next) => {
-      if (isHtml) {
+      if (render.directly) {
         const send2 = rev.send.bind(rev);
         rev.send = (body, lose) => {
           if (typeof body === "string") {

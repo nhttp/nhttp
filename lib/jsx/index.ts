@@ -3,6 +3,7 @@ type TRet = any;
 const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
+    type Element = TRet;
     interface IntrinsicElements {
       // @ts-ignore: just any elem
       [k: string]: TRet;
@@ -12,7 +13,9 @@ declare global {
 type JsxProps = {
   children?: TRet;
 };
-export type FC<T extends unknown = unknown> = (props: JsxProps & T) => TRet;
+export type FC<T extends unknown = unknown> = (
+  props: JsxProps & T,
+) => JSX.Element;
 const emreg =
   /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/;
 
@@ -25,21 +28,21 @@ function escapeHtml(unsafe: string) {
     .replace(/'/g, "&#039;");
 }
 export function n(
-  name: TRet,
+  type: TRet,
   props: TRet | undefined | null,
   ...args: TRet[]
 ) {
   props ??= { children: "" };
-  if (!name) return "";
+  if (!type) return "";
   const children = args.map((el) => {
     return typeof el === "number" ? String(el) : el;
   }).filter(Boolean);
-  if (typeof name === "function") {
-    if (name.name === "Helmet") props.h_children = children;
+  if (typeof type === "function") {
+    if (type.name === "Helmet") props.h_children = children;
     else props.children = children.join("");
-    return name(props);
+    return type(props);
   }
-  let str = `<${name}`;
+  let str = `<${type}`;
   for (const k in props) {
     const val = props[k];
     if (
@@ -71,7 +74,7 @@ export function n(
     }
   }
   str += ">";
-  if (emreg.test(name)) return str;
+  if (emreg.test(type)) return str;
   if (props[dangerHTML]) {
     str += props[dangerHTML].__html;
   } else {
@@ -79,7 +82,7 @@ export function n(
       if (typeof child === "string") str += child;
     });
   }
-  return (str += name ? `</${name}>` : "");
+  return (str += type ? `</${type}>` : "");
 }
 
 export const Fragment: FC = ({ children }) => children;
@@ -127,8 +130,8 @@ const resetHelmet = () => {
   Helmet.htmlAttr = void 0;
   Helmet.bodyAttr = void 0;
 };
-export const renderToString = (elem: TRet) => elem;
-export const renderToHtml = (elem: TRet) => {
+export const renderToString = (elem: JSX.Element): string => elem;
+export const renderToHtml = (elem: JSX.Element) => {
   const head = Helmet.head?.();
   const body = Helmet.body?.();
   const htmlAttr = Helmet.htmlAttr?.() ?? `lang="en"`;
@@ -146,3 +149,5 @@ export const renderToHtml = (elem: TRet) => {
   </body>
 </html>`;
 };
+
+renderToHtml.directly = true;

@@ -44,9 +44,5 @@
         "cov_profile.lcov"
       ]
     }
-  },
-  "compilerOptions": {
-    "jsxFactory": "n",
-    "jsxFragmentFactory": "n.Fragment"
   }
 }

@@ -152,6 +152,7 @@ Deno.test("nhttp", async (t) => {
   });
   await t.step("engine jsx", async () => {
     const renderToHtml = (elem: TRet) => elem;
+    renderToHtml.directly = true;
     const app = nhttp();
     app.engine(renderToHtml);
     app.get("/", () => "hello");

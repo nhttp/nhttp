@@ -33,27 +33,27 @@ const emreg = /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source
 function escapeHtml(unsafe) {
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-function n(name, props, ...args) {
+function n(type, props, ...args) {
   props ??= { children: "" };
-  if (!name)
+  if (!type)
     return "";
   const children = args.map((el) => {
     return typeof el === "number" ? String(el) : el;
   }).filter(Boolean);
-  if (typeof name === "function") {
-    if (name.name === "Helmet")
+  if (typeof type === "function") {
+    if (type.name === "Helmet")
       props.h_children = children;
     else
       props.children = children.join("");
-    return name(props);
+    return type(props);
   }
-  let str = `<${name}`;
+  let str = `<${type}`;
   for (const k in props) {
     const val = props[k];
     if (val !== void 0 && val !== null && k !== dangerHTML && k !== "children") {
-      const type = typeof val;
-      if (type === "boolean" || type === "object") {
-        if (type === "object") {
+      const type2 = typeof val;
+      if (type2 === "boolean" || type2 === "object") {
+        if (type2 === "object") {
           str += ` ${k}="${Object.keys(val).reduce((a, b) => a + b.split(/(?=[A-Z])/).join("-").toLowerCase() + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";", "")}"`;
         } else if (val === true)
           str += ` ${k}`;
@@ -64,7 +64,7 @@ function n(name, props, ...args) {
     }
   }
   str += ">";
-  if (emreg.test(name))
+  if (emreg.test(type))
     return str;
   if (props[dangerHTML]) {
     str += props[dangerHTML].__html;
@@ -74,7 +74,7 @@ function n(name, props, ...args) {
         str += child;
     });
   }
-  return str += name ? `</${name}>` : "";
+  return str += type ? `</${type}>` : "";
 }
 const Fragment = ({ children }) => children;
 n.Fragment = Fragment;
@@ -136,6 +136,7 @@ const renderToHtml = (elem) => {
   </body>
 </html>`;
 };
+renderToHtml.directly = true;
 module.exports = __toCommonJS(jsx_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

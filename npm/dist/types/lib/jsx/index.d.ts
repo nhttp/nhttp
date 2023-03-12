@@ -1,6 +1,7 @@
 type TRet = any;
 declare global {
     namespace JSX {
+        type Element = TRet;
         interface IntrinsicElements {
             [k: string]: TRet;
         }
@@ -9,8 +10,8 @@ declare global {
 type JsxProps = {
     children?: TRet;
 };
-export type FC<T extends unknown = unknown> = (props: JsxProps & T) => TRet;
-export declare function n(name: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
+export type FC<T extends unknown = unknown> = (props: JsxProps & T) => JSX.Element;
+export declare function n(type: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
 export declare namespace n {
     var Fragment: FC<unknown>;
 }
@@ -22,6 +23,9 @@ type FCHelmet = ((props: TRet) => TRet) & {
     bodyAttr?: () => string;
 };
 export declare const Helmet: FCHelmet;
-export declare const renderToString: (elem: TRet) => any;
-export declare const renderToHtml: (elem: TRet) => string;
+export declare const renderToString: (elem: JSX.Element) => string;
+export declare const renderToHtml: {
+    (elem: JSX.Element): string;
+    directly: boolean;
+};
 export {};

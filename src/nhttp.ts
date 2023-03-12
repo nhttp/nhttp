@@ -224,12 +224,11 @@ export class NHttp<
    * });
    */
   engine(
-    render: (...args: TRet) => TRet,
+    render: ((...args: TRet) => TRet) & { directly?: boolean },
     opts: EngineOptions = {},
   ) {
-    const isHtml = render.name === "renderToHtml";
     this.use((rev: RequestEvent, next) => {
-      if (isHtml) {
+      if (render.directly) {
         const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
           if (typeof body === "string") {
