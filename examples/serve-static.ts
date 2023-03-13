@@ -1,9 +1,9 @@
-import { nhttp } from "../mod.ts";
-import staticFiles from "https://deno.land/x/static_files@1.1.4/mod.ts";
+import nhttp from "../mod.ts";
+import serveStatic from "../lib/serve-static.ts";
 
 const app = nhttp();
 
-app.use("/assets", staticFiles("public"));
+app.use("/assets", serveStatic("public"));
 
 app.listen(8000, (_err, info) => {
   console.log(`Running on port ${info.port}`);

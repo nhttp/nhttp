@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `

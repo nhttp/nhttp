@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 // @deno-types="npm:@types/react"
 import React from "npm:react";
 // @deno-types="npm:@types/react-dom/server"

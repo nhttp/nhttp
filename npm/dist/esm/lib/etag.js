@@ -114,10 +114,10 @@ const etag = (opts = {}) => {
     rev.send = (body, lose) => {
       if (body) {
         const { response, request } = rev;
-        if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob)) {
+        if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob || body instanceof Response)) {
           const nonMatch = request.headers.get("if-none-match");
           const type = response.header("content-type");
-          if (typeof body === "object" && !(body instanceof Uint8Array || body instanceof Response)) {
+          if (typeof body === "object" && !(body instanceof Uint8Array)) {
             try {
               body = JSON.stringify(body);
             } catch (_e) {
@@ -125,15 +125,11 @@ const etag = (opts = {}) => {
             if (!type)
               response.type(JSON_TYPE);
           }
-          const hash = entityTag(body instanceof Uint8Array ? body : encoder.encode(body), type ? "" + cHash(encoder.encode(type)) : "");
+          const hash = entityTag(body instanceof Uint8Array ? body : encoder.encode(body?.toString()), type ? "" + cHash(encoder.encode(type)) : "");
           const _etag = weak ? `W/${hash}` : hash;
           response.header("etag", _etag);
-          if (nonMatch && nonMatch == _etag) {
+          if (nonMatch && nonMatch === _etag) {
             response.status(304);
-            if (response.end) {
-              response.end();
-              return;
-            }
             return rev[s_response] = new Response(null, response.init);
           }
         }
@@ -161,7 +157,9 @@ async function getIo() {
   }
   return s_glob = {};
 }
+var etag_default = etag;
 export {
+  etag_default as default,
   etag,
   getContentType,
   sendFile

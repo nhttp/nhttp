@@ -2,34 +2,23 @@
 import { TRet } from "../index.ts";
 import { FetchHandler } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
-import { NodeResponse } from "./response.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
 
-async function sendStream(resWeb: NodeResponse, res: TRet) {
-  if (resWeb[s_body] instanceof ReadableStream) {
-    for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
-    res.end();
-    return;
-  }
-  const chunks = [];
-  for await (const chunk of resWeb.body as TRet) chunks.push(chunk);
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-  // @ts-ignore: Buffer for nodejs
-  const data = Buffer.concat(chunks);
-  if (
-    resWeb[s_body] instanceof FormData && !res.getHeader("Content-Type")
-  ) {
-    const type = `multipart/form-data;boundary=${
-      data.toString().split("\r")[0]
-    }`;
-    res.setHeader("Content-Type", type);
-  }
-  res.end(data);
-}
-function send(resWeb: NodeResponse, res: TRet) {
+async function handleRequest(handler: FetchHandler, req: TRet, res: TRet) {
+  const resWeb: TRet = await handler(
+    new NodeRequest(
+      `http://${req.headers.host}${req.url}`,
+      void 0,
+      { req, res },
+    ) as unknown as Request,
+  );
+  if (res.writableEnded) return;
   if (resWeb[s_init]) {
     if (resWeb[s_init].headers) {
-      if (resWeb[s_init].headers instanceof Headers) {
+      if (
+        resWeb[s_init].headers.get &&
+        typeof resWeb[s_init].headers.get === "function"
+      ) {
         (<Headers> resWeb[s_init].headers).forEach((val, key) => {
           res.setHeader(key, val);
         });
@@ -48,15 +37,31 @@ function send(resWeb: NodeResponse, res: TRet) {
   }
   if (
     typeof resWeb[s_body] === "string" ||
-    resWeb[s_body] instanceof Uint8Array ||
+    resWeb[s_body] === void 0 ||
     resWeb[s_body] === null ||
-    resWeb[s_body] === undefined
+    resWeb[s_body] instanceof Uint8Array
   ) {
     res.end(resWeb[s_body]);
   } else {
-    return sendStream(resWeb, res).catch((e) => {
-      throw e;
-    });
+    if (resWeb[s_body] instanceof ReadableStream) {
+      for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of resWeb.body as TRet) chunks.push(chunk);
+    /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+    // @ts-ignore: Buffer for nodejs
+    const data = Buffer.concat(chunks);
+    if (
+      resWeb[s_body] instanceof FormData && !res.getHeader("Content-Type")
+    ) {
+      const type = `multipart/form-data;boundary=${
+        data.toString().split("\r")[0]
+      }`;
+      res.setHeader("Content-Type", type);
+    }
+    res.end(data);
   }
 }
 export function serveNode(
@@ -68,23 +73,9 @@ export function serveNode(
   return createServer(
     config,
     (req: TRet, res: TRet) => {
-      const ret = handler(
-        new NodeRequest(
-          `http://${req.headers.host}${req.url}`,
-          void 0,
-          { req, res },
-        ) as unknown as Request,
-      );
-      if (ret instanceof Promise) {
-        return ret.then((data) => {
-          if (res.writableEnded) return;
-          return send(data as NodeResponse, res);
-        }).catch((e) => {
-          throw e;
-        });
-      }
-      if (res.writableEnded) return;
-      return send(ret as NodeResponse, res);
+      /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+      // @ts-ignore: immediate for nodejs
+      setImmediate(() => handleRequest(handler, req, res));
     },
   ).listen(port);
 }

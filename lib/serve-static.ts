@@ -42,3 +42,5 @@ export function serveStatic(dir: string, opts: StaticOptions = {}) {
     }
   };
 }
+
+export default serveStatic;

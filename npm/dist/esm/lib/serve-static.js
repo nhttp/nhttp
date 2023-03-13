@@ -41,7 +41,9 @@ function serveStatic(dir, opts = {}) {
     }
   };
 }
+var serve_static_default = serveStatic;
 export {
+  serve_static_default as default,
   sendFile,
   serveStatic
 };

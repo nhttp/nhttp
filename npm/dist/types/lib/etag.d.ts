@@ -11,3 +11,4 @@ export declare function sendFile(rev: RequestEvent, pathFile: string, opts?: TOp
 export declare const etag: (opts?: {
     weak?: boolean;
 }) => Handler;
+export default etag;

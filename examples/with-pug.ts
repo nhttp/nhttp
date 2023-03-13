@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 import pug from "npm:pug";
 
 const app = nhttp();

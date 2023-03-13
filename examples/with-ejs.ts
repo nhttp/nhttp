@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 import ejs from "npm:ejs";
 
 const app = nhttp();

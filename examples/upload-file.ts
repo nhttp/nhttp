@@ -1,4 +1,4 @@
-import { multipart, nhttp } from "../mod.ts";
+import nhttp, { multipart } from "../mod.ts";
 
 const app = nhttp();
 

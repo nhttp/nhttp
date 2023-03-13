@@ -40,3 +40,4 @@ export declare namespace nhttp {
     var Router: <Rev extends RequestEvent = RequestEvent>(opts?: TRouter) => Router<Rev>;
 }
 export * from "./src/index";
+export default nhttp;

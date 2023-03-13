@@ -1,4 +1,4 @@
-import { HttpError, nhttp } from "../mod.ts";
+import nhttp, { HttpError } from "../mod.ts";
 import { body, validationResult } from "npm:express-validator";
 
 const app = nhttp({ bodyParser: true });

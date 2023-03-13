@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 import { configure, renderFile } from "https://deno.land/x/eta@v2.0.1/mod.ts";
 
 const app = nhttp();

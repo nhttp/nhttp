@@ -7,4 +7,4 @@ interface StaticOptions extends TOptsSendFile {
 }
 export declare const sendFile: typeof sendFileEtag;
 export declare function serveStatic(dir: string, opts?: StaticOptions): (rev: RequestEvent, next: NextFunction) => Promise<any>;
-export {};
+export default serveStatic;

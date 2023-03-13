@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 import helmet from "npm:helmet";
 
 const app = nhttp();

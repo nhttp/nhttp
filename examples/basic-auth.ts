@@ -1,4 +1,4 @@
-import { Handler, HttpError, nhttp } from "../mod.ts";
+import nhttp, { Handler, HttpError } from "../mod.ts";
 
 // username: admin
 // password: admin

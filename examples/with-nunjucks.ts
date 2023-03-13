@@ -1,4 +1,4 @@
-import { nhttp } from "../mod.ts";
+import nhttp from "../mod.ts";
 import njk from "npm:nunjucks";
 
 const app = nhttp();

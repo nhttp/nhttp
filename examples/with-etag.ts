@@ -1,5 +1,5 @@
-import { nhttp } from "../mod.ts";
-import { etag } from "../lib/etag.ts";
+import nhttp from "../mod.ts";
+import etag from "../lib/etag.ts";
 
 const app = nhttp();
 

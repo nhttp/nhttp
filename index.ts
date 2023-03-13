@@ -141,3 +141,5 @@ nhttp.Router = function <Rev extends RequestEvent = RequestEvent>(
   return new Router<Rev>(opts);
 };
 export * from "./src/index.ts";
+
+export default nhttp;

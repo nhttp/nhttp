@@ -1,11 +1,10 @@
 /** @jsx n */
 /** @jsxFrag  n.Fragment */
 
-import { nhttp } from "../../mod.ts";
 import About from "./components/about.tsx";
 import Contact from "./components/contact.tsx";
 import Home from "./components/home.tsx";
-import { n, renderToHtml } from "./deps.ts";
+import { n, nhttp, renderToHtml } from "./deps.ts";
 
 const app = nhttp();
 

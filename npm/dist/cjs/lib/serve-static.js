@@ -22,6 +22,7 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 var serve_static_exports = {};
 __export(serve_static_exports, {
+  default: () => serve_static_default,
   sendFile: () => sendFile,
   serveStatic: () => serveStatic
 });
@@ -68,6 +69,7 @@ function serveStatic(dir, opts = {}) {
     }
   };
 }
+var serve_static_default = serveStatic;
 module.exports = __toCommonJS(serve_static_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

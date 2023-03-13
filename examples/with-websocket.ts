@@ -1,6 +1,6 @@
 /* Simple realtime ChatApps */
 
-import { Handler, HttpError, nhttp } from "../mod.ts";
+import nhttp, { Handler, HttpError } from "../mod.ts";
 
 // deno-fmt-ignore
 const html = `

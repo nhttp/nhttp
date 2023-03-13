@@ -919,8 +919,8 @@ var s_init = Symbol("res_init");
 // npm/src/src/http_response.ts
 var TYPE = "content-type";
 var HttpResponse = class {
-  constructor(send2, init) {
-    this.send = send2;
+  constructor(send, init) {
+    this.send = send;
     this.init = init;
   }
   setHeader(key, value) {
@@ -1386,7 +1386,7 @@ var NHttp = class extends Router {
   engine(render, opts = {}) {
     this.use((rev, next) => {
       if (render.directly) {
-        const send2 = rev.send.bind(rev);
+        const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
           if (typeof body === "string") {
             rev[s_init] ??= {};
@@ -1394,7 +1394,7 @@ var NHttp = class extends Router {
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
             rev[s_response] = new Response(render(body), rev[s_init]);
           } else {
-            send2(body, lose);
+            send(body, lose);
           }
         };
       }
@@ -1729,27 +1729,13 @@ var NodeRequest = class {
 };
 
 // npm/src/node/index.ts
-async function sendStream(resWeb, res) {
-  if (resWeb[s_body2] instanceof ReadableStream) {
-    for await (const chunk of resWeb[s_body2])
-      res.write(chunk);
-    res.end();
+async function handleRequest(handler, req, res) {
+  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  if (res.writableEnded)
     return;
-  }
-  const chunks = [];
-  for await (const chunk of resWeb.body)
-    chunks.push(chunk);
-  const data = Buffer.concat(chunks);
-  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
-    const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-    res.setHeader("Content-Type", type);
-  }
-  res.end(data);
-}
-function send(resWeb, res) {
   if (resWeb[s_init2]) {
     if (resWeb[s_init2].headers) {
-      if (resWeb[s_init2].headers instanceof Headers) {
+      if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
         resWeb[s_init2].headers.forEach((val, key) => {
           res.setHeader(key, val);
         });
@@ -1767,30 +1753,30 @@ function send(resWeb, res) {
       res.setHeader(key, val);
     });
   }
-  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] instanceof Uint8Array || resWeb[s_body2] === null || resWeb[s_body2] === void 0) {
+  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
     res.end(resWeb[s_body2]);
   } else {
-    return sendStream(resWeb, res).catch((e) => {
-      throw e;
-    });
+    if (resWeb[s_body2] instanceof ReadableStream) {
+      for await (const chunk of resWeb[s_body2])
+        res.write(chunk);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of resWeb.body)
+      chunks.push(chunk);
+    const data = Buffer.concat(chunks);
+    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+      res.setHeader("Content-Type", type);
+    }
+    res.end(data);
   }
 }
 function serveNode(handler, createServer, config = {}) {
   const port = config.port ?? 3e3;
   return createServer(config, (req, res) => {
-    const ret = handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
-    if (ret instanceof Promise) {
-      return ret.then((data) => {
-        if (res.writableEnded)
-          return;
-        return send(data, res);
-      }).catch((e) => {
-        throw e;
-      });
-    }
-    if (res.writableEnded)
-      return;
-    return send(ret, res);
+    setImmediate(() => handleRequest(handler, req, res));
   }).listen(port);
 }
 
@@ -1996,6 +1982,7 @@ function nhttp2(opts = {}) {
 nhttp2.Router = function(opts = {}) {
   return new Router(opts);
 };
+var src_default = nhttp2;
 export {
   HttpError,
   HttpResponse,
@@ -2007,6 +1994,7 @@ export {
   bodyParser,
   decURIComponent,
   decoder,
+  src_default as default,
   expressMiddleware,
   findFns,
   getError,
