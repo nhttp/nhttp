@@ -9,10 +9,7 @@ function serveStatic(dir, opts = {}) {
   const index = opts.redirect ? opts.index : "";
   return async (rev, next) => {
     if (rev.method !== "GET" && rev.method !== "HEAD") {
-      return new Response(null, {
-        status: 405,
-        headers: { "Allow": "GET, HEAD" }
-      });
+      return next();
     }
     try {
       let pathFile = dir + rev.path;
