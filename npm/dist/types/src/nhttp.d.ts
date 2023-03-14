@@ -28,7 +28,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * })
      */
     on404(fn: (rev: Rev, next: NextFunction) => RetHandler): this;
-    on<T>(method: string, path: string | RegExp, ...handlers: Handlers<Rev & T>): this;
+    on<T extends unknown = unknown>(method: string, path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
     /**
      * engine - add template engine.
      * @example
@@ -41,7 +41,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     engine(render: ((...args: TRet) => TRet) & {
         directly?: boolean;
     }, opts?: EngineOptions): void;
-    matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
+    matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev, unknown>[];
     /**
      * handle
      * @example

@@ -1,5 +1,8 @@
 import { RequestEvent } from "./request_event";
 import Router from "./router";
+type Merge<A, B> = {
+    [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
+};
 export type TRet = any;
 export type TObject = {
     [k: string]: TRet;
@@ -7,8 +10,8 @@ export type TObject = {
 export type TSendBody = string | Response | ReadableStream | Blob | TObject | null | number;
 export type NextFunction = (err?: Error) => Promise<Response>;
 export type RetHandler = Promise<void | string | TObject> | void | string | TObject;
-export type Handler<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction, ...args: TRet) => RetHandler;
-export type Handlers<Rev extends RequestEvent = RequestEvent> = Array<Handler<Rev> | Handler<Rev>[]>;
+export type Handler<Rev extends RequestEvent = RequestEvent, T extends unknown = unknown> = (rev: Merge<Rev, T>, next: NextFunction, ...args: TRet) => RetHandler;
+export type Handlers<Rev extends RequestEvent = RequestEvent, T extends unknown = unknown> = Array<Handler<Rev, T> | Handler<Rev, T>[]>;
 export type TValidBody = number | string | false | undefined;
 export type TBodyParser = {
     json?: TValidBody;
@@ -107,7 +110,7 @@ export type TApp = {
     stackError?: boolean;
 };
 export type FetchEvent = TRet;
-export type RouterOrWare<Rev extends RequestEvent = RequestEvent> = Handler<Rev> | Handler<Rev>[] | Router<Rev> | Router<Rev>[] | TObject | TObject[];
+export type RouterOrWare<Rev extends RequestEvent = RequestEvent, T extends unknown = unknown> = Handler<Rev, T> | Handler<Rev, T>[] | Router<Rev> | Router<Rev>[] | TObject | TObject[];
 export type FetchHandler = (request: Request, ...args: TRet) => Response | Promise<Response>;
 export type ListenOptions = {
     port: number;
@@ -141,3 +144,4 @@ export type MatchRoute = {
     pattern: RegExp;
     wild: boolean;
 };
+export {};

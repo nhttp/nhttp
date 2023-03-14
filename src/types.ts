@@ -2,6 +2,13 @@
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
 
+type Merge<A, B> = {
+  [K in keyof (A & B)]: (
+    K extends keyof B ? B[K]
+      : (K extends keyof A ? A[K] : never)
+  );
+};
+
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export type TRet = any;
 export type TObject = { [k: string]: TRet };
@@ -23,15 +30,17 @@ export type RetHandler =
   | TObject;
 export type Handler<
   Rev extends RequestEvent = RequestEvent,
+  T extends unknown = unknown,
 > = (
-  rev: Rev,
+  rev: Merge<Rev, T>,
   next: NextFunction,
   ...args: TRet
 ) => RetHandler;
 
 export type Handlers<
   Rev extends RequestEvent = RequestEvent,
-> = Array<Handler<Rev> | Handler<Rev>[]>;
+  T extends unknown = unknown,
+> = Array<Handler<Rev, T> | Handler<Rev, T>[]>;
 
 export type TValidBody = number | string | false | undefined;
 
@@ -137,9 +146,10 @@ export type FetchEvent = TRet;
 
 export type RouterOrWare<
   Rev extends RequestEvent = RequestEvent,
+  T extends unknown = unknown,
 > =
-  | Handler<Rev>
-  | Handler<Rev>[]
+  | Handler<Rev, T>
+  | Handler<Rev, T>[]
   | Router<Rev>
   | Router<Rev>[]
   | TObject

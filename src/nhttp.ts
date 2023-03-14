@@ -160,10 +160,10 @@ export class NHttp<
     };
     return this;
   }
-  on<T>(
+  on<T extends unknown = unknown>(
     method: string,
     path: string | RegExp,
-    ...handlers: Handlers<Rev & T>
+    ...handlers: Handlers<Rev, T>
   ): this {
     let fns = findFns<Rev>(handlers);
     if (typeof path === "string") {
