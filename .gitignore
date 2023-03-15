@@ -14,6 +14,7 @@ backup_api.txt
 /bun.lockb
 node_modules
 .vscode
+eggs-debug.log
 *.lcov
 cov_profile
 .eslintrc.json

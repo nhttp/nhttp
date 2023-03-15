@@ -72,6 +72,10 @@ function n(type, props, ...args) {
     children.forEach((child) => {
       if (typeof child === "string")
         str += child;
+      else if (Array.isArray(child))
+        str += child.join("");
+      else
+        str += String(child);
     });
   }
   return str += type ? `</${type}>` : "";

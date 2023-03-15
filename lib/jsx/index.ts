@@ -3,6 +3,7 @@ type TRet = any;
 const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
+    // @ts-ignore: elem
     type Element = TRet;
     interface IntrinsicElements {
       // @ts-ignore: just any elem
@@ -80,6 +81,8 @@ export function n(
   } else {
     children.forEach((child) => {
       if (typeof child === "string") str += child;
+      else if (Array.isArray(child)) str += child.join("");
+      else str += String(child);
     });
   }
   return (str += type ? `</${type}>` : "");
