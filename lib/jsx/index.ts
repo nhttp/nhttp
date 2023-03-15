@@ -82,14 +82,16 @@ export function n(
     children.forEach((child) => {
       if (typeof child === "string") str += child;
       else if (Array.isArray(child)) str += child.join("");
-      else str += String(child);
     });
   }
   return (str += type ? `</${type}>` : "");
 }
-
+export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
+  return n(type, props, ...args);
+}
 export const Fragment: FC = ({ children }) => children;
 n.Fragment = Fragment;
+h.Fragment = Fragment;
 type FCHelmet = ((props: TRet) => TRet) & {
   head?: () => string[];
   body?: () => string[];

@@ -15,6 +15,10 @@ export declare function n(type: TRet, props: TRet | undefined | null, ...args: T
 export declare namespace n {
     var Fragment: FC<unknown>;
 }
+export declare function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
+export declare namespace h {
+    var Fragment: FC<unknown>;
+}
 export declare const Fragment: FC;
 type FCHelmet = ((props: TRet) => TRet) & {
     head?: () => string[];

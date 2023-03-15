@@ -24,6 +24,7 @@ var jsx_exports = {};
 __export(jsx_exports, {
   Fragment: () => Fragment,
   Helmet: () => Helmet,
+  h: () => h,
   n: () => n,
   renderToHtml: () => renderToHtml,
   renderToString: () => renderToString
@@ -74,14 +75,16 @@ function n(type, props, ...args) {
         str += child;
       else if (Array.isArray(child))
         str += child.join("");
-      else
-        str += String(child);
     });
   }
   return str += type ? `</${type}>` : "";
 }
+function h(type, props, ...args) {
+  return n(type, props, ...args);
+}
 const Fragment = ({ children }) => children;
 n.Fragment = Fragment;
+h.Fragment = Fragment;
 function toHelmet(olds, childs) {
   const idx = olds.findIndex((el) => el.startsWith("<title>"));
   const latest = childs.map((item) => {
@@ -146,6 +149,7 @@ module.exports = __toCommonJS(jsx_exports);
 0 && (module.exports = {
   Fragment,
   Helmet,
+  h,
   n,
   renderToHtml,
   renderToString

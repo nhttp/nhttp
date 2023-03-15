@@ -44,14 +44,16 @@ function n(type, props, ...args) {
         str += child;
       else if (Array.isArray(child))
         str += child.join("");
-      else
-        str += String(child);
     });
   }
   return str += type ? `</${type}>` : "";
 }
+function h(type, props, ...args) {
+  return n(type, props, ...args);
+}
 const Fragment = ({ children }) => children;
 n.Fragment = Fragment;
+h.Fragment = Fragment;
 function toHelmet(olds, childs) {
   const idx = olds.findIndex((el) => el.startsWith("<title>"));
   const latest = childs.map((item) => {
@@ -114,6 +116,7 @@ renderToHtml.directly = true;
 export {
   Fragment,
   Helmet,
+  h,
   n,
   renderToHtml,
   renderToString
