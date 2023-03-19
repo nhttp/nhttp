@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-explicit-any
+// deno-lint-ignore-file no-explicit-any ban-types
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
 
@@ -10,7 +10,7 @@ export type Merge<A, B> = {
 };
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export type TRet = any;
-// deno-lint-ignore ban-types
+/* eslint-disable  @typescript-eslint/ban-types */
 export type EObject = {};
 export type TObject = { [k: string]: TRet };
 export type TSendBody =
