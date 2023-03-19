@@ -1,5 +1,5 @@
 import { RequestEvent } from "./request_event";
-import { Cookie, Handler, TObject, TRet } from "./types";
+import { Cookie, Handler, RetHandler, TObject, TRet } from "./types";
 export declare const encoder: TextEncoder;
 export declare const decoder: TextDecoder;
 type EArr = [string, string | TObject];
@@ -40,9 +40,10 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
  * ]));
  */
 export declare function expressMiddleware(...middlewares: TRet): TRet;
-export declare function middAssets(str: string): Handler<RequestEvent, unknown>[];
+export declare function middAssets(str: string): Handler<import("./types").EObject, RequestEvent>[];
 export declare function pushRoutes(str: string, wares: Handler[], last: TObject, base: TObject): void;
 export declare const getUrl: (s: string) => string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;
 export declare function getReqCookies(headers: TObject, decode?: boolean, i?: number): Record<string, string>;
+export declare const defError: (err: TObject, rev: RequestEvent, stack: boolean) => RetHandler;
 export {};

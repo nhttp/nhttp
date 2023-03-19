@@ -27,6 +27,7 @@ type FCHelmet = ((props: TRet) => TRet) & {
     bodyAttr?: () => string;
 };
 export declare const Helmet: FCHelmet;
+export declare const resetHelmet: () => void;
 export declare const renderToString: (elem: JSX.Element) => string;
 export declare const renderToHtml: {
     (elem: JSX.Element): string;

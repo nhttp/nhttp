@@ -1,17 +1,16 @@
 import { validateOrReject } from "class-validator";
 import { HttpError } from "./deps.js";
 import { joinHandlers } from "./controller.js";
-export * from "class-validator";
-function validate(cls, opts = {}) {
+function validate(cls, opts = {}, target = "body") {
   return async (rev, next) => {
     try {
       let obj;
       if (opts.plainToClass) {
-        obj = opts.plainToClass(cls, rev.body);
+        obj = opts.plainToClass(cls, rev[target]);
         delete opts.plainToClass;
       } else {
         obj = new cls();
-        Object.assign(obj, rev.body);
+        Object.assign(obj, rev[target]);
       }
       await validateOrReject(obj, opts);
     } catch (error) {
@@ -20,14 +19,17 @@ function validate(cls, opts = {}) {
     return next();
   };
 }
-function Validate(cls, opts = {}) {
-  return (target, prop, des) => {
-    const className = target.constructor.name;
-    joinHandlers(className, prop, [validate(cls, opts)]);
+function Validate(cls, opts = {}, target = "body") {
+  return (tgt, prop, des) => {
+    const className = tgt.constructor.name;
+    joinHandlers(className, prop, [validate(cls, opts, target)]);
     return des;
   };
 }
+export * from "class-validator";
+var class_validator_default = validate;
 export {
   Validate,
+  class_validator_default as default,
   validate
 };

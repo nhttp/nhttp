@@ -20,45 +20,38 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
     return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
   };
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
-var class_validator_exports = {};
-__export(class_validator_exports, {
+var zod_validator_exports = {};
+__export(zod_validator_exports, {
   Validate: () => Validate,
-  default: () => class_validator_default,
-  validate: () => validate
+  default: () => zod_validator_default,
+  validate: () => validate,
+  z: () => import_zod.z
 });
-var import_class_validator = require("class-validator");
-var import_deps = require("./deps");
+var import_zod = require("zod");
 var import_controller = require("./controller");
-__reExport(class_validator_exports, require("class-validator"));
-function validate(cls, opts = {}, target = "body") {
-  return async (rev, next) => {
+var import_deps = require("./deps");
+function validate(schema, target = "body") {
+  return (rev, next) => {
     try {
-      let obj;
-      if (opts.plainToClass) {
-        obj = opts.plainToClass(cls, rev[target]);
-        delete opts.plainToClass;
-      } else {
-        obj = new cls();
-        Object.assign(obj, rev[target]);
-      }
-      await (0, import_class_validator.validateOrReject)(obj, opts);
-    } catch (error) {
-      throw new import_deps.HttpError(422, error);
+      schema.parse(rev[target]);
+      return next();
+    } catch (e) {
+      throw new import_deps.HttpError(422, e.errors);
     }
-    return next();
   };
 }
-function Validate(cls, opts = {}, target = "body") {
+function Validate(schema, target = "body") {
   return (tgt, prop, des) => {
     const className = tgt.constructor.name;
-    (0, import_controller.joinHandlers)(className, prop, [validate(cls, opts, target)]);
+    (0, import_controller.joinHandlers)(className, prop, [validate(schema, target)]);
     return des;
   };
 }
-var class_validator_default = validate;
-module.exports = __toCommonJS(class_validator_exports);
+var zod_validator_default = validate;
+module.exports = __toCommonJS(zod_validator_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Validate,
-  validate
+  validate,
+  z
 });

@@ -27,7 +27,8 @@ __export(jsx_exports, {
   h: () => h,
   n: () => n,
   renderToHtml: () => renderToHtml,
-  renderToString: () => renderToString
+  renderToString: () => renderToString,
+  resetHelmet: () => resetHelmet
 });
 const dangerHTML = "dangerouslySetInnerHTML";
 const emreg = /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/;
@@ -152,5 +153,6 @@ module.exports = __toCommonJS(jsx_exports);
   h,
   n,
   renderToHtml,
-  renderToString
+  renderToString,
+  resetHelmet
 });

@@ -14,9 +14,12 @@ declare global {
 import { NHttp as BaseApp } from "./src/nhttp";
 import { RequestEvent, TApp, TRet } from "./src/index";
 import Router, { TRouter } from "./src/router";
+import { serveNode } from "./node/index";
 import { TMultipartUpload } from "./src/multipart";
+import { ListenOptions } from "./src/types";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends BaseApp<Rev> {
     constructor(opts?: TApp);
+    module<Opts extends ListenOptions = ListenOptions>(opts?: Opts): TRet;
 }
 export declare const multipart: {
     createBody: (formData: FormData, { parse }?: {
@@ -33,11 +36,12 @@ export declare const multipart: {
      *    return "success upload";
      * });
      */
-    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler<RequestEvent, unknown>;
+    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler<import("./src/types").EObject, RequestEvent>;
 };
 export declare function nhttp<Rev extends RequestEvent = RequestEvent>(opts?: TApp): NHttp<Rev>;
 export declare namespace nhttp {
     var Router: <Rev extends RequestEvent = RequestEvent>(opts?: TRouter) => Router<Rev>;
 }
+export { serveNode };
 export * from "./src/index";
 export default nhttp;

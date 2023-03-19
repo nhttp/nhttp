@@ -1,3 +1,4 @@
 import { TRet } from "../index";
-import { FetchHandler } from "../src/types";
-export declare function serveNode(handler: FetchHandler, createServer: TRet, config?: TRet): any;
+import { FetchHandler, ListenOptions } from "../src/types";
+export declare function handleNode(handler: FetchHandler, req: TRet, res: TRet): Promise<void>;
+export declare function serveNode(handler: FetchHandler, opts?: ListenOptions): Promise<any>;

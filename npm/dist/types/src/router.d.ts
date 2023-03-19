@@ -24,72 +24,72 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.use(...middlewares);
      * app.use('/api/v1', routers);
      */
-    use<T extends unknown = unknown>(prefix: string | RouterOrWare<Rev, T> | RouterOrWare<Rev, T>[], ...routerOrMiddleware: Array<RouterOrWare<Rev, T> | RouterOrWare<Rev, T>[]>): this;
+    use<T extends unknown = unknown>(prefix: string | RouterOrWare<T, Rev> | RouterOrWare<T, Rev>[], ...routerOrMiddleware: Array<RouterOrWare<T, Rev> | RouterOrWare<T, Rev>[]>): this;
     /**
      * build handlers (app or router)
      * @example
      * app.on("GET", "/", ...handlers);
      */
-    on<T extends unknown = unknown>(method: string, path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    on<T extends unknown = unknown>(method: string, path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method GET (app or router)
      * @example
      * app.get("/", ...handlers);
      */
-    get<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    get<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method POST (app or router)
      * @example
      * app.post("/", ...handlers);
      */
-    post<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    post<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method PUT (app or router)
      * @example
      * app.put("/", ...handlers);
      */
-    put<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    put<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method PATCH (app or router)
      * @example
      * app.patch("/", ...handlers);
      */
-    patch<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    patch<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method DELETE (app or router)
      * @example
      * app.delete("/", ...handlers);
      */
-    delete<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    delete<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method ANY (allow all method directly) (app or router)
      * @example
      * app.any("/", ...handlers);
      */
-    any<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    any<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method HEAD (app or router)
      * @example
      * app.head("/", ...handlers);
      */
-    head<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    head<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method OPTIONS (app or router)
      * @example
      * app.options("/", ...handlers);
      */
-    options<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    options<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method TRACE (app or router)
      * @example
      * app.trace("/", ...handlers);
      */
-    trace<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    trace<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method CONNECT (app or router)
      * @example
      * app.connect("/", ...handlers);
      */
-    connect<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<Rev, T>): this;
+    connect<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     find(method: string, path: string, setParam: (obj: TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
 }

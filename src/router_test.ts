@@ -26,6 +26,7 @@ Deno.test("router", async (t) => {
     router.trace("/", () => {});
     router.delete("/", () => {});
     router.get("/hello", (rev) => {
+      assertEquals(rev.__prefix, "/hello");
       assertEquals(rev.url, rev.__url);
       assertEquals(rev.path, rev.__path);
       return new Response("hello");

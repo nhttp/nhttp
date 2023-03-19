@@ -2,15 +2,16 @@
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
 
-type Merge<A, B> = {
+export type Merge<A, B> = {
   [K in keyof (A & B)]: (
     K extends keyof B ? B[K]
       : (K extends keyof A ? A[K] : never)
   );
 };
-
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export type TRet = any;
+// deno-lint-ignore ban-types
+export type EObject = {};
 export type TObject = { [k: string]: TRet };
 export type TSendBody =
   | string
@@ -29,8 +30,8 @@ export type RetHandler =
   | string
   | TObject;
 export type Handler<
+  T = EObject,
   Rev extends RequestEvent = RequestEvent,
-  T extends unknown = unknown,
 > = (
   rev: Merge<Rev, T>,
   next: NextFunction,
@@ -38,9 +39,9 @@ export type Handler<
 ) => RetHandler;
 
 export type Handlers<
+  T = EObject,
   Rev extends RequestEvent = RequestEvent,
-  T extends unknown = unknown,
-> = Array<Handler<Rev, T> | Handler<Rev, T>[]>;
+> = Array<Handler<T, Rev> | Handler<T, Rev>[]>;
 
 export type TValidBody = number | string | false | undefined;
 
@@ -145,11 +146,11 @@ export type TApp = {
 export type FetchEvent = TRet;
 
 export type RouterOrWare<
-  Rev extends RequestEvent = RequestEvent,
   T extends unknown = unknown,
+  Rev extends RequestEvent = RequestEvent,
 > =
-  | Handler<Rev, T>
-  | Handler<Rev, T>[]
+  | Handler<T, Rev>
+  | Handler<T, Rev>[]
   | Router<Rev>
   | Router<Rev>[]
   | TObject
@@ -162,6 +163,7 @@ export type FetchHandler = (
 
 export type ListenOptions = {
   port: number;
+  fetch?: FetchHandler;
   hostname?: string;
   key?: string;
   cert?: string;

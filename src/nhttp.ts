@@ -15,6 +15,7 @@ import {
 } from "./types.ts";
 import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
+  defError,
   findFns,
   getUrl,
   parseQuery as parseQueryOri,
@@ -28,15 +29,6 @@ import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
 
-const defError = (
-  err: TObject,
-  rev: RequestEvent,
-  stack: boolean,
-): RetHandler => {
-  const obj = getError(err, stack);
-  rev.response.status(obj.status);
-  return obj;
-};
 const awaiter = (rev: RequestEvent) => {
   return (async (t, d) => {
     while (rev[s_response] === void 0) {
@@ -163,7 +155,7 @@ export class NHttp<
   on<T extends unknown = unknown>(
     method: string,
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
+    ...handlers: Handlers<T, Rev>
   ): this {
     let fns = findFns<Rev>(handlers);
     if (typeof path === "string") {

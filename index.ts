@@ -16,6 +16,7 @@ import { serveNode } from "./node/index.ts";
 import { NodeResponse } from "./node/response.ts";
 import { NodeRequest } from "./node/request.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
+import { ListenOptions } from "./src/types.ts";
 
 function shimNodeRequest() {
   if (!globalThis.NativeResponse) {
@@ -37,11 +38,10 @@ export class NHttp<
       if (typeof Deno !== "undefined") {
         return oriListen(opts, callback);
       }
-      let isTls = false, handler = this.handle;
+      let handler = this.handle;
       if (typeof opts === "number") {
         opts = { port: opts };
       } else if (typeof opts === "object") {
-        isTls = opts.certFile !== void 0 || opts.cert !== void 0;
         if (opts.handler) handler = opts.handler;
       }
       const runCallback = (err?: Error) => {
@@ -59,7 +59,7 @@ export class NHttp<
             try {
               this.server?.close?.();
               this.server?.stop?.();
-            } catch (_e) { /* noop */ }
+            } catch { /* noop */ }
           }, { once: true });
         }
         // @ts-ignore
@@ -75,22 +75,20 @@ export class NHttp<
           return;
         }
         shimNodeRequest();
-        if (isTls) {
-          // @ts-ignore
-          const h = await import("node:https");
-          this.server = serveNode(handler, h.createServerTls, opts);
-          runCallback();
-          return;
-        }
-        // @ts-ignore
-        const h = await import("node:http");
-        this.server = serveNode(handler, h.createServer, opts);
+        this.server = await serveNode(handler, opts);
         runCallback();
         return;
       } catch (error) {
         runCallback(error);
       }
     };
+  }
+
+  module<Opts extends ListenOptions = ListenOptions>(
+    opts: Opts = <TRet> {},
+  ): TRet {
+    opts.fetch ??= this.handle;
+    return opts;
   }
 }
 let fs_glob: TRet;
@@ -140,6 +138,7 @@ nhttp.Router = function <Rev extends RequestEvent = RequestEvent>(
 ) {
   return new Router<Rev>(opts);
 };
+export { serveNode };
 export * from "./src/index.ts";
 
 export default nhttp;

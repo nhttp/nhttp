@@ -129,13 +129,13 @@ export const Helmet: FCHelmet = ({ h_children, body }) => {
   return null;
 };
 const tt = "\n\t";
-const resetHelmet = () => {
+export const resetHelmet = () => {
   Helmet.head = void 0;
   Helmet.body = void 0;
   Helmet.htmlAttr = void 0;
   Helmet.bodyAttr = void 0;
 };
-export const renderToString = (elem: JSX.Element): string => elem;
+export const renderToString = (elem: JSX.Element): string => <TRet> elem;
 export const renderToHtml = (elem: JSX.Element) => {
   const head = Helmet.head?.();
   const body = Helmet.body?.();

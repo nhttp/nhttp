@@ -1,8 +1,10 @@
+import { getError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
   Cookie,
   Handler,
   NextFunction,
+  RetHandler,
   TObject,
   TRet,
   TSizeList,
@@ -225,6 +227,7 @@ export function middAssets(str: string) {
   return [
     ((rev, next) => {
       if (str !== "/" && rev.path.startsWith(str)) {
+        rev.__prefix = str;
         rev.__url = rev.url;
         rev.__path = rev.path;
         rev.url = rev.url.substring(str.length) || "/";
@@ -355,3 +358,13 @@ export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
   }
   return ret;
 }
+
+export const defError = (
+  err: TObject,
+  rev: RequestEvent,
+  stack: boolean,
+): RetHandler => {
+  const obj = getError(err, stack);
+  rev.response.status(obj.status);
+  return obj;
+};

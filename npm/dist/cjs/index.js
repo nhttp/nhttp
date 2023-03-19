@@ -47,6 +47,7 @@ __export(src_exports, {
   nhttp: () => nhttp2,
   parseQuery: () => parseQuery,
   s_response: () => s_response,
+  serveNode: () => serveNode,
   toBytes: () => toBytes
 });
 
@@ -178,6 +179,36 @@ var revMimeList = (name) => {
     cc[MIME_LIST[k]] = k;
   return cc[name] ?? name;
 };
+
+// npm/src/src/error.ts
+var HttpError = class extends Error {
+  constructor(status, message, name) {
+    super(message);
+    this.status = status ?? 500;
+    this.message = message ?? STATUS_ERROR_LIST[this.status] ?? "Http Error";
+    this.name = name ?? (STATUS_ERROR_LIST[this.status] ?? "Http").replace(/\s/g, "");
+    if (!name && !this.name.endsWith("Error")) {
+      this.name += "Error";
+    }
+  }
+};
+function getError(err, isStack) {
+  let status = err.status ?? err.statusCode ?? err.code ?? 500;
+  if (typeof status !== "number")
+    status = 500;
+  let stack;
+  if (isStack) {
+    const arr = err.stack?.split("\n") ?? [""];
+    arr.shift();
+    stack = arr.filter((l) => l.includes("file://")).map((l) => l.trim());
+  }
+  return {
+    status,
+    message: err.message ?? "Something went wrong",
+    name: err.name ?? "HttpError",
+    stack
+  };
+}
 
 // npm/src/src/utils.ts
 var encoder = new TextEncoder();
@@ -362,6 +393,7 @@ function middAssets(str) {
   return [
     (rev, next) => {
       if (str !== "/" && rev.path.startsWith(str)) {
+        rev.__prefix = str;
         rev.__url = rev.url;
         rev.__path = rev.path;
         rev.url = rev.url.substring(str.length) || "/";
@@ -480,6 +512,11 @@ function getReqCookies(headers, decode, i = 0) {
   }
   return ret;
 }
+var defError = (err, rev, stack) => {
+  const obj = getError(err, stack);
+  rev.response.status(obj.status);
+  return obj;
+};
 
 // npm/src/src/router.ts
 function findParams(el, url) {
@@ -645,36 +682,6 @@ var Router = class {
     return this.midds.concat([notFound]);
   }
 };
-
-// npm/src/src/error.ts
-var HttpError = class extends Error {
-  constructor(status, message, name) {
-    super(message);
-    this.status = status ?? 500;
-    this.message = message ?? STATUS_ERROR_LIST[this.status] ?? "Http Error";
-    this.name = name ?? (STATUS_ERROR_LIST[this.status] ?? "Http").replace(/\s/g, "");
-    if (!name && !this.name.endsWith("Error")) {
-      this.name += "Error";
-    }
-  }
-};
-function getError(err, isStack) {
-  let status = err.status ?? err.statusCode ?? err.code ?? 500;
-  if (typeof status !== "number")
-    status = 500;
-  let stack;
-  if (isStack) {
-    const arr = err.stack?.split("\n") ?? [""];
-    arr.shift();
-    stack = arr.filter((l) => l.includes("file://")).map((l) => l.trim());
-  }
-  return {
-    status,
-    message: err.message ?? "Something went wrong",
-    name: err.name ?? "HttpError",
-    stack
-  };
-}
 
 // npm/src/src/multipart.ts
 var uid = () => `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`.replace(".", "");
@@ -1279,11 +1286,6 @@ function createRequest(handle, url, init = {}) {
 }
 
 // npm/src/src/nhttp.ts
-var defError = (err, rev, stack) => {
-  const obj = getError(err, stack);
-  rev.response.status(obj.status);
-  return obj;
-};
 var awaiter = (rev) => {
   return (async (t, d) => {
     while (rev[s_response] === void 0) {
@@ -1781,7 +1783,7 @@ var NodeRequest = class {
 };
 
 // npm/src/node/index.ts
-async function handleRequest(handler, req, res) {
+async function handleNode(handler, req, res) {
   const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
   if (res.writableEnded)
     return;
@@ -1825,10 +1827,18 @@ async function handleRequest(handler, req, res) {
     res.end(data);
   }
 }
-function serveNode(handler, createServer, config = {}) {
-  const port = config.port ?? 3e3;
-  return createServer(config, (req, res) => {
-    setImmediate(() => handleRequest(handler, req, res));
+async function serveNode(handler, opts = {
+  port: 3e3
+}) {
+  const port = opts.port;
+  const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
+  let server;
+  if (isSecure)
+    server = await import("node:https");
+  else
+    server = await import("node:http");
+  return server.createServer(opts, (req, res) => {
+    setImmediate(() => handleNode(handler, req, res));
   }).listen(port);
 }
 
@@ -1947,11 +1957,10 @@ var NHttp2 = class extends NHttp {
       if (typeof Deno !== "undefined") {
         return oriListen(opts2, callback);
       }
-      let isTls = false, handler = this.handle;
+      let handler = this.handle;
       if (typeof opts2 === "number") {
         opts2 = { port: opts2 };
       } else if (typeof opts2 === "object") {
-        isTls = opts2.certFile !== void 0 || opts2.cert !== void 0;
         if (opts2.handler)
           handler = opts2.handler;
       }
@@ -1970,7 +1979,7 @@ var NHttp2 = class extends NHttp {
             try {
               this.server?.close?.();
               this.server?.stop?.();
-            } catch (_e) {
+            } catch {
             }
           }, { once: true });
         }
@@ -1985,20 +1994,17 @@ var NHttp2 = class extends NHttp {
           return;
         }
         shimNodeRequest();
-        if (isTls) {
-          const h2 = await import("node:https");
-          this.server = serveNode(handler, h2.createServerTls, opts2);
-          runCallback();
-          return;
-        }
-        const h = await import("node:http");
-        this.server = serveNode(handler, h.createServer, opts2);
+        this.server = await serveNode(handler, opts2);
         runCallback();
         return;
       } catch (error) {
         runCallback(error);
       }
     };
+  }
+  module(opts = {}) {
+    opts.fetch ??= this.handle;
+    return opts;
   }
 };
 var fs_glob;
@@ -2055,5 +2061,6 @@ module.exports = __toCommonJS(src_exports);
   nhttp,
   parseQuery,
   s_response,
+  serveNode,
   toBytes
 });

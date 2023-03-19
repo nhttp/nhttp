@@ -1,10 +1,10 @@
 // deno-lint-ignore-file
 import { TRet } from "../index.ts";
-import { FetchHandler } from "../src/types.ts";
+import { FetchHandler, ListenOptions } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
 
-async function handleRequest(handler: FetchHandler, req: TRet, res: TRet) {
+export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
   const resWeb: TRet = await handler(
     new NodeRequest(
       `http://${req.headers.host}${req.url}`,
@@ -64,18 +64,23 @@ async function handleRequest(handler: FetchHandler, req: TRet, res: TRet) {
     res.end(data);
   }
 }
-export function serveNode(
+export async function serveNode(
   handler: FetchHandler,
-  createServer: TRet,
-  config: TRet = {},
+  opts: ListenOptions = {
+    port: 3000,
+  },
 ) {
-  const port = config.port ?? 3000;
-  return createServer(
-    config,
+  const port = opts.port;
+  const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
+  let server: TRet;
+  if (isSecure) server = await import("node:https");
+  else server = await import("node:http");
+  return server.createServer(
+    opts,
     (req: TRet, res: TRet) => {
       /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
       // @ts-ignore: immediate for nodejs
-      setImmediate(() => handleRequest(handler, req, res));
+      setImmediate(() => handleNode(handler, req, res));
     },
   ).listen(port);
 }

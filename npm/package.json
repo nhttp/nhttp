@@ -39,6 +39,11 @@
       "import": "./dist/esm/lib/serve-static.js",
       "require": "./dist/cjs/lib/serve-static.js"
     },
+    "./trpc": {
+      "types": "./dist/types/lib/trpc.d.ts",
+      "import": "./dist/esm/lib/trpc.js",
+      "require": "./dist/cjs/lib/trpc.js"
+    },
     "./swagger": {
       "types": "./dist/types/lib/swagger.d.ts",
       "import": "./dist/esm/lib/swagger.js",
@@ -48,6 +53,11 @@
       "types": "./dist/types/lib/etag.d.ts",
       "import": "./dist/esm/lib/etag.js",
       "require": "./dist/cjs/lib/etag.js"
+    },
+    "./zod-validator": {
+      "types": "./dist/types/lib/zod-validator.d.ts",
+      "import": "./dist/esm/lib/zod-validator.js",
+      "require": "./dist/cjs/lib/zod-validator.js"
     },
     "./deps": {
       "types": "./dist/types/lib/deps.d.ts",
@@ -88,11 +98,17 @@
       "serve-static": [
         "./dist/types/lib/serve-static.d.ts"
       ],
+      "trpc": [
+        "./dist/types/lib/trpc.d.ts"
+      ],
       "swagger": [
         "./dist/types/lib/swagger.d.ts"
       ],
       "etag": [
         "./dist/types/lib/etag.d.ts"
+      ],
+      "zod-validator": [
+        "./dist/types/lib/zod-validator.d.ts"
       ],
       "deps": [
         "./dist/types/lib/deps.d.ts"

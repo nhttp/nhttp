@@ -98,9 +98,9 @@ export default class Router<
    * app.use('/api/v1', routers);
    */
   use<T extends unknown = unknown>(
-    prefix: string | RouterOrWare<Rev, T> | RouterOrWare<Rev, T>[],
+    prefix: string | RouterOrWare<T, Rev> | RouterOrWare<T, Rev>[],
     ...routerOrMiddleware: Array<
-      RouterOrWare<Rev, T> | RouterOrWare<Rev, T>[]
+      RouterOrWare<T, Rev> | RouterOrWare<T, Rev>[]
     >
   ) {
     let args = routerOrMiddleware, str = "";
@@ -142,7 +142,7 @@ export default class Router<
   on<T extends unknown = unknown>(
     method: string,
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
+    ...handlers: Handlers<T, Rev>
   ): this {
     if (path instanceof RegExp) path = concatRegexp(this.base, path);
     else {
@@ -161,9 +161,9 @@ export default class Router<
    */
   get<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("GET", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("GET", path, ...handlers);
   }
   /**
    * method POST (app or router)
@@ -172,9 +172,9 @@ export default class Router<
    */
   post<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("POST", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("POST", path, ...handlers);
   }
   /**
    * method PUT (app or router)
@@ -183,9 +183,9 @@ export default class Router<
    */
   put<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("PUT", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("PUT", path, ...handlers);
   }
   /**
    * method PATCH (app or router)
@@ -194,9 +194,9 @@ export default class Router<
    */
   patch<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("PATCH", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("PATCH", path, ...handlers);
   }
   /**
    * method DELETE (app or router)
@@ -205,9 +205,9 @@ export default class Router<
    */
   delete<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("DELETE", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("DELETE", path, ...handlers);
   }
   /**
    * method ANY (allow all method directly) (app or router)
@@ -216,9 +216,9 @@ export default class Router<
    */
   any<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("ANY", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("ANY", path, ...handlers);
   }
   /**
    * method HEAD (app or router)
@@ -227,9 +227,9 @@ export default class Router<
    */
   head<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("HEAD", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("HEAD", path, ...handlers);
   }
   /**
    * method OPTIONS (app or router)
@@ -238,9 +238,9 @@ export default class Router<
    */
   options<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("OPTIONS", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("OPTIONS", path, ...handlers);
   }
   /**
    * method TRACE (app or router)
@@ -249,9 +249,9 @@ export default class Router<
    */
   trace<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("TRACE", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("TRACE", path, ...handlers);
   }
   /**
    * method CONNECT (app or router)
@@ -260,9 +260,9 @@ export default class Router<
    */
   connect<T extends unknown = unknown>(
     path: string | RegExp,
-    ...handlers: Handlers<Rev, T>
-  ): this {
-    return this.on("CONNECT", path, ...handlers);
+    ...handlers: Handlers<T, Rev>
+  ) {
+    return this.on<T>("CONNECT", path, ...handlers);
   }
   find(
     method: string,

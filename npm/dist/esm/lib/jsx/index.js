@@ -119,5 +119,6 @@ export {
   h,
   n,
   renderToHtml,
-  renderToString
+  renderToString,
+  resetHelmet
 };
