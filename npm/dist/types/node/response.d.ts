@@ -1,4 +1,5 @@
 import { TRet } from "../index";
+import { s_inspect } from "./symbol";
 export declare class NodeResponse {
     constructor(body?: BodyInit | null, init?: ResponseInit);
     static error(): Response;
@@ -21,5 +22,6 @@ export declare class NodeResponse {
     json(): Promise<any>;
     text(): Promise<string>;
     get [Symbol.hasInstance](): string;
+    [s_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;
 }

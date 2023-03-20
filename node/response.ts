@@ -1,5 +1,5 @@
 import { TRet } from "../index.ts";
-import { s_body, s_def, s_headers, s_init } from "./symbol.ts";
+import { s_body, s_def, s_headers, s_init, s_inspect } from "./symbol.ts";
 
 const C_TYPE = "Content-Type";
 const JSON_TYPE = "application/json";
@@ -20,8 +20,14 @@ export class NodeResponse {
     init: ResponseInit = {},
   ): Response {
     if (init.headers) {
-      if (init.headers instanceof Headers) {
-        init.headers.set(C_TYPE, init.headers.get(C_TYPE) ?? JSON_TYPE);
+      if (
+        (<TRet> init.headers).get &&
+        typeof (<TRet> init.headers).get === "function"
+      ) {
+        (<Headers> init.headers).set(
+          C_TYPE,
+          (<Headers> init.headers).get(C_TYPE) ?? JSON_TYPE,
+        );
       } else {
         (<TRet> init.headers)[C_TYPE] ??= JSON_TYPE;
       }
@@ -84,17 +90,12 @@ export class NodeResponse {
   get [Symbol.hasInstance]() {
     return "Response";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](
+  [s_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
   ) {
-    if (depth < 0) {
-      return opts.stylize("[Response]", "special");
-    }
-    const newOpts = Object.assign({}, opts, {
-      depth: opts.depth === null ? null : opts.depth - 1,
-    });
+    opts.depth = depth;
     const ret = {
       body: this.body,
       bodyUsed: this.bodyUsed,
@@ -105,7 +106,7 @@ export class NodeResponse {
       ok: this.ok,
       url: this.url,
     };
-    return `${opts.stylize("Response", "special")} ${inspect(ret, newOpts)}`;
+    return `Response ${inspect(ret, opts)}`;
   }
   [k: string | symbol]: TRet;
 }

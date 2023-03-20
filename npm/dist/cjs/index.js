@@ -1629,6 +1629,7 @@ var s_init2 = Symbol("init");
 var s_def = Symbol("default");
 var s_body_used = Symbol("req_body_used");
 var s_headers2 = Symbol("s_headers");
+var s_inspect = Symbol.for("nodejs.util.inspect.custom");
 
 // npm/src/node/request.ts
 var typeError = (m) => Promise.reject(new TypeError(m));
@@ -1783,13 +1784,8 @@ var NodeRequest = class {
   get [Symbol.hasInstance]() {
     return "Request";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect2) {
-    if (depth < 0) {
-      return opts.stylize("[Request]", "special");
-    }
-    const newOpts = Object.assign({}, opts, {
-      depth: opts.depth === null ? null : opts.depth - 1
-    });
+  [s_inspect](depth, opts, inspect2) {
+    opts.depth = depth;
     const ret = {
       bodyUsed: this.bodyUsed,
       headers: this.headers,
@@ -1797,7 +1793,7 @@ var NodeRequest = class {
       redirect: this.redirect,
       url: this.url
     };
-    return `${opts.stylize("Request", "special")} ${inspect2(ret, newOpts)}`;
+    return `Request ${inspect2(ret, opts)}`;
   }
 };
 
@@ -1817,7 +1813,7 @@ var NodeResponse = class {
   }
   static json(data, init = {}) {
     if (init.headers) {
-      if (init.headers instanceof Headers) {
+      if (init.headers.get && typeof init.headers.get === "function") {
         init.headers.set(C_TYPE, init.headers.get(C_TYPE) ?? JSON_TYPE2);
       } else {
         init.headers[C_TYPE] ??= JSON_TYPE2;
@@ -1878,13 +1874,8 @@ var NodeResponse = class {
   get [Symbol.hasInstance]() {
     return "Response";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect2) {
-    if (depth < 0) {
-      return opts.stylize("[Response]", "special");
-    }
-    const newOpts = Object.assign({}, opts, {
-      depth: opts.depth === null ? null : opts.depth - 1
-    });
+  [s_inspect](depth, opts, inspect2) {
+    opts.depth = depth;
     const ret = {
       body: this.body,
       bodyUsed: this.bodyUsed,
@@ -1895,7 +1886,7 @@ var NodeResponse = class {
       ok: this.ok,
       url: this.url
     };
-    return `${opts.stylize("Response", "special")} ${inspect2(ret, newOpts)}`;
+    return `Response ${inspect2(ret, opts)}`;
   }
 };
 

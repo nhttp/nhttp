@@ -1,4 +1,5 @@
 import { TRet } from "../index";
+import { s_inspect } from "./symbol";
 export declare class NodeRequest {
     raw?: TRet;
     constructor(input: RequestInfo, init?: RequestInit);
@@ -27,5 +28,6 @@ export declare class NodeRequest {
     json(): Promise<TRet>;
     text(): Promise<string>;
     get [Symbol.hasInstance](): string;
+    [s_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;
 }

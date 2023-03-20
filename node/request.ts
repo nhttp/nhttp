@@ -1,6 +1,6 @@
 // deno-lint-ignore-file
 import { TRet } from "../index.ts";
-import { s_body, s_body_used, s_def, s_init } from "./symbol.ts";
+import { s_body, s_body_used, s_def, s_init, s_inspect } from "./symbol.ts";
 
 const typeError = (m: string) => Promise.reject(new TypeError(m));
 const consumed = "body already consumed";
@@ -173,17 +173,12 @@ export class NodeRequest {
   get [Symbol.hasInstance]() {
     return "Request";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](
+  [s_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
   ) {
-    if (depth < 0) {
-      return opts.stylize("[Request]", "special");
-    }
-    const newOpts = Object.assign({}, opts, {
-      depth: opts.depth === null ? null : opts.depth - 1,
-    });
+    opts.depth = depth;
     const ret = {
       bodyUsed: this.bodyUsed,
       headers: this.headers,
@@ -191,7 +186,7 @@ export class NodeRequest {
       redirect: this.redirect,
       url: this.url,
     };
-    return `${opts.stylize("Request", "special")} ${inspect(ret, newOpts)}`;
+    return `Request ${inspect(ret, opts)}`;
   }
   [k: string | symbol]: TRet;
 }
