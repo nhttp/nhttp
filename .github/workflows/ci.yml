@@ -39,6 +39,6 @@ jobs:
 
       - name: Codecov
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           files: cov_profile.lcov
