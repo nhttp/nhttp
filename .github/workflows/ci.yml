@@ -16,7 +16,7 @@ jobs:
       fail-fast: true
     steps:
       - name: Setup repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Deno
         uses: denoland/setup-deno@main
