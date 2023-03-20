@@ -975,6 +975,61 @@ var s_res = Symbol("http_res");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 
+// npm/src/src/inspect.ts
+function inspect(target, obj) {
+  const ret = obj;
+  for (const key in target) {
+    if (ret[key] === void 0) {
+      ret[key] = target[key];
+    }
+  }
+  return ret;
+}
+function revInspect(rev) {
+  return inspect(rev, {
+    body: rev.body,
+    cookies: rev.cookies,
+    file: rev.file,
+    headers: rev.headers,
+    info: rev.info,
+    method: rev.method,
+    originalUrl: rev.originalUrl,
+    params: rev.params,
+    path: rev.path,
+    query: rev.query,
+    request: rev.request,
+    responseInit: rev.responseInit,
+    respondWith: rev.respondWith,
+    response: rev.response,
+    route: rev.route,
+    search: rev.search,
+    send: rev.send,
+    url: rev.url,
+    waitUntil: rev.waitUntil
+  });
+}
+function resInspect(res) {
+  return inspect(res, {
+    clearCookie: res.clearCookie,
+    cookie: res.cookie,
+    getHeader: res.getHeader,
+    header: res.header,
+    json: res.json,
+    params: res.params,
+    statusCode: res.statusCode,
+    redirect: res.redirect,
+    attachment: res.attachment,
+    render: res.render,
+    send: res.send,
+    sendStatus: res.sendStatus,
+    setHeader: res.setHeader,
+    status: res.status,
+    type: res.type
+  });
+}
+var deno_inspect = Symbol.for("Deno.customInspect");
+var node_inspect = Symbol.for("nodejs.util.inspect.custom");
+
 // npm/src/src/http_response.ts
 var TYPE = "content-type";
 var HttpResponse = class {
@@ -1069,30 +1124,14 @@ var HttpResponse = class {
     opts.httpOnly = opts.httpOnly !== false;
     this.header().append("Set-Cookie", serializeCookie(name, "", { ...opts, expires: new Date(0) }));
   }
-  [Symbol.for("Deno.customInspect")](inspect, opts) {
-    const ret = {
-      clearCookie: this.clearCookie,
-      cookie: this.cookie,
-      getHeader: this.getHeader,
-      header: this.header,
-      json: this.json,
-      params: this.params,
-      statusCode: this.statusCode,
-      redirect: this.redirect,
-      attachment: this.attachment,
-      render: this.render,
-      send: this.send,
-      sendStatus: this.sendStatus,
-      setHeader: this.setHeader,
-      status: this.status,
-      type: this.type
-    };
-    for (const key in this) {
-      if (ret[key] === void 0) {
-        ret[key] = this[key];
-      }
-    }
-    return `${this.constructor.name} ${inspect(ret, opts)}`;
+  [deno_inspect](inspect2, opts) {
+    const ret = resInspect(this);
+    return `${this.constructor.name} ${inspect2(ret, opts)}`;
+  }
+  [node_inspect](depth, opts, inspect2) {
+    opts.depth = depth;
+    const ret = resInspect(this);
+    return `${this.constructor.name} ${inspect2?.(ret, opts) ?? Deno.inspect(ret)}`;
   }
 };
 function oldSchool() {
@@ -1242,34 +1281,14 @@ var RequestEvent = class {
   getCookies(decode) {
     return getReqCookies(this.headers, decode);
   }
-  [Symbol.for("Deno.customInspect")](inspect, opts) {
-    const ret = {
-      body: this.body,
-      cookies: this.cookies,
-      file: this.file,
-      headers: this.headers,
-      info: this.info,
-      method: this.method,
-      originalUrl: this.originalUrl,
-      params: this.params,
-      path: this.path,
-      query: this.query,
-      request: this.request,
-      responseInit: this.responseInit,
-      respondWith: this.respondWith,
-      response: this.response,
-      route: this.route,
-      search: this.search,
-      send: this.send,
-      url: this.url,
-      waitUntil: this.waitUntil
-    };
-    for (const key in this) {
-      if (ret[key] === void 0) {
-        ret[key] = this[key];
-      }
-    }
-    return `${this.constructor.name} ${inspect(ret, opts)}`;
+  [deno_inspect](inspect2, opts) {
+    const ret = revInspect(this);
+    return `${this.constructor.name} ${inspect2(ret, opts)}`;
+  }
+  [node_inspect](depth, opts, inspect2) {
+    opts.depth = depth;
+    const ret = revInspect(this);
+    return `${this.constructor.name} ${inspect2?.(ret, opts) ?? Deno.inspect(ret)}`;
   }
 };
 function createRequest(handle, url, init = {}) {
@@ -1764,7 +1783,7 @@ var NodeRequest = class {
   get [Symbol.hasInstance]() {
     return "Request";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect) {
+  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect2) {
     if (depth < 0) {
       return opts.stylize("[Request]", "special");
     }
@@ -1778,69 +1797,9 @@ var NodeRequest = class {
       redirect: this.redirect,
       url: this.url
     };
-    return `${opts.stylize("Request", "special")} ${inspect(ret, newOpts)}`;
+    return `${opts.stylize("Request", "special")} ${inspect2(ret, newOpts)}`;
   }
 };
-
-// npm/src/node/index.ts
-async function handleNode(handler, req, res) {
-  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
-  if (res.writableEnded)
-    return;
-  if (resWeb[s_init2]) {
-    if (resWeb[s_init2].headers) {
-      if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
-        resWeb[s_init2].headers.forEach((val, key) => {
-          res.setHeader(key, val);
-        });
-      } else {
-        for (const k in resWeb[s_init2].headers) {
-          res.setHeader(k, resWeb[s_init2].headers[k]);
-        }
-      }
-    }
-    if (resWeb[s_init2].status)
-      res.statusCode = resWeb[s_init2].status;
-  }
-  if (resWeb[s_headers2]) {
-    resWeb[s_headers2].forEach((val, key) => {
-      res.setHeader(key, val);
-    });
-  }
-  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
-    res.end(resWeb[s_body2]);
-  } else {
-    if (resWeb[s_body2] instanceof ReadableStream) {
-      for await (const chunk of resWeb[s_body2])
-        res.write(chunk);
-      res.end();
-      return;
-    }
-    const chunks = [];
-    for await (const chunk of resWeb.body)
-      chunks.push(chunk);
-    const data = Buffer.concat(chunks);
-    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
-      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-      res.setHeader("Content-Type", type);
-    }
-    res.end(data);
-  }
-}
-async function serveNode(handler, opts = {
-  port: 3e3
-}) {
-  const port = opts.port;
-  const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
-  let server;
-  if (isSecure)
-    server = await import("node:https");
-  else
-    server = await import("node:http");
-  return server.createServer(opts, (req, res) => {
-    setImmediate(() => handleNode(handler, req, res));
-  }).listen(port);
-}
 
 // npm/src/node/response.ts
 var C_TYPE = "Content-Type";
@@ -1919,7 +1878,7 @@ var NodeResponse = class {
   get [Symbol.hasInstance]() {
     return "Response";
   }
-  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect) {
+  [Symbol.for("nodejs.util.inspect.custom")](depth, opts, inspect2) {
     if (depth < 0) {
       return opts.stylize("[Response]", "special");
     }
@@ -1936,19 +1895,77 @@ var NodeResponse = class {
       ok: this.ok,
       url: this.url
     };
-    return `${opts.stylize("Response", "special")} ${inspect(ret, newOpts)}`;
+    return `${opts.stylize("Response", "special")} ${inspect2(ret, newOpts)}`;
   }
 };
 
-// npm/src/index.ts
-function shimNodeRequest() {
+// npm/src/node/index.ts
+async function handleNode(handler, req, res) {
+  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  if (res.writableEnded)
+    return;
+  if (resWeb[s_init2]) {
+    if (resWeb[s_init2].headers) {
+      if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
+        resWeb[s_init2].headers.forEach((val, key) => {
+          res.setHeader(key, val);
+        });
+      } else {
+        for (const k in resWeb[s_init2].headers) {
+          res.setHeader(k, resWeb[s_init2].headers[k]);
+        }
+      }
+    }
+    if (resWeb[s_init2].status)
+      res.statusCode = resWeb[s_init2].status;
+  }
+  if (resWeb[s_headers2]) {
+    resWeb[s_headers2].forEach((val, key) => {
+      res.setHeader(key, val);
+    });
+  }
+  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
+    res.end(resWeb[s_body2]);
+  } else {
+    if (resWeb[s_body2] instanceof ReadableStream) {
+      for await (const chunk of resWeb[s_body2])
+        res.write(chunk);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of resWeb.body)
+      chunks.push(chunk);
+    const data = Buffer.concat(chunks);
+    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+      res.setHeader("Content-Type", type);
+    }
+    res.end(data);
+  }
+}
+async function serveNode(handler, opts = {
+  port: 3e3
+}) {
   if (!globalThis.NativeResponse) {
     globalThis.NativeResponse = Response;
     globalThis.NativeRequest = Request;
     globalThis.Response = NodeResponse;
     globalThis.Request = NodeRequest;
   }
+  const port = opts.port;
+  const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
+  let server;
+  if (isSecure)
+    server = await import("node:https");
+  else
+    server = await import("node:http");
+  return server.createServer(opts, (req, res) => {
+    setImmediate(() => handleNode(handler, req, res));
+  }).listen(port);
 }
+
+// npm/src/index.ts
 var NHttp2 = class extends NHttp {
   constructor(opts = {}) {
     super(opts);
@@ -1993,7 +2010,6 @@ var NHttp2 = class extends NHttp {
           }
           return;
         }
-        shimNodeRequest();
         this.server = await serveNode(handler, opts2);
         runCallback();
         return;

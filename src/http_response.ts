@@ -1,4 +1,5 @@
 import { JSON_TYPE, MIME_LIST } from "./constant.ts";
+import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
 import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 import { serializeCookie } from "./utils.ts";
@@ -241,30 +242,20 @@ export class HttpResponse {
       serializeCookie(name, "", { ...opts, expires: new Date(0) }),
     );
   }
-  [Symbol.for("Deno.customInspect")](inspect: TRet, opts: TRet) {
-    const ret = <TRet> {
-      clearCookie: this.clearCookie,
-      cookie: this.cookie,
-      getHeader: this.getHeader,
-      header: this.header,
-      json: this.json,
-      params: this.params,
-      statusCode: this.statusCode,
-      redirect: this.redirect,
-      attachment: this.attachment,
-      render: this.render,
-      send: this.send,
-      sendStatus: this.sendStatus,
-      setHeader: this.setHeader,
-      status: this.status,
-      type: this.type,
-    };
-    for (const key in this) {
-      if (ret[key] === void 0) {
-        ret[key] = this[key];
-      }
-    }
+  [deno_inspect](inspect: TRet, opts: TRet) {
+    const ret = resInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;
+  }
+  [node_inspect](
+    depth: number,
+    opts: TRet,
+    inspect: TRet,
+  ) {
+    opts.depth = depth;
+    const ret = resInspect(this);
+    return `${this.constructor.name} ${
+      inspect?.(ret, opts) ?? Deno.inspect(ret)
+    }`;
   }
   [k: string | symbol]: TRet;
 }

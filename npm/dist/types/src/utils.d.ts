@@ -40,7 +40,7 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
  * ]));
  */
 export declare function expressMiddleware(...middlewares: TRet): TRet;
-export declare function middAssets(str: string): Handler<import("./types").EObject, RequestEvent>[];
+export declare function middAssets(str: string): Handler<import("./types").EObject, RequestEvent<TObject>>[];
 export declare function pushRoutes(str: string, wares: Handler[], last: TObject, base: TObject): void;
 export declare const getUrl: (s: string) => string;
 export declare function serializeCookie(name: string, value: string, cookie?: Cookie): string;

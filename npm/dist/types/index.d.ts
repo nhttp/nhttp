@@ -2,8 +2,6 @@ declare global {
     var bunServer: {
         reload: (...args: TRet) => TRet;
     };
-    var NativeResponse: TRet;
-    var NativeRequest: TRet;
     namespace Deno {
         interface Conn {
         }
@@ -36,11 +34,11 @@ export declare const multipart: {
      *    return "success upload";
      * });
      */
-    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler<import("./src/types").EObject, RequestEvent>;
+    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler<import("./src/types").EObject, RequestEvent<import("./src/types").TObject>>;
 };
 export declare function nhttp<Rev extends RequestEvent = RequestEvent>(opts?: TApp): NHttp<Rev>;
 export declare namespace nhttp {
-    var Router: <Rev extends RequestEvent = RequestEvent>(opts?: TRouter) => Router<Rev>;
+    var Router: <Rev extends RequestEvent<import("./src/types").TObject> = RequestEvent<import("./src/types").TObject>>(opts?: TRouter) => Router<Rev>;
 }
 export { serveNode };
 export * from "./src/index";

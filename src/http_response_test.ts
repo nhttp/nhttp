@@ -4,6 +4,7 @@ import { TRet } from "./types.ts";
 import { JSON_TYPE } from "./constant.ts";
 import { s_params } from "./symbol.ts";
 import { RequestEvent } from "./request_event.ts";
+import util from "node:util";
 
 function buildRes(config = {}) {
   const rev = new RequestEvent(new Request("http://127.0.0.1:8000/", config));
@@ -138,6 +139,23 @@ Deno.test("HttpResponse", async (t) => {
       const key = Symbol.for("Deno.customInspect") as TRet;
       const inspect = response[key].bind(response);
       assertEquals(typeof inspect(Deno.inspect), "string");
+    });
+    await t.step("inspect_node", () => {
+      const response = buildRes();
+      const key = Symbol.for("nodejs.util.inspect.custom") as TRet;
+      const inspect = response[key].bind(response);
+      const fn = (val: TRet) => val.toString();
+      assertEquals(typeof inspect(2, {}, fn), "string");
+      assertEquals(typeof util.inspect(response), "string");
+    });
+    await t.step("inspect2_node", () => {
+      const response = buildRes();
+      response.myvalue = "hello";
+      const key = Symbol.for("nodejs.util.inspect.custom") as TRet;
+      const inspect = response[key].bind(response);
+      const fn = (val: TRet) => val.toString();
+      assertEquals(typeof inspect(2, {}, fn), "string");
+      assertEquals(typeof util.inspect(response), "string");
     });
   });
 });

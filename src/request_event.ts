@@ -19,14 +19,15 @@ import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
 import { getReqCookies, getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
 import { HttpResponse } from "./http_response.ts";
+import { deno_inspect, node_inspect, revInspect } from "./inspect.ts";
 
-type TInfo = {
-  conn: Partial<Deno.Conn>;
+type TInfo<T> = {
+  conn: T;
   env: TObject;
   context: TObject;
 };
 
-export class RequestEvent {
+export class RequestEvent<O extends TObject = TObject> {
   constructor(
     /**
      * Original {@linkcode Request}.
@@ -73,9 +74,9 @@ export class RequestEvent {
   /**
    * lookup Object info like `conn / env / context`.
    */
-  get info(): TInfo {
+  get info(): TInfo<O> {
     return {
-      conn: this._info ?? {},
+      conn: <TRet> this._info ?? {},
       env: this._info ?? {},
       context: this._ctx ?? {},
     };
@@ -300,34 +301,20 @@ export class RequestEvent {
     return getReqCookies(this.headers, decode);
   }
 
-  [Symbol.for("Deno.customInspect")](inspect: TRet, opts: TRet) {
-    const ret = <TRet> {
-      body: this.body,
-      cookies: this.cookies,
-      file: this.file,
-      headers: this.headers,
-      info: this.info,
-      method: this.method,
-      originalUrl: this.originalUrl,
-      params: this.params,
-      path: this.path,
-      query: this.query,
-      request: this.request,
-      responseInit: this.responseInit,
-      respondWith: this.respondWith,
-      response: this.response,
-      route: this.route,
-      search: this.search,
-      send: this.send,
-      url: this.url,
-      waitUntil: this.waitUntil,
-    };
-    for (const key in this) {
-      if (ret[key] === void 0) {
-        ret[key] = this[key];
-      }
-    }
+  [deno_inspect](inspect: TRet, opts: TRet) {
+    const ret = revInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;
+  }
+  [node_inspect](
+    depth: number,
+    opts: TRet,
+    inspect: TRet,
+  ) {
+    opts.depth = depth;
+    const ret = revInspect(this);
+    return `${this.constructor.name} ${
+      inspect?.(ret, opts) ?? Deno.inspect(ret)
+    }`;
   }
   [k: string | symbol]: TRet;
 }

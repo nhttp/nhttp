@@ -1,8 +1,6 @@
 // deno-lint-ignore-file
 declare global {
   var bunServer: { reload: (...args: TRet) => TRet };
-  var NativeResponse: TRet;
-  var NativeRequest: TRet;
   // @ts-ignore
   namespace Deno {
     interface Conn {}
@@ -13,19 +11,8 @@ import { NHttp as BaseApp } from "./src/nhttp.ts";
 import { RequestEvent, TApp, TRet } from "./src/index.ts";
 import Router, { TRouter } from "./src/router.ts";
 import { serveNode } from "./node/index.ts";
-import { NodeResponse } from "./node/response.ts";
-import { NodeRequest } from "./node/request.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 import { ListenOptions } from "./src/types.ts";
-
-function shimNodeRequest() {
-  if (!globalThis.NativeResponse) {
-    globalThis.NativeResponse = Response;
-    globalThis.NativeRequest = Request;
-    (<TRet> globalThis).Response = NodeResponse;
-    (<TRet> globalThis).Request = NodeRequest;
-  }
-}
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -74,7 +61,6 @@ export class NHttp<
           }
           return;
         }
-        shimNodeRequest();
         this.server = await serveNode(handler, opts);
         runCallback();
         return;

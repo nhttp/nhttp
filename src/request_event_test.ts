@@ -15,6 +15,8 @@ import {
   s_route,
 } from "./symbol.ts";
 
+import util from "node:util";
+
 Deno.test("RequestEvent", async (t) => {
   const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
   const names = [
@@ -114,6 +116,23 @@ Deno.test("RequestEvent", async (t) => {
     const key = Symbol.for("Deno.customInspect") as TRet;
     const inspect = rev[key].bind(rev);
     assertEquals(typeof inspect(Deno.inspect), "string");
+  });
+  await t.step("inspect_node", () => {
+    const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
+    const key = Symbol.for("nodejs.util.inspect.custom") as TRet;
+    const inspect = rev[key].bind(rev);
+    const fn = (val: TRet) => val.toString();
+    assertEquals(typeof inspect(2, {}, fn), "string");
+    assertEquals(typeof util.inspect(rev), "string");
+  });
+  await t.step("inspect2_node", () => {
+    const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
+    rev.myvalue = "hello";
+    const key = Symbol.for("nodejs.util.inspect.custom") as TRet;
+    const inspect = rev[key].bind(rev);
+    const fn = (val: TRet) => val.toString();
+    assertEquals(typeof inspect(2, {}, fn), "string");
+    assertEquals(typeof util.inspect(rev), "string");
   });
   await t.step("miss req", () => {
     const rev = new RequestEvent(

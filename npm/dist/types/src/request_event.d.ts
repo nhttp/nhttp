@@ -1,11 +1,12 @@
 import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types";
 import { HttpResponse } from "./http_response";
-type TInfo = {
-    conn: Partial<Deno.Conn>;
+import { deno_inspect, node_inspect } from "./inspect";
+type TInfo<T> = {
+    conn: T;
     env: TObject;
     context: TObject;
 };
-export declare class RequestEvent {
+export declare class RequestEvent<O extends TObject = TObject> {
     /**
      * Original {@linkcode Request}.
      * The request from the client in the form of the web platform {@linkcode Request}.
@@ -30,7 +31,7 @@ export declare class RequestEvent {
     /**
      * lookup Object info like `conn / env / context`.
      */
-    get info(): TInfo;
+    get info(): TInfo<O>;
     /**
      * This method tells the event dispatcher that work is ongoing.
      * It can also be used to detect whether that work was successful.
@@ -172,6 +173,8 @@ export declare class RequestEvent {
      * const objectWithDecode = rev.getCookies(true);
      */
     getCookies(decode?: boolean): Record<string, string>;
+    [deno_inspect](inspect: TRet, opts: TRet): string;
+    [node_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;
 }
 export declare function createRequest(handle: FetchHandler, url: string, init?: RequestInit): {

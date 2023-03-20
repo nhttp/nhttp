@@ -2,6 +2,7 @@
 import { TRet } from "../index.ts";
 import { FetchHandler, ListenOptions } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
+import { NodeResponse } from "./response.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
 
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
@@ -70,6 +71,12 @@ export async function serveNode(
     port: 3000,
   },
 ) {
+  if (!(<TRet> globalThis).NativeResponse) {
+    (<TRet> globalThis).NativeResponse = Response;
+    (<TRet> globalThis).NativeRequest = Request;
+    (<TRet> globalThis).Response = NodeResponse;
+    (<TRet> globalThis).Request = NodeRequest;
+  }
   const port = opts.port;
   const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
   let server: TRet;
