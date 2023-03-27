@@ -50,12 +50,6 @@ import nhttp from "https://deno.land/x/nhttp@1.2.9/mod.ts";
 import nhttp from "npm:nhttp-land@1.2.9";
 ```
 
-### nest.land
-
-```ts
-import nhttp from "https://x.nest.land/nhttp@1.2.9/mod.ts";
-```
-
 ### npm/yarn
 
 ```bash
