@@ -16,10 +16,11 @@ import {
   s_url,
 } from "./symbol.ts";
 import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
-import { getReqCookies, getUrl, toPathx } from "./utils.ts";
+import { getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
 import { HttpResponse } from "./http_response.ts";
 import { deno_inspect, node_inspect, revInspect } from "./inspect.ts";
+import { getReqCookies } from "./cookie.ts";
 
 type TInfo<T> = {
   conn: T;

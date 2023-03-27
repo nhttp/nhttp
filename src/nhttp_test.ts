@@ -287,8 +287,15 @@ Deno.test("nhttp", async (t) => {
     const midd: TRet = (_req: TRet, _res: TRet, next: TRet) => {
       next();
     };
-    app.use(midd, expressMiddleware([midd]));
-    app.get("/", ({ response }) => {
+    app.use(
+      (rev, next) => {
+        rev.headers.set("key", "val");
+        return next();
+      },
+      midd,
+      expressMiddleware([midd]),
+    );
+    app.get("/", ({ headers, response }) => {
       response.setHeader("name", "john");
       response.getHeader("name");
       response.get("name");
@@ -297,10 +304,23 @@ Deno.test("nhttp", async (t) => {
       response.append("name", "sahimar");
       response.removeHeader("name");
       response.writeHead(200, { name: "john" });
+      headers.set("name", "john");
+      headers.append("name", "kasja");
+      assertEquals((headers as TRet).key, "val");
+      assertEquals(typeof headers.get("name"), "string");
+      assertEquals(typeof headers.entries(), "object");
+      headers.forEach((val, key) => {
+        assertEquals(typeof val, "string");
+        assertEquals(typeof key, "string");
+      });
+      assertEquals(typeof headers.keys(), "object");
+      assertEquals(typeof headers.values(), "object");
+      assertEquals(headers.has("name"), true);
+      headers.delete("name");
       return "base";
     });
-    const init = await app.handle(myReq("GET", "/"));
-    assertEquals(await init.text(), "base");
+    const init = await app.req("/").text();
+    assertEquals(init, "base");
   });
   await t.step("sub router", async () => {
     const app = nhttp();

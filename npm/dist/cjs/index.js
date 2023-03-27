@@ -223,12 +223,29 @@ var decURIComponent = (str = "") => {
   return str;
 };
 var duc = decURIComponent;
+var ShimHeaders = class {
+  constructor(headers) {
+    const obj = Object.fromEntries(headers.entries());
+    for (const key in obj)
+      this[key] = obj[key];
+    this.get = (s) => headers.get(s);
+    this.set = (k, v) => headers.set(k, v);
+    this.append = (k, v) => headers.append(k, v);
+    this.delete = (s) => headers.delete(s);
+    this.entries = () => headers.entries();
+    this.forEach = (a, b) => headers.forEach(a, b);
+    this.has = (a) => headers.has(a);
+    this.keys = () => headers.keys();
+    this.values = () => headers.values();
+  }
+};
 function findFn(fn) {
   if (fn.length === 3) {
     const newFn = (rev, next) => {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
+        rev.headers = new ShimHeaders(rev.headers);
         response.append ??= (a, b) => response.header().append(a, b);
         response.set ??= response.header;
         response.get ??= (a) => response.header(a);
@@ -428,90 +445,6 @@ function pushRoutes(str, wares, last, base) {
   });
 }
 var getUrl = (s) => s.substring(s.indexOf("/", 8));
-function serializeCookie(name, value, cookie = {}) {
-  cookie.encode = !!cookie.encode;
-  if (cookie.encode) {
-    value = "E:" + btoa(encoder.encode(value).toString());
-  }
-  let ret = `${name}=${value}`;
-  if (name.startsWith("__Secure")) {
-    cookie.secure = true;
-  }
-  if (name.startsWith("__Host")) {
-    cookie.path = "/";
-    cookie.secure = true;
-    delete cookie.domain;
-  }
-  if (cookie.secure) {
-    ret += `; Secure`;
-  }
-  if (cookie.httpOnly) {
-    ret += `; HttpOnly`;
-  }
-  if (typeof cookie.maxAge === "number") {
-    ret += `; Max-Age=${cookie.maxAge}`;
-  }
-  if (cookie.domain) {
-    ret += `; Domain=${cookie.domain}`;
-  }
-  if (cookie.sameSite) {
-    ret += `; SameSite=${cookie.sameSite}`;
-  }
-  if (cookie.path) {
-    ret += `; Path=${cookie.path}`;
-  }
-  if (cookie.expires) {
-    ret += `; Expires=${cookie.expires.toUTCString()}`;
-  }
-  if (cookie.other) {
-    ret += `; ${cookie.other.join("; ")}`;
-  }
-  return ret;
-}
-function tryDecode(str) {
-  try {
-    str = str.substring(2);
-    const dec = atob(str);
-    const uint = Uint8Array.from(dec.split(","));
-    const ret = decoder.decode(uint) || str;
-    if (ret !== str) {
-      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
-        const json = ret.substring(2);
-        return JSON.parse(decURIComponent(json));
-      }
-    }
-    return decURIComponent(ret);
-  } catch (_e) {
-    return decURIComponent(str);
-  }
-}
-function getReqCookies(headers, decode, i = 0) {
-  if (!(headers instanceof Headers))
-    headers = new Headers(headers);
-  const str = headers.get("Cookie");
-  if (str === null)
-    return {};
-  const ret = {};
-  const arr = str.split(";");
-  const len = arr.length;
-  while (i < len) {
-    const [key, ...oriVal] = arr[i].split("=");
-    let val = oriVal.join("=");
-    if (decode) {
-      ret[key.trim()] = val.startsWith("E:") ? tryDecode(val) : decURIComponent(val);
-    } else {
-      val = decURIComponent(val);
-      if (val.startsWith("j:{") || val.startsWith("j:[")) {
-        const json = val.substring(2);
-        ret[key.trim()] = JSON.parse(json);
-      } else {
-        ret[key.trim()] = val;
-      }
-    }
-    i++;
-  }
-  return ret;
-}
 var defError = (err, rev, stack) => {
   const obj = getError(err, stack);
   rev.response.status(obj.status);
@@ -974,6 +907,90 @@ var s_cookies = Symbol("cookies");
 var s_res = Symbol("http_res");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
+
+// npm/src/src/cookie.ts
+function serializeCookie(name, value, cookie = {}) {
+  cookie.encode = !!cookie.encode;
+  if (cookie.encode) {
+    value = "E:" + btoa(encoder.encode(value).toString());
+  }
+  let ret = `${name}=${value}`;
+  if (name.startsWith("__Secure")) {
+    cookie.secure = true;
+  }
+  if (name.startsWith("__Host")) {
+    cookie.path = "/";
+    cookie.secure = true;
+    delete cookie.domain;
+  }
+  if (cookie.secure) {
+    ret += `; Secure`;
+  }
+  if (cookie.httpOnly) {
+    ret += `; HttpOnly`;
+  }
+  if (typeof cookie.maxAge === "number") {
+    ret += `; Max-Age=${cookie.maxAge}`;
+  }
+  if (cookie.domain) {
+    ret += `; Domain=${cookie.domain}`;
+  }
+  if (cookie.sameSite) {
+    ret += `; SameSite=${cookie.sameSite}`;
+  }
+  if (cookie.path) {
+    ret += `; Path=${cookie.path}`;
+  }
+  if (cookie.expires) {
+    ret += `; Expires=${cookie.expires.toUTCString()}`;
+  }
+  if (cookie.other) {
+    ret += `; ${cookie.other.join("; ")}`;
+  }
+  return ret;
+}
+function tryDecode(str) {
+  try {
+    str = str.substring(2);
+    const dec = atob(str);
+    const uint = Uint8Array.from(dec.split(","));
+    const ret = decoder.decode(uint) || str;
+    if (ret !== str) {
+      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
+        const json = ret.substring(2);
+        return JSON.parse(decURIComponent(json));
+      }
+    }
+    return decURIComponent(ret);
+  } catch (_e) {
+    return decURIComponent(str);
+  }
+}
+function getReqCookies(headers, decode, i = 0) {
+  const str = headers.get("Cookie");
+  if (str === null)
+    return {};
+  const ret = {};
+  const arr = str.split(";");
+  const len = arr.length;
+  while (i < len) {
+    const [key, ...oriVal] = arr[i].split("=");
+    let val = oriVal.join("=");
+    if (decode) {
+      ret[key.trim()] = val.startsWith("E:") ? tryDecode(val) : decURIComponent(val);
+    } else {
+      val = decURIComponent(val);
+      if (val.startsWith("j:{") || val.startsWith("j:[")) {
+        const json = val.substring(2);
+        ret[key.trim()] = JSON.parse(json);
+      } else {
+        ret[key.trim()] = val;
+      }
+    }
+    i++;
+  }
+  return ret;
+}
 
 // npm/src/src/inspect.ts
 function inspect(target, obj) {

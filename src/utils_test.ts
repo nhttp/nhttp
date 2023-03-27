@@ -1,5 +1,6 @@
 import { Handler } from "../mod.ts";
 import { memoBody } from "./body.ts";
+import { getReqCookies, serializeCookie } from "./cookie.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
 import {
@@ -7,11 +8,9 @@ import {
   decURIComponent,
   findFn,
   findFns,
-  getReqCookies,
   middAssets,
   needPatch,
   parseQuery,
-  serializeCookie,
   toBytes,
   toPathx,
 } from "./utils.ts";
@@ -173,14 +172,6 @@ Deno.test("utils", async (t) => {
       new Headers({ "Cookie": cookie }),
       true,
     );
-    const obj2 = getReqCookies(
-      {
-        "Cookie": serializeCookie("test", 'j:{ "name": "john" }', {
-          encode: true,
-        }),
-      },
-      true,
-    );
     const obj3 = getReqCookies(
       new Headers({
         "Cookie": serializeCookie("test", 'j:[{ "name": "john" }]', {
@@ -200,7 +191,6 @@ Deno.test("utils", async (t) => {
       Expires: date.toUTCString(),
       other: "",
     });
-    assertEquals(typeof obj2, "object");
     assertEquals(typeof obj3, "object");
     assertEquals(typeof cookie, "string");
   });

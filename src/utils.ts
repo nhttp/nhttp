@@ -1,7 +1,6 @@
 import { getError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
 import {
-  Cookie,
   Handler,
   NextFunction,
   RetHandler,
@@ -27,12 +26,30 @@ export const decURIComponent = (str = "") => {
 // alias decodeUriComponent
 const duc = decURIComponent;
 
+class ShimHeaders {
+  constructor(headers: Headers) {
+    const obj = Object.fromEntries(headers.entries());
+    for (const key in obj) this[key] = obj[key];
+    this.get = (s: string) => headers.get(s);
+    this.set = (k: string, v: string) => headers.set(k, v);
+    this.append = (k: string, v: string) => headers.append(k, v);
+    this.delete = (s: string) => headers.delete(s);
+    this.entries = () => headers.entries();
+    this.forEach = (a: TRet, b: TRet) => headers.forEach(a, b);
+    this.has = (a: TRet) => headers.has(a);
+    this.keys = () => headers.keys();
+    this.values = () => headers.values();
+  }
+  [k: string]: TRet;
+}
+
 export function findFn(fn: TRet) {
   if (fn.length === 3) {
     const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
+        rev.headers = <TRet> new ShimHeaders(rev.headers);
         response.append ??= (a: string, b: string) =>
           response.header().append(a, b);
         response.set ??= response.header;
@@ -267,97 +284,6 @@ export function pushRoutes(
 }
 
 export const getUrl = (s: string) => s.substring(s.indexOf("/", 8));
-
-export function serializeCookie(
-  name: string,
-  value: string,
-  cookie: Cookie = {},
-) {
-  cookie.encode = !!cookie.encode;
-  if (cookie.encode) {
-    value = "E:" + btoa(encoder.encode(value).toString());
-  }
-  let ret = `${name}=${value}`;
-  if (name.startsWith("__Secure")) {
-    cookie.secure = true;
-  }
-  if (name.startsWith("__Host")) {
-    cookie.path = "/";
-    cookie.secure = true;
-    delete cookie.domain;
-  }
-  if (cookie.secure) {
-    ret += `; Secure`;
-  }
-  if (cookie.httpOnly) {
-    ret += `; HttpOnly`;
-  }
-  if (typeof cookie.maxAge === "number") {
-    ret += `; Max-Age=${cookie.maxAge}`;
-  }
-  if (cookie.domain) {
-    ret += `; Domain=${cookie.domain}`;
-  }
-  if (cookie.sameSite) {
-    ret += `; SameSite=${cookie.sameSite}`;
-  }
-  if (cookie.path) {
-    ret += `; Path=${cookie.path}`;
-  }
-  if (cookie.expires) {
-    ret += `; Expires=${cookie.expires.toUTCString()}`;
-  }
-  if (cookie.other) {
-    ret += `; ${cookie.other.join("; ")}`;
-  }
-  return ret;
-}
-
-function tryDecode(str: string) {
-  try {
-    str = str.substring(2);
-    const dec = atob(str);
-    const uint = Uint8Array.from(dec.split(",") as Iterable<number>);
-    const ret = decoder.decode(uint) || str;
-    if (ret !== str) {
-      if (ret.startsWith("j:{") || ret.startsWith("j:[")) {
-        const json = ret.substring(2);
-        return JSON.parse(decURIComponent(json));
-      }
-    }
-    return decURIComponent(ret);
-  } catch (_e) {
-    return decURIComponent(str);
-  }
-}
-
-export function getReqCookies(headers: TObject, decode?: boolean, i = 0) {
-  if (!(headers instanceof Headers)) headers = new Headers(headers);
-  const str = headers.get("Cookie");
-  if (str === null) return {};
-  const ret = {} as Record<string, string>;
-  const arr = str.split(";");
-  const len = arr.length;
-  while (i < len) {
-    const [key, ...oriVal] = arr[i].split("=");
-    let val = oriVal.join("=");
-    if (decode) {
-      ret[key.trim()] = val.startsWith("E:")
-        ? tryDecode(val)
-        : decURIComponent(val);
-    } else {
-      val = decURIComponent(val);
-      if (val.startsWith("j:{") || val.startsWith("j:[")) {
-        const json = val.substring(2);
-        ret[key.trim()] = JSON.parse(json);
-      } else {
-        ret[key.trim()] = val;
-      }
-    }
-    i++;
-  }
-  return ret;
-}
 
 export const defError = (
   err: TObject,
