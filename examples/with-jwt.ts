@@ -22,7 +22,7 @@ app.post("/login", validate(LoginSchema), (rev) => {
 });
 
 app.get("/admin/home", jwt(JWT_SECRET), (rev) => {
-  return `Welcome ${rev.auth.username}`;
+  return `Welcome ${rev.auth.user}`;
 });
 
 app.listen(8000, (_err, info) => {
