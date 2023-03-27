@@ -31,18 +31,23 @@ const authenticate: Handler = (rev, next) => {
   return next();
 };
 
-app.get("/home", authenticate, ({ response, locals }) => {
+app.get("/", authenticate, ({ response, locals }) => {
+  response.type("html");
   // deno-fmt-ignore
-  response.type('html').send(`
-    <h1>Hello, ${locals.user}</h1>
+  return `
+    <h1>Hello, ${locals.user.username}</h1>
     <br/>
     <a href="/logout">Logout</a>
-  `);
+  `
 });
 
 app.get("/logout", ({ response }) => {
   response.clearCookie("session");
-  response.status(401).send("Logged out");
+  response.status(401);
+  return `<h1>Logout Success...</h1>
+    <br/>
+    <a href="/">Sign</a>
+  `;
 });
 
 app.listen(8000, (_err, info) => {
