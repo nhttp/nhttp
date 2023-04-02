@@ -1,5 +1,6 @@
 import jwts from "jwt-simple";
 import { HttpError } from "./deps.js";
+import { joinHandlers } from "./controller.js";
 class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {
     super(401, message);
@@ -64,10 +65,17 @@ const jwt = (secret, opts = {}) => {
     return next();
   };
 };
+function Jwt(secret, opts = {}) {
+  return (tgt, prop, des) => {
+    joinHandlers(tgt.constructor.name, prop, [jwt(secret, opts)]);
+    return des;
+  };
+}
 jwt.encode = jwts.encode;
 jwt.decode = jwts.decode;
 var jwt_default = jwt;
 export {
+  Jwt,
   jwt_default as default,
   jwt
 };

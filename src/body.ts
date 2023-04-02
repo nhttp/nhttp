@@ -24,33 +24,30 @@ const c_types = [
 export const isTypeBody = (a: string, b: string) => {
   return a === b || a.includes(b);
 };
-function cloneReq(req: Request, body: TRet) {
+function cloneReq(req: Request, body: TRet, n?: number) {
   return new Request(req.url, {
-    method: req.method,
-    body,
+    method: "POST",
+    body: n ? JSON.stringify(body) : body,
     headers: req.headers,
   });
 }
-
-export function memoBody(req: Request, body: TRet) {
+export function memoBody(req: Request, body: TRet, n?: number) {
   try {
-    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => Promise.resolve(decoder.decode(body));
-    req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
-    req.formData = () => cloneReq(req, body).formData();
-    req.blob = () => cloneReq(req, body).blob();
+    req.json = () => cloneReq(req, body, n).json();
+    req.text = () => cloneReq(req, body, n).text();
+    req.arrayBuffer = () => cloneReq(req, body, n).arrayBuffer();
+    req.formData = () => cloneReq(req, body, n).formData();
+    req.blob = () => cloneReq(req, body, n).blob();
   } catch (_e) { /* no_^_op */ }
 }
-// binary bytes (1mb)
-const defautl_size = 1048576;
 
 async function verifyBody(
   rev: RequestEvent,
-  limit: number | string = defautl_size,
+  limit: TValidBody,
 ) {
   const arrBuff = await rev.request.arrayBuffer();
   const len = arrBuff.byteLength;
-  if (len > toBytes(limit)) {
+  if (limit && len > toBytes(limit)) {
     rev.body = {};
     throw new HttpError(
       400,
@@ -64,18 +61,31 @@ async function verifyBody(
 }
 
 const isNotValid = (v: TValidBody) => v === false || v === 0;
-
+const uptd = (m: string) => m.toLowerCase().includes("unexpected end of json");
 async function jsonBody(
   validate: TValidBody,
   rev: RequestEvent,
   next: NextFunction,
 ) {
+  if (validate === void 0) {
+    try {
+      const body = await rev.request.json();
+      if (body) {
+        rev.body = body;
+        memoBody(rev.request, body, 1);
+      }
+      return next();
+    } catch (e) {
+      if (uptd(e.message)) return next();
+      return next(e);
+    }
+  }
   if (isNotValid(validate)) {
     rev.body = {};
     return next();
   }
   try {
-    const body = await verifyBody(rev, <number> validate);
+    const body = await verifyBody(rev, validate);
     if (!body) return next();
     rev.body = JSON.parse(body);
     return next();
@@ -95,7 +105,7 @@ async function urlencodedBody(
     return next();
   }
   try {
-    const body = await verifyBody(rev, <number> validate);
+    const body = await verifyBody(rev, validate);
     if (!body) return next();
     const parse = parseQuery ?? parseQueryOri;
     rev.body = parse(body);
@@ -115,7 +125,7 @@ async function rawBody(
     return next();
   }
   try {
-    const body = await verifyBody(rev, <number> validate);
+    const body = await verifyBody(rev, validate);
     if (!body) return next();
     try {
       rev.body = JSON.parse(body);

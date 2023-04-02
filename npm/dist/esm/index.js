@@ -170,11 +170,9 @@ var decURIComponent = (str = "") => {
   return str;
 };
 var duc = decURIComponent;
-var ShimHeaders = class {
+var EHeaders = class {
   constructor(headers) {
-    const obj = Object.fromEntries(headers.entries());
-    for (const key in obj)
-      this[key] = obj[key];
+    headers.forEach((v, k) => this[k.toLowerCase()] = v);
     this.get = (s) => headers.get(s);
     this.set = (k, v) => headers.set(k, v);
     this.append = (k, v) => headers.append(k, v);
@@ -192,7 +190,7 @@ function findFn(fn) {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        rev.headers = new ShimHeaders(rev.headers);
+        rev.headers = new EHeaders(rev.headers);
         response.append ??= (a, b) => response.header().append(a, b);
         response.set ??= response.header;
         response.get ??= (a) => response.header(a);
@@ -717,28 +715,27 @@ var c_types = [
 var isTypeBody = (a, b) => {
   return a === b || a.includes(b);
 };
-function cloneReq(req, body) {
+function cloneReq(req, body, n) {
   return new Request(req.url, {
-    method: req.method,
-    body,
+    method: "POST",
+    body: n ? JSON.stringify(body) : body,
     headers: req.headers
   });
 }
-function memoBody(req, body) {
+function memoBody(req, body, n) {
   try {
-    req.json = () => Promise.resolve(JSON.parse(decoder.decode(body)));
-    req.text = () => Promise.resolve(decoder.decode(body));
-    req.arrayBuffer = () => cloneReq(req, body).arrayBuffer();
-    req.formData = () => cloneReq(req, body).formData();
-    req.blob = () => cloneReq(req, body).blob();
+    req.json = () => cloneReq(req, body, n).json();
+    req.text = () => cloneReq(req, body, n).text();
+    req.arrayBuffer = () => cloneReq(req, body, n).arrayBuffer();
+    req.formData = () => cloneReq(req, body, n).formData();
+    req.blob = () => cloneReq(req, body, n).blob();
   } catch (_e) {
   }
 }
-var defautl_size = 1048576;
-async function verifyBody(rev, limit = defautl_size) {
+async function verifyBody(rev, limit) {
   const arrBuff = await rev.request.arrayBuffer();
   const len = arrBuff.byteLength;
-  if (len > toBytes(limit)) {
+  if (limit && len > toBytes(limit)) {
     rev.body = {};
     throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
   }
@@ -748,7 +745,22 @@ async function verifyBody(rev, limit = defautl_size) {
   return decURIComponent(decoder.decode(arrBuff));
 }
 var isNotValid = (v) => v === false || v === 0;
+var uptd = (m) => m.toLowerCase().includes("unexpected end of json");
 async function jsonBody(validate, rev, next) {
+  if (validate === void 0) {
+    try {
+      const body = await rev.request.json();
+      if (body) {
+        rev.body = body;
+        memoBody(rev.request, body, 1);
+      }
+      return next();
+    } catch (e) {
+      if (uptd(e.message))
+        return next();
+      return next(e);
+    }
+  }
   if (isNotValid(validate)) {
     rev.body = {};
     return next();

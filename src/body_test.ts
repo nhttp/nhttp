@@ -21,6 +21,9 @@ Deno.test("body parser", async (t) => {
       bodyUsed: false,
       body: "noop",
       url: base + "/",
+      json() {
+        return JSON.parse(content as string);
+      },
       arrayBuffer() {
         return encoder.encode(content as string);
       },
@@ -39,9 +42,10 @@ Deno.test("body parser", async (t) => {
       type: string,
       lose?: boolean,
       lose2?: boolean,
+      opts?: TRet,
     ) => {
       const rev = new RequestEvent(request(content, type, lose, lose2) as TRet);
-      await bodyParser()(
+      await bodyParser(opts)(
         rev,
         ((err?: Error) => err?.message || "noop") as MyNext,
       );
@@ -61,6 +65,14 @@ Deno.test("body parser", async (t) => {
         "application/json; charset=utf-8",
       );
       assertEquals(ret, { "name": "john" });
+      const ret2 = await createBody(
+        `{"name": "john"}`,
+        "application/json",
+        void 0,
+        void 0,
+        { json: "1mb" },
+      );
+      assertEquals(ret2, { "name": "john" });
     });
     await t.step("content-type urlencoded", async () => {
       const ret = await createBody(
@@ -248,7 +260,7 @@ Deno.test("body parser", async (t) => {
           headers: { "content-type": type },
         }),
       );
-      await bodyParser()(
+      await bodyParser({ json: 1 })(
         rev,
         ((err?: Error) => err?.message || "noop") as MyNext,
       );
@@ -260,6 +272,26 @@ Deno.test("body parser", async (t) => {
     assertEquals(ret2, {});
     const ret3 = await createBody("text/plain");
     assertEquals(ret3, {});
+  });
+  await t.step("JSON body unexpected next", async () => {
+    const createBody = async (body = {}) => {
+      const rev = new RequestEvent(
+        new Request(base + "/", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          ...body,
+        }),
+      );
+      await bodyParser()(
+        rev,
+        ((err?: Error) => err?.message || "noop") as MyNext,
+      );
+      return rev.body;
+    };
+    const ret = await createBody();
+    assertEquals(ret, {});
+    const ret2 = await createBody({ body: "noop" });
+    assertEquals(ret2, {});
   });
   await t.step("false and cosume", async () => {
     const req = new Request(base + "/", {

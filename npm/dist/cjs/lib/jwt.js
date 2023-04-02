@@ -27,11 +27,13 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 var jwt_exports = {};
 __export(jwt_exports, {
+  Jwt: () => Jwt,
   default: () => jwt_default,
   jwt: () => jwt
 });
-var import_jwt_simple = __toESM(require("jwt-simple"), 1);
+var import_jwt_simple = __toESM(require("jwt-simple"));
 var import_deps = require("./deps");
+var import_controller = require("./controller");
 class UnauthorizedError extends import_deps.HttpError {
   constructor(message = "Unauthorized") {
     super(401, message);
@@ -96,11 +98,18 @@ const jwt = (secret, opts = {}) => {
     return next();
   };
 };
+function Jwt(secret, opts = {}) {
+  return (tgt, prop, des) => {
+    (0, import_controller.joinHandlers)(tgt.constructor.name, prop, [jwt(secret, opts)]);
+    return des;
+  };
+}
 jwt.encode = import_jwt_simple.default.encode;
 jwt.decode = import_jwt_simple.default.decode;
 var jwt_default = jwt;
 module.exports = __toCommonJS(jwt_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  Jwt,
   jwt
 });

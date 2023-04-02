@@ -1,6 +1,7 @@
 import jwts from "jwt-simple";
 import { Handler, HttpError, RequestEvent, TRet } from "./deps";
 import { NextFunction } from "../mod";
+import { TDecorator } from "./controller";
 declare class UnauthorizedError extends HttpError {
     constructor(message?: string);
 }
@@ -14,7 +15,8 @@ type TOptions = {
 };
 export declare const jwt: {
     (secret: string, opts?: TOptions): Handler;
-    encode: typeof jwts.encode;
-    decode: typeof jwts.decode;
+    encode: any;
+    decode: any;
 };
+export declare function Jwt(secret: string, opts?: TOptions): TDecorator;
 export default jwt;

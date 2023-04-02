@@ -50,8 +50,7 @@ function validate(cls, opts = {}, target = "body") {
 }
 function Validate(cls, opts = {}, target = "body") {
   return (tgt, prop, des) => {
-    const className = tgt.constructor.name;
-    (0, import_controller.joinHandlers)(className, prop, [validate(cls, opts, target)]);
+    (0, import_controller.joinHandlers)(tgt.constructor.name, prop, [validate(cls, opts, target)]);
     return des;
   };
 }

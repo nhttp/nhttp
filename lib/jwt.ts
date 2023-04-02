@@ -1,6 +1,7 @@
 import jwts from "npm:jwt-simple";
 import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
 import { NextFunction } from "../mod.ts";
+import { joinHandlers, TDecorator } from "./controller.ts";
 
 class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {
@@ -36,7 +37,6 @@ export const jwt = (secret: string, opts: TOptions = {}): Handler => {
         .includes("authorization");
       if (cc) return next();
     }
-
     if (typeof opts.getToken === "function") {
       token = await opts.getToken(rev);
     } else {
@@ -87,6 +87,13 @@ export const jwt = (secret: string, opts: TOptions = {}): Handler => {
     return next();
   };
 };
+
+export function Jwt(secret: string, opts: TOptions = {}): TDecorator {
+  return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
+    joinHandlers(tgt.constructor.name, prop, [jwt(secret, opts)]);
+    return des;
+  };
+}
 
 jwt.encode = jwts.encode;
 jwt.decode = jwts.decode;

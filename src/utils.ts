@@ -26,10 +26,9 @@ export const decURIComponent = (str = "") => {
 // alias decodeUriComponent
 const duc = decURIComponent;
 
-class ShimHeaders {
+class EHeaders {
   constructor(headers: Headers) {
-    const obj = Object.fromEntries(headers.entries());
-    for (const key in obj) this[key] = obj[key];
+    headers.forEach((v, k) => (this[k.toLowerCase()] = v));
     this.get = (s: string) => headers.get(s);
     this.set = (k: string, v: string) => headers.set(k, v);
     this.append = (k: string, v: string) => headers.append(k, v);
@@ -49,7 +48,7 @@ export function findFn(fn: TRet) {
       const response = rev.response;
       if (!rev.__wm) {
         rev.__wm = true;
-        rev.headers = <TRet> new ShimHeaders(rev.headers);
+        rev.headers = <TRet> new EHeaders(rev.headers);
         response.append ??= (a: string, b: string) =>
           response.header().append(a, b);
         response.set ??= response.header;

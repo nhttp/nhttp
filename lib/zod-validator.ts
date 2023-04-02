@@ -23,8 +23,7 @@ export function Validate(
   target = "body",
 ): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
-    const className = tgt.constructor.name;
-    joinHandlers(className, prop, [validate(schema, target)]);
+    joinHandlers(tgt.constructor.name, prop, [validate(schema, target)]);
     return des;
   };
 }

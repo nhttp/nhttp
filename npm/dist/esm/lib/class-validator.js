@@ -21,8 +21,7 @@ function validate(cls, opts = {}, target = "body") {
 }
 function Validate(cls, opts = {}, target = "body") {
   return (tgt, prop, des) => {
-    const className = tgt.constructor.name;
-    joinHandlers(className, prop, [validate(cls, opts, target)]);
+    joinHandlers(tgt.constructor.name, prop, [validate(cls, opts, target)]);
     return des;
   };
 }

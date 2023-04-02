@@ -13,8 +13,7 @@ function validate(schema, target = "body") {
 }
 function Validate(schema, target = "body") {
   return (tgt, prop, des) => {
-    const className = tgt.constructor.name;
-    joinHandlers(className, prop, [validate(schema, target)]);
+    joinHandlers(tgt.constructor.name, prop, [validate(schema, target)]);
     return des;
   };
 }

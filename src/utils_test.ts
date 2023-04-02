@@ -106,6 +106,15 @@ Deno.test("utils", async (t) => {
       const body = await req.json();
       assertEquals(typeof body, "object");
     });
+    await t.step("json2", async () => {
+      const req = createReq(
+        JSON.stringify({ name: "john" }),
+        "application/json",
+      );
+      memoBody(req, await req.json(), 1);
+      const body = await req.json();
+      assertEquals(typeof body, "object");
+    });
     await t.step("text", async () => {
       const req = createReq("name=john", "application/x-www-form-urlencoded");
       memoBody(req, await req.arrayBuffer());
