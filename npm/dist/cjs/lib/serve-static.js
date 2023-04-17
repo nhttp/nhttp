@@ -62,7 +62,12 @@ function serveStatic(dir, opts = {}) {
       }
       return await sendFile(rev, (0, import_deps.decURIComponent)(pathFile), opts);
     } catch {
-      return next();
+      if (!opts.spa || !index)
+        return next();
+      let spa = dir + "/" + index;
+      if (spa.startsWith("file://"))
+        spa = new URL(spa).pathname;
+      return await sendFile(rev, (0, import_deps.decURIComponent)(spa), opts);
     }
   };
 }

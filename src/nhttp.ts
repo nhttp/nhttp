@@ -397,12 +397,12 @@ export class NHttp<
       return;
     };
     try {
-      if (this.flash) {
-        if (runCallback()) opts.onListen = () => {};
-        const handler = opts.handler ?? this.handle;
-        if (opts.handler) delete opts.handler;
-        return await (<TObject> Deno).serve(handler, opts);
-      }
+      // if (this.flash) {
+      //   if (runCallback()) opts.onListen = () => {};
+      //   const handler = opts.handler ?? this.handle;
+      //   if (opts.handler) delete opts.handler;
+      //   return await (<TObject> Deno).serve(handler, opts);
+      // }
       runCallback();
       if (opts.signal) {
         opts.signal.addEventListener("abort", () => this.closeServer(), {

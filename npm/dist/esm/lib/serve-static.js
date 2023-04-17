@@ -34,7 +34,12 @@ function serveStatic(dir, opts = {}) {
       }
       return await sendFile(rev, decURIComponent(pathFile), opts);
     } catch {
-      return next();
+      if (!opts.spa || !index)
+        return next();
+      let spa = dir + "/" + index;
+      if (spa.startsWith("file://"))
+        spa = new URL(spa).pathname;
+      return await sendFile(rev, decURIComponent(spa), opts);
     }
   };
 }

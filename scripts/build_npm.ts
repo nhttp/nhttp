@@ -123,7 +123,7 @@ const pkg = {
   "name": "nhttp-land",
   "description": "An Simple web-framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./dist/types/index.d.ts",

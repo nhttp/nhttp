@@ -5,6 +5,7 @@ interface StaticOptions extends TOptsSendFile {
   index?: string;
   redirect?: boolean;
   prefix?: string;
+  spa?: boolean;
 }
 export const sendFile = sendFileEtag;
 export function serveStatic(dir: string, opts: StaticOptions = {}) {
@@ -35,7 +36,10 @@ export function serveStatic(dir: string, opts: StaticOptions = {}) {
       }
       return await sendFile(rev, decURIComponent(pathFile), opts);
     } catch {
-      return next();
+      if (!opts.spa || !index) return next();
+      let spa = dir + "/" + index;
+      if (spa.startsWith("file://")) spa = new URL(spa).pathname;
+      return await sendFile(rev, decURIComponent(spa), opts);
     }
   };
 }

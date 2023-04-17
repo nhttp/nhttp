@@ -92,8 +92,8 @@ export type TApp = {
     env?: string;
     /**
      * flash server for `Deno`. default to false.
-     *
-     * `note: if flash is stable, will remove this flag`.
+     * @deprecated
+     * Temporarily, flash has been removed by Deno Authors.
      * @example
      * const app = nhttp({
      *   flash: true
