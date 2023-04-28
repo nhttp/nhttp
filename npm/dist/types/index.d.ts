@@ -34,7 +34,7 @@ export declare const multipart: {
      *    return "success upload";
      * });
      */
-    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler<import("./src/types").EObject, RequestEvent<import("./src/types").TObject>>;
+    upload: (opts: TMultipartUpload | TMultipartUpload[]) => import("./src/types").Handler;
 };
 export declare function nhttp<Rev extends RequestEvent = RequestEvent>(opts?: TApp): NHttp<Rev>;
 export declare namespace nhttp {

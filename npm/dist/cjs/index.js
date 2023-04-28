@@ -1582,6 +1582,15 @@ var NHttp = class extends Router {
       return;
     };
     try {
+      if (this.flash) {
+        if (runCallback())
+          opts.onListen = () => {
+          };
+        const handler = opts.handler ?? this.handle;
+        if (opts.handler)
+          delete opts.handler;
+        return await Deno.serve(opts, handler);
+      }
       runCallback();
       if (opts.signal) {
         opts.signal.addEventListener("abort", () => this.closeServer(), {
