@@ -1589,7 +1589,7 @@ var NHttp = class extends Router {
         const handler = opts.handler ?? this.handle;
         if (opts.handler)
           delete opts.handler;
-        return await Deno.serve(opts, handler);
+        return await Deno.serve(opts, (req) => handler(req));
       }
       runCallback();
       if (opts.signal) {

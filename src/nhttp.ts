@@ -401,7 +401,10 @@ export class NHttp<
         if (runCallback()) opts.onListen = () => {};
         const handler = opts.handler ?? this.handle;
         if (opts.handler) delete opts.handler;
-        return await (<TObject> Deno).serve(opts, handler);
+        return await (<TObject> Deno).serve(
+          opts,
+          (req: Request) => handler(req),
+        );
       }
       runCallback();
       if (opts.signal) {

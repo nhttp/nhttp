@@ -10,39 +10,35 @@
     "test:dev": "deno task rm:cov && deno task test && deno task cov && deno task genhtml && deno task cov:serve"
   },
   "lint": {
-    "files": {
-      "exclude": [
-        "mod.js",
-        "dev.ts",
-        "dev.tsx",
-        "bench.ts",
-        "dev.js",
-        "backup/",
-        "cf_workers/",
-        "node_modules/",
-        "npm/",
-        "scripts/",
-        "dummy/",
-        "cov_profile",
-        "cov_profile.lcov"
-      ]
-    }
+    "exclude": [
+      "mod.js",
+      "dev.ts",
+      "dev.tsx",
+      "bench.ts",
+      "dev.js",
+      "backup/",
+      "cf_workers/",
+      "node_modules/",
+      "npm/",
+      "scripts/",
+      "dummy/",
+      "cov_profile",
+      "cov_profile.lcov"
+    ]
   },
   "fmt": {
-    "files": {
-      "exclude": [
-        "dev.js",
-        "mod.js",
-        "dev.ts",
-        "dev.tsx",
-        "cf_workers/",
-        "node_modules/",
-        "npm/",
-        "dummy/",
-        "bench.ts",
-        "cov_profile",
-        "cov_profile.lcov"
-      ]
-    }
+    "exclude": [
+      "dev.js",
+      "mod.js",
+      "dev.ts",
+      "dev.tsx",
+      "cf_workers/",
+      "node_modules/",
+      "npm/",
+      "dummy/",
+      "bench.ts",
+      "cov_profile",
+      "cov_profile.lcov"
+    ]
   }
 }

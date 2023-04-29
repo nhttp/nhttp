@@ -59,3 +59,49 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "server flash",
+  async fn(t) {
+    await t.step("run server flash", async () => {
+      const ac = new AbortController();
+      const app = nhttp({ flash: true });
+      app.get("/", () => "home");
+      const p = app.listen({ port: 8081, signal: ac.signal });
+      const res = await fetch("http://localhost:8081/");
+      assertEquals(res.ok, true);
+      await res.body?.cancel();
+      ac.abort();
+      try {
+        app["closeServer"]();
+      } catch (error) {
+        assertEquals(error.message, "Server Closed");
+      }
+      await p;
+    });
+  },
+});
+
+Deno.test({
+  name: "server flash with callback",
+  async fn(t) {
+    await t.step("run server flash", async () => {
+      const ac = new AbortController();
+      const app = nhttp({ flash: true });
+      app.get("/", () => "home");
+      const p = app.listen({ port: 8082, signal: ac.signal }, () => {
+        console.log("run");
+      });
+      const res = await fetch("http://localhost:8082/");
+      assertEquals(res.ok, true);
+      await res.body?.cancel();
+      ac.abort();
+      try {
+        app["closeServer"]();
+      } catch (error) {
+        assertEquals(error.message, "Server Closed");
+      }
+      await p;
+    });
+  },
+});
