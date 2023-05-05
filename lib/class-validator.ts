@@ -1,12 +1,17 @@
-import { validateOrReject, ValidatorOptions } from "npm:class-validator";
+import {
+  validateOrReject,
+  ValidatorOptions,
+} from "https://esm.sh/class-validator@0.14.0";
 import { Handler, HttpError, TRet } from "./deps.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";
+export * from "https://esm.sh/class-validator@0.14.0";
 
 type Class = { new (...args: TRet[]): TRet };
 
 type TOptions = ValidatorOptions & {
   plainToClass?: (...args: TRet) => TRet;
 };
+
 export function validate<
   S extends string = "body",
   T extends Class = Class,
@@ -43,5 +48,5 @@ export function Validate(
     return des;
   };
 }
-export * from "npm:class-validator";
+
 export default validate;

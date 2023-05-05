@@ -1,10 +1,14 @@
-import { fetchRequestHandler } from "npm:@trpc/server/adapters/fetch";
-import { AnyRouter, inferRouterContext } from "npm:@trpc/server";
+import { fetchRequestHandler } from "https://esm.sh/@trpc/server@10.25.0/adapters/fetch";
+import {
+  AnyRouter,
+  inferRouterContext,
+} from "https://esm.sh/@trpc/server@10.25.0";
 import { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
+type TAnyRouter = TRet;
 interface TOpts<TRouter extends AnyRouter> {
   prefix?: string;
-  router: TRouter;
+  router: TAnyRouter;
   createContext?: (
     rev: RequestEvent,
     next: NextFunction,

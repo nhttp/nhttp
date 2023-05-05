@@ -1,4 +1,4 @@
-import jwts from "npm:jwt-simple";
+import jwts from "https://esm.sh/jwt-simple@0.5.6";
 import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
 import { NextFunction } from "../mod.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";
@@ -21,11 +21,15 @@ type TOptions = {
     next: NextFunction,
   ) => TRet;
 };
-export const jwt = (secret: string, opts: TOptions = {}): Handler => {
+export const jwt = (
+  secret: string,
+  handler?: Handler,
+  opts: TOptions = {},
+): Handler | Handler[] => {
   opts.algorithm ??= "HS256";
   opts.credentials ??= true;
   opts.noVerify ??= false;
-  return async (rev, next) => {
+  const auth = async (rev: RequestEvent, next: NextFunction) => {
     let token: string;
     if (
       rev.method === "OPTIONS" &&
@@ -86,11 +90,16 @@ export const jwt = (secret: string, opts: TOptions = {}): Handler => {
     }
     return next();
   };
+  return handler ? [auth, handler] : auth;
 };
 
-export function Jwt(secret: string, opts: TOptions = {}): TDecorator {
+export function Jwt(
+  secret: string,
+  handler?: Handler,
+  opts: TOptions = {},
+): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
-    joinHandlers(tgt.constructor.name, prop, [jwt(secret, opts)]);
+    joinHandlers(tgt.constructor.name, prop, [jwt(secret, handler, opts)]);
     return des;
   };
 }

@@ -14,9 +14,9 @@ type TOptions = {
     onExpired?: (err: UnauthorizedError, rev: RequestEvent, next: NextFunction) => TRet;
 };
 export declare const jwt: {
-    (secret: string, opts?: TOptions): Handler;
+    (secret: string, handler?: Handler, opts?: TOptions): Handler | Handler[];
     encode: typeof jwts.encode;
     decode: typeof jwts.decode;
 };
-export declare function Jwt(secret: string, opts?: TOptions): TDecorator;
+export declare function Jwt(secret: string, handler?: Handler, opts?: TOptions): TDecorator;
 export default jwt;

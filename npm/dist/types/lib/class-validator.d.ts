@@ -1,6 +1,7 @@
 import { ValidatorOptions } from "class-validator";
 import { Handler, TRet } from "./deps";
 import { TDecorator } from "./controller";
+export * from "class-validator";
 type Class = {
     new (...args: TRet[]): TRet;
 };
@@ -11,5 +12,4 @@ export declare function validate<S extends string = "body", T extends Class = Cl
     [k in S]: InstanceType<T>;
 }>;
 export declare function Validate(cls: Class, opts?: TOptions, target?: string): TDecorator;
-export * from "class-validator";
 export default validate;

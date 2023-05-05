@@ -1,6 +1,9 @@
-import { validateOrReject } from "class-validator";
+import {
+  validateOrReject
+} from "class-validator";
 import { HttpError } from "./deps.js";
 import { joinHandlers } from "./controller.js";
+export * from "class-validator";
 function validate(cls, opts = {}, target = "body") {
   return async (rev, next) => {
     try {
@@ -25,7 +28,6 @@ function Validate(cls, opts = {}, target = "body") {
     return des;
   };
 }
-export * from "class-validator";
 var class_validator_default = validate;
 export {
   Validate,

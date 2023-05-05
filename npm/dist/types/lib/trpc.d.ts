@@ -1,8 +1,9 @@
 import { AnyRouter, inferRouterContext } from "@trpc/server";
 import { Handler, NextFunction, RequestEvent, TRet } from "./deps";
+type TAnyRouter = TRet;
 interface TOpts<TRouter extends AnyRouter> {
     prefix?: string;
-    router: TRouter;
+    router: TAnyRouter;
     createContext?: (rev: RequestEvent, next: NextFunction) => inferRouterContext<TRouter>;
     batching?: {
         enabled: boolean;

@@ -1,4 +1,4 @@
-import { z, ZodSchema } from "npm:zod";
+import { z, ZodSchema } from "https://esm.sh/zod@3.21.4";
 import { joinHandlers, TDecorator } from "./controller.ts";
 import { Handler, HttpError, TRet } from "./deps.ts";
 

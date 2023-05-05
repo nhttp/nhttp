@@ -39,11 +39,11 @@ class UnauthorizedError extends import_deps.HttpError {
     super(401, message);
   }
 }
-const jwt = (secret, opts = {}) => {
+const jwt = (secret, handler, opts = {}) => {
   opts.algorithm ??= "HS256";
   opts.credentials ??= true;
   opts.noVerify ??= false;
-  return async (rev, next) => {
+  const auth = async (rev, next) => {
     let token;
     if (rev.method === "OPTIONS" && rev.headers.has("access-control-request-headers")) {
       const headers = rev.headers.get("access-control-request-headers");
@@ -97,10 +97,11 @@ const jwt = (secret, opts = {}) => {
     }
     return next();
   };
+  return handler ? [auth, handler] : auth;
 };
-function Jwt(secret, opts = {}) {
+function Jwt(secret, handler, opts = {}) {
   return (tgt, prop, des) => {
-    (0, import_controller.joinHandlers)(tgt.constructor.name, prop, [jwt(secret, opts)]);
+    (0, import_controller.joinHandlers)(tgt.constructor.name, prop, [jwt(secret, handler, opts)]);
     return des;
   };
 }

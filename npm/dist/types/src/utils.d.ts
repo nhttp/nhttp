@@ -31,8 +31,8 @@ export declare function concatRegexp(prefix: string | RegExp, path: RegExp): Reg
  * auto added to `NHttp.use`
  * @example
  * ...
- * import cors from "https://esm.sh/cors?no-check";
- * import helmet from "https://esm.sh/helmet?no-check";
+ * import cors from "cors?no-check";
+ * import helmet from "helmet?no-check";
  * ...
  * app.use(expressMiddleware([
  *    cors(),

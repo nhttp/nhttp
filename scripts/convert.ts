@@ -3,10 +3,14 @@ export async function replaceTs(source: string, dest: string, prefix?: string) {
     const stat = await Deno.stat(source);
     if (stat.isFile) {
       const str = await Deno.readTextFile(source);
-      await Deno.writeTextFile(
-        dest,
-        (prefix || "") + str.replaceAll(".ts", "").replaceAll("npm:", ""),
-      );
+      let str2 = str.replaceAll(".ts", "");
+      if (str2.includes("https://esm.sh/")) {
+        str2 = str2.replace(
+          /https:\/\/esm\.sh\/|@([0-9\.]+)/g,
+          "",
+        );
+      }
+      await Deno.writeTextFile(dest, (prefix || "") + str2);
     }
   } catch (_error) {
   }
