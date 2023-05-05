@@ -26,7 +26,7 @@ app.post("/login", validate(LoginSchema), (rev) => {
   return { token: jwt.encode(payload, JWT_SECRET) };
 });
 
-app.get("/admin/home", jwt(JWT_SECRET, handleAuth), (rev) => {
+app.get("/admin/home", jwt({ secret: JWT_SECRET, onAuth: handleAuth }), (rev) => {
   return `Welcome ${rev.auth.user}`;
 });
 

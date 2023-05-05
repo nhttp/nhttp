@@ -45,7 +45,7 @@ type TString<
 ) => string;
 
 type TMethod = (
-  path: string | RegExp,
+  path?: string | RegExp,
 ) => TDecorator;
 
 export function addRoute(
@@ -79,6 +79,7 @@ export function joinHandlers(
 }
 
 export function addMethod(method: string, path?: string | RegExp): TDecorator {
+  path ??= "/";
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
     des.value = function (...args: TObject[]) {
@@ -203,10 +204,17 @@ export function Controller(
   path?: string,
   ...middlewares: Handlers | { new (...args: TRet[]): TRet }[]
 ): TDecorator {
+  path ??= "";
+  if (path !== "/" && path[path.length - 1] === "/") {
+    path = path.slice(0, -1);
+  }
   return (target: TRet) => {
     const cRoutes = [] as TObject[];
     const className = target.name;
-    const obj = globalThis.NHttpMetadata[className]["route"];
+    const obj = globalThis.NHttpMetadata?.[className]?.["route"];
+    if (!obj) {
+      throw new TypeError("Typo: Controller with no routing");
+    }
     const midds = findFns(middlewares);
     for (const k in obj) {
       if (obj[k].path instanceof RegExp) {

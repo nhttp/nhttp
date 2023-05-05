@@ -10,6 +10,7 @@ class UnauthorizedError extends HttpError {
 }
 
 type TOptions = {
+  secret: string;
   algorithm?: jwts.TAlgorithm;
   noVerify?: boolean;
   credentials?: boolean;
@@ -20,12 +21,14 @@ type TOptions = {
     rev: RequestEvent,
     next: NextFunction,
   ) => TRet;
+  onAuth?: Handler;
 };
 export const jwt = (
-  secret: string,
-  handler?: Handler,
-  opts: TOptions = {},
+  secretOrOptions: string | TOptions,
 ): Handler | Handler[] => {
+  const opts = typeof secretOrOptions === "string"
+    ? { secret: secretOrOptions }
+    : secretOrOptions;
   opts.algorithm ??= "HS256";
   opts.credentials ??= true;
   opts.noVerify ??= false;
@@ -76,7 +79,7 @@ export const jwt = (
     rev[prop] = {};
     let decode: TRet;
     try {
-      decode = jwts.decode(token, secret, opts.noVerify, opts.algorithm);
+      decode = jwts.decode(token, opts.secret, opts.noVerify, opts.algorithm);
       rev[prop] = decode;
     } catch (err) {
       const e = new UnauthorizedError(err.message ?? "Invalid token");
@@ -90,16 +93,12 @@ export const jwt = (
     }
     return next();
   };
-  return handler ? [auth, handler] : auth;
+  return opts.onAuth ? [auth, opts.onAuth] : auth;
 };
 
-export function Jwt(
-  secret: string,
-  handler?: Handler,
-  opts: TOptions = {},
-): TDecorator {
+export function Jwt(secretOrOptions: string | TOptions,): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
-    joinHandlers(tgt.constructor.name, prop, [jwt(secret, handler, opts)]);
+    joinHandlers(tgt.constructor.name, prop, [jwt(secretOrOptions)]);
     return des;
   };
 }
