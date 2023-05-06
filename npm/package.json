@@ -79,6 +79,11 @@
       "import": "./dist/esm/lib/class-validator.js",
       "require": "./dist/cjs/lib/class-validator.js"
     },
+    "./cors": {
+      "types": "./dist/types/lib/cors.d.ts",
+      "import": "./dist/esm/lib/cors.js",
+      "require": "./dist/cjs/lib/cors.js"
+    },
     "./jsx/jsx-runtime": {
       "types": "./dist/types/lib/jsx/jsx-runtime.d.ts",
       "import": "./dist/esm/lib/jsx/jsx-runtime.js",
@@ -126,6 +131,9 @@
       ],
       "class-validator": [
         "./dist/types/lib/class-validator.d.ts"
+      ],
+      "cors": [
+        "./dist/types/lib/cors.d.ts"
       ],
       "jsx/jsx-runtime": [
         "./dist/types/lib/jsx/jsx-runtime.d.ts"

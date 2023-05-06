@@ -30,6 +30,7 @@ function joinHandlers(className, prop, arr) {
   metadata[className]["route"] = obj;
 }
 function addMethod(method, path) {
+  path ??= "/";
   return (target, prop, des) => {
     const ori = des.value;
     des.value = function(...args) {
@@ -133,10 +134,17 @@ const Trace = (path) => addMethod("TRACE", path);
 const Connect = (path) => addMethod("CONNECT", path);
 const Patch = (path) => addMethod("PATCH", path);
 function Controller(path, ...middlewares) {
+  path ??= "";
+  if (path !== "/" && path[path.length - 1] === "/") {
+    path = path.slice(0, -1);
+  }
   return (target) => {
     const cRoutes = [];
     const className = target.name;
-    const obj = globalThis.NHttpMetadata[className]["route"];
+    const obj = globalThis.NHttpMetadata?.[className]?.["route"];
+    if (!obj) {
+      throw new TypeError("Typo: Controller with no routing");
+    }
     const midds = findFns(middlewares);
     for (const k in obj) {
       if (obj[k].path instanceof RegExp) {

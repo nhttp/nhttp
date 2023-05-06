@@ -6,17 +6,19 @@ declare class UnauthorizedError extends HttpError {
     constructor(message?: string);
 }
 type TOptions = {
+    secret: string;
     algorithm?: jwts.TAlgorithm;
     noVerify?: boolean;
     credentials?: boolean;
     getToken?: (rev: RequestEvent) => string | Promise<string>;
     propertyName?: string;
     onExpired?: (err: UnauthorizedError, rev: RequestEvent, next: NextFunction) => TRet;
+    onAuth?: Handler;
 };
 export declare const jwt: {
-    (secret: string, handler?: Handler, opts?: TOptions): Handler | Handler[];
+    (secretOrOptions: string | TOptions): Handler | Handler[];
     encode: typeof jwts.encode;
     decode: typeof jwts.decode;
 };
-export declare function Jwt(secret: string, handler?: Handler, opts?: TOptions): TDecorator;
+export declare function Jwt(secretOrOptions: string | TOptions): TDecorator;
 export default jwt;

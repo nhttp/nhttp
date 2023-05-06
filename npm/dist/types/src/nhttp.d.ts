@@ -15,16 +15,16 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     /**
      * global error handling.
      * @example
-     * app.onError((err, { response }) => {
-     *    response.send(err.message);
+     * app.onError((err, rev) => {
+     *    return err.message;
      * })
      */
     onError(fn: (err: TObject, rev: Rev, next: NextFunction) => RetHandler): this;
     /**
      * global not found error handling.
      * @example
-     * app.on404(({ response, url }) => {
-     *    response.send(`route ${url} not found`);
+     * app.on404((rev) => {
+     *    return `route ${rev.url} not found`;
      * })
      */
     on404(fn: (rev: Rev, next: NextFunction) => RetHandler): this;

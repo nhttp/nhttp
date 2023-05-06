@@ -6,7 +6,8 @@ class UnauthorizedError extends HttpError {
     super(401, message);
   }
 }
-const jwt = (secret, handler, opts = {}) => {
+const jwt = (secretOrOptions) => {
+  const opts = typeof secretOrOptions === "string" ? { secret: secretOrOptions } : secretOrOptions;
   opts.algorithm ??= "HS256";
   opts.credentials ??= true;
   opts.noVerify ??= false;
@@ -52,7 +53,7 @@ const jwt = (secret, handler, opts = {}) => {
     rev[prop] = {};
     let decode;
     try {
-      decode = jwts.decode(token, secret, opts.noVerify, opts.algorithm);
+      decode = jwts.decode(token, opts.secret, opts.noVerify, opts.algorithm);
       rev[prop] = decode;
     } catch (err) {
       const e = new UnauthorizedError(err.message ?? "Invalid token");
@@ -64,11 +65,11 @@ const jwt = (secret, handler, opts = {}) => {
     }
     return next();
   };
-  return handler ? [auth, handler] : auth;
+  return opts.onAuth ? [auth, opts.onAuth] : auth;
 };
-function Jwt(secret, handler, opts = {}) {
+function Jwt(secretOrOptions) {
   return (tgt, prop, des) => {
-    joinHandlers(tgt.constructor.name, prop, [jwt(secret, handler, opts)]);
+    joinHandlers(tgt.constructor.name, prop, [jwt(secretOrOptions)]);
     return des;
   };
 }

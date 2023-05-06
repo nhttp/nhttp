@@ -6,7 +6,7 @@ declare global {
 type TStatus<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => number;
 type THeaders<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => TObject;
 type TString<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => string;
-type TMethod = (path: string | RegExp) => TDecorator;
+type TMethod = (path?: string | RegExp) => TDecorator;
 export declare function addRoute(className: string, prop: string, handler: Handler, opts: {
     path?: string | RegExp;
     method: string;
