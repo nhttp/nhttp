@@ -1,6 +1,6 @@
 import { Handler, TRet } from "./deps.ts";
 
-type tOptions = {
+type TOptions = {
   origin?: string | string[] | boolean;
   credentials?: boolean;
   allowHeaders?: string | string[];
@@ -9,7 +9,7 @@ type tOptions = {
   optionsStatus?: number;
 };
 
-export const cors = (opts: tOptions = {}): Handler => (rev, next) => {
+export const cors = (opts: TOptions = {}): Handler => (rev, next) => {
   if (opts.origin !== false) {
     if (opts.origin === true) opts.origin = "*";
     rev.response.setHeader(
