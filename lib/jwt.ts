@@ -96,7 +96,7 @@ export const jwt = (
   return opts.onAuth ? [auth, opts.onAuth] : auth;
 };
 
-export function Jwt(secretOrOptions: string | TOptions,): TDecorator {
+export function Jwt(secretOrOptions: string | TOptions): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
     joinHandlers(tgt.constructor.name, prop, [jwt(secretOrOptions)]);
     return des;

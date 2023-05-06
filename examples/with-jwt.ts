@@ -26,9 +26,13 @@ app.post("/login", validate(LoginSchema), (rev) => {
   return { token: jwt.encode(payload, JWT_SECRET) };
 });
 
-app.get("/admin/home", jwt({ secret: JWT_SECRET, onAuth: handleAuth }), (rev) => {
-  return `Welcome ${rev.auth.user}`;
-});
+app.get(
+  "/admin/home",
+  jwt({ secret: JWT_SECRET, onAuth: handleAuth }),
+  (rev) => {
+    return `Welcome ${rev.auth.user}`;
+  },
+);
 
 app.listen(8000, (_err, info) => {
   console.log(`Running on port ${info.port}`);

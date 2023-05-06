@@ -1,19 +1,9 @@
 import nhttp from "../mod.ts";
+import cors from "../lib/cors.ts";
 
 const app = nhttp();
 
-app.use(({ request, response }, next) => {
-  // example header
-  response.header({
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "*",
-    "Access-Control-Allow-Headers": "*",
-  });
-  if (request.method == "OPTIONS") {
-    return response.sendStatus(204);
-  }
-  return next();
-});
+app.use(cors());
 
 app.get("/", () => "Hello Cors");
 
