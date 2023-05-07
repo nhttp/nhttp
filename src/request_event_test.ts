@@ -1,4 +1,4 @@
-import { RequestEvent } from "./request_event.ts";
+import { RequestEvent, toRes } from "./request_event.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TRet } from "./types.ts";
 import { HttpResponse } from "./http_response.ts";
@@ -173,5 +173,28 @@ Deno.test("RequestEvent", async (t) => {
     } catch (error) {
       assertEquals(error.status, 500);
     }
+  });
+
+  await t.step("toRes", () => {
+    const myRes = (arr: TRet[]) => {
+      for (let i = 0; i < arr.length; i++) {
+        const val = arr[i];
+        const res = toRes(val);
+        assertEquals(res instanceof Response, true);
+      }
+    };
+    myRes([
+      "str",
+      { name: "john" },
+      123,
+      null,
+      new Response(""),
+      false,
+      new Uint8Array(),
+      new ReadableStream(),
+      new Blob(["hello"]),
+    ]);
+    const res = toRes(undefined);
+    assertEquals(res instanceof Response, false);
   });
 });
