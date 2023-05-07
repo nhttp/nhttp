@@ -6,6 +6,7 @@ import {
   s_file,
   s_headers,
   s_init,
+  s_method,
   s_params,
   s_path,
   s_query,
@@ -37,9 +38,7 @@ export class RequestEvent<O extends TObject = TObject> {
     public request: Request,
     private _info?: TObject,
     private _ctx?: TObject,
-  ) {
-    this.method = request.method;
-  }
+  ) {}
   /**
    * response as HttpResponse
    */
@@ -265,7 +264,12 @@ export class RequestEvent<O extends TObject = TObject> {
    * const method = rev.method;
    * console.log(method);
    */
-  method: string;
+  get method() {
+    return this[s_method] ??= this.request.method;
+  }
+  set method(val: string) {
+    this[s_method] = val;
+  }
   /**
    * file.
    * @example
@@ -319,7 +323,24 @@ export class RequestEvent<O extends TObject = TObject> {
   }
   [k: string | symbol]: TRet;
 }
-
+export function toRes(body?: TSendBody) {
+  if (typeof body === "string") return new Response(body);
+  if (body instanceof Response) return body;
+  if (typeof body === "object") {
+    if (
+      body === null ||
+      body instanceof Uint8Array ||
+      body instanceof ReadableStream ||
+      body instanceof Blob
+    ) return new Response(<TRet> body);
+    /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+    // @ts-ignore: Temporary workaround for send json
+    return Response.json(body);
+  }
+  if (typeof body === "number") return new Response(body.toString());
+  if (typeof body === "undefined") return;
+  return new Response(<TRet> body);
+}
 export function createRequest(
   handle: FetchHandler,
   url: string,

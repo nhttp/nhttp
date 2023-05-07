@@ -58,15 +58,15 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp({ env: "production" });
     app.get("/", (rev) => rev.getCookies());
     app.get("/promise", async () => await new Promise((res) => res("ok")));
-    app.post("/post", () => "post");
-    app.head("/", () => "head");
+    app.post("/post", (_rev) => "post");
+    app.head("/", (_rev) => "head");
     app.get("/hello", ({ response }) => {
       return response.send([]);
     });
     app.get("/lose", (_, next) => next());
-    app.get("/lose", () => "yeah");
+    app.get("/lose", (_rev) => "yeah");
     app.get("/lose/:name", (_, next) => next());
-    app.get("/lose/:name", () => "yeah");
+    app.get("/lose/:name", (_rev) => "yeah");
     app.get("/send", ({ response }) => {
       response.send();
     });
@@ -101,7 +101,7 @@ Deno.test("nhttp", async (t) => {
   });
   await t.step("noop response", async () => {
     const app = nhttp();
-    app.get("/", () => {});
+    app.get("/", (_rev) => {});
     const noop = await app.handle(myReq());
     assertEquals(noop, undefined);
   });
@@ -155,7 +155,7 @@ Deno.test("nhttp", async (t) => {
     renderToHtml.directly = true;
     const app = nhttp();
     app.engine(renderToHtml);
-    app.get("/", () => "hello");
+    app.get("/", (_rev) => "hello");
     await superdeno(app.handle).get("/").expect(200);
   });
   await t.step("middleware", async () => {
@@ -170,7 +170,7 @@ Deno.test("nhttp", async (t) => {
     app.use(midd);
     app.use(midd, [midd, [midd]], midd);
     app.use("/assets/hello", ({ count }) => count);
-    app.use("/hello", () => "hello");
+    app.use("/hello", (_rev) => "hello");
     app.use("/name", (rev, next) => {
       rev.name = "john";
       return next();
@@ -250,13 +250,13 @@ Deno.test("nhttp", async (t) => {
   });
   await t.step("noop path", async () => {
     const app = nhttp();
-    app.get("/hello/", () => "hello");
+    app.get("/hello/", (_rev) => "hello");
     await superdeno(app.handle).get("/hello").expect(200);
   });
   await t.step("app.req", async () => {
     const app = nhttp();
-    app.get("/text", () => "hello");
-    app.get("/json", () => ({ name: "hello" }));
+    app.get("/text", (_rev) => "hello");
+    app.get("/json", (_rev) => ({ name: "hello" }));
     const text = await app.req("/text").text();
     const json = await app.req("/json").json();
     const ok = await app.req("/text").ok();
@@ -343,11 +343,11 @@ Deno.test("nhttp", async (t) => {
       return next();
     });
     item.get("/item", ({ name }) => name);
-    user.get("/user", () => "user");
+    user.get("/user", (_rev) => "user");
     book.get("/", ({ name }) => name);
     home.get("/", ({ name }) => name);
-    name.get("/name", () => "name");
-    hobby.get(/\/hobby/, () => "hobby");
+    name.get("/name", (_rev) => "name");
+    hobby.get(/\/hobby/, (_rev) => "hobby");
     app.use("/api/v1", user);
     app.use("/api/v2", [item, book, name, hobby]);
     app.use(home);
@@ -443,7 +443,7 @@ Deno.test("nhttp", async (t) => {
         r.send("hello");
       }, 500);
     });
-    app.get("/promise", () => {
+    app.get("/promise", (_rev) => {
       return Promise.resolve("hello");
     });
     const val = await app.handle(myReq("GET", "/"));
@@ -464,5 +464,40 @@ Deno.test("nhttp", async (t) => {
       headers: new Headers({ "name": "john" }),
     });
     assertEquals(res3.headers.get("name"), "john");
+  });
+
+  await t.step("without rev", async () => {
+    const app = nhttp();
+    app.get("/promise", () => Promise.resolve("hello"));
+    app.get("/", () => "hello");
+    app.get("/error", () => {
+      throw "noop";
+    });
+
+    // deno-lint-ignore require-await
+    app.get("/promise-error", async () => {
+      throw "noop";
+    });
+
+    const promise = await app.req("/promise").text();
+    assertEquals(promise, "hello");
+
+    const index = await app.req("/").text();
+    assertEquals(index, "hello");
+
+    const err = await app.req("/error").json();
+    assertEquals(typeof err, "object");
+
+    const err2 = await app.req("/promise-error").json();
+    assertEquals(typeof err2, "object");
+
+    app.onError((_, rev) => {
+      setTimeout(() => {
+        rev.send("err");
+      });
+    });
+
+    const err3 = await app.req("/error").text();
+    assertEquals(err3, "err");
   });
 });

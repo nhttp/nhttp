@@ -11,3 +11,4 @@ export const s_cookies = Symbol("cookies");
 export const s_res = Symbol("http_res");
 export const s_response = Symbol("res");
 export const s_init = Symbol("res_init");
+export const s_method = Symbol("method");

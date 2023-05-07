@@ -24,6 +24,14 @@ export class HttpError extends Error {
  * Give error object
  */
 export function getError(err: TObject, isStack?: boolean) {
+  if (typeof err === "string") {
+    return {
+      status: 500,
+      message: err,
+      name: "HttpError",
+      stack: [],
+    };
+  }
   let status: number = err.status ?? err.statusCode ?? err.code ?? 500;
   if (typeof status !== "number") status = 500;
   let stack;

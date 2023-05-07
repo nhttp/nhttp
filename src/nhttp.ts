@@ -11,7 +11,6 @@ import {
   TObject,
   TQueryFunc,
   TRet,
-  TSendBody,
 } from "./types.ts";
 import Router, { ANY_METHODS, TRouter } from "./router.ts";
 import {
@@ -23,7 +22,7 @@ import {
 } from "./utils.ts";
 import { bodyParser as bodyParserOri } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
-import { createRequest, RequestEvent } from "./request_event.ts";
+import { createRequest, RequestEvent, toRes } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
@@ -39,17 +38,24 @@ const awaiter = (rev: RequestEvent) => {
     return rev[s_response];
   })(0, 100);
 };
-const respond = async (
-  ret: Promise<TSendBody>,
+
+const onNext = (
+  ret: TRet,
   rev: RequestEvent,
   next: NextFunction,
-): Promise<Response> => {
-  try {
-    rev.send(await ret, 1);
-    return rev[s_response] ?? awaiter(rev);
-  } catch (e) {
-    return next(e);
+) => {
+  if (ret?.then) {
+    return (async () => {
+      try {
+        rev.send(await ret, 1);
+        return rev[s_response] ?? awaiter(rev);
+      } catch (e) {
+        return next(e);
+      }
+    })();
   }
+  rev.send(ret, 1);
+  return rev[s_response] ?? awaiter(rev);
 };
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -264,21 +270,26 @@ export class NHttp<
       return next();
     });
   }
-  matchFns(rev: RequestEvent, path: string) {
-    const iof = path.indexOf("?");
+  matchFns(rev: RequestEvent, method: string, url: string) {
+    const iof = url.indexOf("?");
     if (iof !== -1) {
-      rev.path = path.substring(0, iof);
+      rev.path = url.substring(0, iof);
       rev.__parseQuery = this.parseQuery;
-      rev.search = path.substring(iof);
-      path = rev.path;
+      rev.search = url.substring(iof);
+      url = rev.path;
     }
     return this.find(
-      rev.method,
-      path,
+      method,
+      url,
       (obj) => (rev.params = obj),
       this._on404,
     );
   }
+  private onErr = async (err: Error, req: Request, conn?: TRet, ctx?: TRet) => {
+    const rev = <Rev> new RequestEvent(req, conn, ctx);
+    rev.send(await this._onError(err, rev) as TRet, 1);
+    return rev[s_response] ?? awaiter(rev);
+  };
   /**
    * handle
    * @example
@@ -287,13 +298,33 @@ export class NHttp<
    * Bun.serve({ fetch: app.handle });
    */
   handle: FetchHandler = (req: Request, conn?: TRet, ctx?: TRet) => {
-    let i = 0;
     const url = getUrl(req.url);
+    const method = req.method;
+    let fns = this.route[method + url];
+    if (fns && !fns[0].length) {
+      try {
+        const ret = fns[0]();
+        // fast check Promise in Node.
+        if (ret?.then) {
+          return (async () => {
+            try {
+              return toRes(await ret);
+            } catch (err) {
+              return this.onErr(err, req, conn, ctx);
+            }
+          })();
+        }
+        return <Response> toRes(ret);
+      } catch (err) {
+        return this.onErr(err, req, conn, ctx);
+      }
+    }
+    let i = 0;
     const rev = <Rev> new RequestEvent(req, conn, ctx);
-    const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
+    fns ??= this.matchFns(rev, method, url);
     const next: NextFunction = (err) => {
       try {
-        return respond(
+        return onNext(
           err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next),
           rev,
           next,
@@ -303,9 +334,9 @@ export class NHttp<
       }
     };
     // GET/HEAD cannot have body.
-    if (rev.method === "GET" || rev.method === "HEAD") {
+    if (method === "GET" || method === "HEAD") {
       try {
-        return respond(fns[i++](rev, next), rev, next);
+        return onNext(fns[i++](rev, next), rev, next);
       } catch (e) {
         return next(e);
       }

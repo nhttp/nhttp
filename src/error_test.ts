@@ -1,5 +1,6 @@
 import { getError, HttpError } from "./error.ts";
 import { assertEquals } from "./deps_test.ts";
+import { TRet } from "./types.ts";
 
 Deno.test("error", async (t) => {
   await t.step("http error no params", () => {
@@ -65,6 +66,12 @@ Deno.test("error", async (t) => {
     const obj = getError({ status: "123" });
     assertEquals(obj.status, 500);
     assertEquals(obj.message, "Something went wrong");
+    assertEquals(obj.name, "HttpError");
+  });
+  await t.step("getError string", () => {
+    const obj = getError("noop" as TRet);
+    assertEquals(obj.status, 500);
+    assertEquals(obj.message, "noop");
     assertEquals(obj.name, "HttpError");
   });
 });
