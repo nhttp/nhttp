@@ -41,7 +41,8 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     engine(render: ((...args: TRet) => TRet) & {
         directly?: boolean;
     }, opts?: EngineOptions): void;
-    matchFns(rev: RequestEvent, path: string): import("./types").Handler<Rev>[];
+    matchFns(rev: RequestEvent, method: string, url: string): import("./types").Handler<Rev>[];
+    private onErr;
     /**
      * handle
      * @example
@@ -58,8 +59,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * });
      */
     handleEvent: (evt: FetchEvent) => Response | Promise<Response>;
-    private closeServer;
-    private buildListenOptions;
     /**
      * Mock request.
      * @example

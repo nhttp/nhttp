@@ -193,6 +193,14 @@ var HttpError = class extends Error {
   }
 };
 function getError(err, isStack) {
+  if (typeof err === "string") {
+    return {
+      status: 500,
+      message: err,
+      name: "HttpError",
+      stack: []
+    };
+  }
   let status = err.status ?? err.statusCode ?? err.code ?? 500;
   if (typeof status !== "number")
     status = 500;
@@ -919,6 +927,7 @@ var s_cookies = Symbol("cookies");
 var s_res = Symbol("http_res");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
+var s_method = Symbol("method");
 
 // npm/src/src/cookie.ts
 function serializeCookie(name, value, cookie = {}) {
@@ -1185,7 +1194,6 @@ var RequestEvent = class {
     this.request = request;
     this._info = _info;
     this._ctx = _ctx;
-    this.method = request.method;
   }
   get response() {
     return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
@@ -1295,6 +1303,12 @@ var RequestEvent = class {
   set headers(val) {
     this[s_headers] = val;
   }
+  get method() {
+    return this[s_method] ??= this.request.method;
+  }
+  set method(val) {
+    this[s_method] = val;
+  }
   get file() {
     return this[s_file] ??= {};
   }
@@ -1320,6 +1334,22 @@ var RequestEvent = class {
     return `${this.constructor.name} ${inspect2?.(ret, opts) ?? Deno.inspect(ret)}`;
   }
 };
+function toRes(body) {
+  if (typeof body === "string")
+    return new Response(body);
+  if (body instanceof Response)
+    return body;
+  if (typeof body === "object") {
+    if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob)
+      return new Response(body);
+    return Response.json(body);
+  }
+  if (typeof body === "number")
+    return new Response(body.toString());
+  if (typeof body === "undefined")
+    return;
+  return new Response(body);
+}
 function createRequest(handle, url, init = {}) {
   const res = () => {
     return handle(new Request(url[0] === "/" ? "http://127.0.0.1:8787" + url : url, init));
@@ -1333,7 +1363,7 @@ function createRequest(handle, url, init = {}) {
   };
 }
 
-// npm/src/src/nhttp.ts
+// npm/src/src/nhttp_util.ts
 var awaiter = (rev) => {
   return (async (t, d) => {
     while (rev[s_response] === void 0) {
@@ -1345,34 +1375,91 @@ var awaiter = (rev) => {
     return rev[s_response];
   })(0, 100);
 };
-var respond = async (ret, rev, next) => {
-  try {
-    rev.send(await ret, 1);
-    return rev[s_response] ?? awaiter(rev);
-  } catch (e) {
-    return next(e);
+var onNext = (ret, rev, next) => {
+  if (ret?.then) {
+    return (async () => {
+      try {
+        rev.send(await ret, 1);
+        return rev[s_response] ?? awaiter(rev);
+      } catch (e) {
+        return next(e);
+      }
+    })();
   }
+  rev.send(ret, 1);
+  return rev[s_response] ?? awaiter(rev);
 };
+function buildListenOptions(opts) {
+  let isSecure = false;
+  if (typeof opts === "number") {
+    opts = { port: opts };
+  } else if (typeof opts === "object") {
+    isSecure = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
+    if (opts.handler)
+      this.handle = opts.handler;
+  }
+  return { opts, isSecure };
+}
+function closeServer() {
+  try {
+    if (!this.alive) {
+      throw new Error("Server Closed");
+    }
+    this.alive = false;
+    this.server.close();
+    for (const httpConn of this.track) {
+      httpConn.close();
+    }
+    this.track.clear();
+  } catch {
+  }
+}
+
+// npm/src/src/nhttp.ts
 var NHttp = class extends Router {
   constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
     super();
     this.alive = true;
     this.track = /* @__PURE__ */ new Set();
-    this.handle = (req, conn, ctx) => {
-      let i = 0;
-      const url = getUrl(req.url);
+    this.onErr = async (err, req, conn, ctx) => {
       const rev = new RequestEvent(req, conn, ctx);
-      const fns = this.route[rev.method + url] ?? this.matchFns(rev, url);
+      rev.send(await this._onError(err, rev), 1);
+      return rev[s_response] ?? awaiter(rev);
+    };
+    this.handle = (req, conn, ctx) => {
+      const url = getUrl(req.url);
+      const method = req.method;
+      let fns = this.route[method + url];
+      if (fns && !fns[0].length) {
+        try {
+          const ret = fns[0]();
+          if (ret?.then) {
+            return (async () => {
+              try {
+                return toRes(await ret);
+              } catch (err) {
+                return this.onErr(err, req, conn, ctx);
+              }
+            })();
+          }
+          return toRes(ret);
+        } catch (err) {
+          return this.onErr(err, req, conn, ctx);
+        }
+      }
+      let i = 0;
+      const rev = new RequestEvent(req, conn, ctx);
+      fns ??= this.matchFns(rev, method, url);
       const next = (err) => {
         try {
-          return respond(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
+          return onNext(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
         } catch (e) {
           return next(e);
         }
       };
-      if (rev.method === "GET" || rev.method === "HEAD") {
+      if (method === "GET" || method === "HEAD") {
         try {
-          return respond(fns[i++](rev, next), rev, next);
+          return onNext(fns[i++](rev, next), rev, next);
         } catch (e) {
           return next(e);
         }
@@ -1531,46 +1618,21 @@ var NHttp = class extends Router {
       return next();
     });
   }
-  matchFns(rev, path) {
-    const iof = path.indexOf("?");
+  matchFns(rev, method, url) {
+    const iof = url.indexOf("?");
     if (iof !== -1) {
-      rev.path = path.substring(0, iof);
+      rev.path = url.substring(0, iof);
       rev.__parseQuery = this.parseQuery;
-      rev.search = path.substring(iof);
-      path = rev.path;
+      rev.search = url.substring(iof);
+      url = rev.path;
     }
-    return this.find(rev.method, path, (obj) => rev.params = obj, this._on404);
-  }
-  closeServer() {
-    try {
-      if (!this.alive) {
-        throw new Error("Server Closed");
-      }
-      this.alive = false;
-      this.server.close();
-      for (const httpConn of this.track) {
-        httpConn.close();
-      }
-      this.track.clear();
-    } catch {
-    }
-  }
-  buildListenOptions(opts) {
-    let isSecure = false;
-    if (typeof opts === "number") {
-      opts = { port: opts };
-    } else if (typeof opts === "object") {
-      isSecure = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
-      if (opts.handler)
-        this.handle = opts.handler;
-    }
-    return { opts, isSecure };
+    return this.find(method, url, (obj) => rev.params = obj, this._on404);
   }
   req(url, init = {}) {
     return createRequest(this.handle, url, init);
   }
   async listen(options, callback) {
-    const { opts, isSecure } = this.buildListenOptions(options);
+    const { opts, isSecure } = buildListenOptions.bind(this)(options);
     const runCallback = (err) => {
       if (callback) {
         callback(err, {
@@ -1593,7 +1655,7 @@ var NHttp = class extends Router {
       }
       runCallback();
       if (opts.signal) {
-        opts.signal.addEventListener("abort", () => this.closeServer(), {
+        opts.signal.addEventListener("abort", () => closeServer.bind(this)(), {
           once: true
         });
       }
@@ -1601,7 +1663,7 @@ var NHttp = class extends Router {
       return await this.acceptConn();
     } catch (error) {
       runCallback(error);
-      this.closeServer();
+      closeServer.bind(this)();
     }
   }
   async acceptConn() {

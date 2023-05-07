@@ -11,3 +11,4 @@ export declare const s_cookies: unique symbol;
 export declare const s_res: unique symbol;
 export declare const s_response: unique symbol;
 export declare const s_init: unique symbol;
+export declare const s_method: unique symbol;

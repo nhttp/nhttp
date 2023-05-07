@@ -1,5 +1,6 @@
 import { assertEquals } from "./deps_test.ts";
 import { nhttp } from "./nhttp.ts";
+import { closeServer } from "./nhttp_util.ts";
 
 Deno.test({
   name: "listen",
@@ -51,7 +52,7 @@ Deno.test({
       await res.body?.cancel();
       ac.abort();
       try {
-        app["closeServer"]();
+        closeServer.bind(app)();
       } catch (error) {
         assertEquals(error.message, "Server Closed");
       }
@@ -73,7 +74,7 @@ Deno.test({
       await res.body?.cancel();
       ac.abort();
       try {
-        app["closeServer"]();
+        closeServer.bind(app)();
       } catch (error) {
         assertEquals(error.message, "Server Closed");
       }
@@ -97,7 +98,7 @@ Deno.test({
       await res.body?.cancel();
       ac.abort();
       try {
-        app["closeServer"]();
+        closeServer.bind(app)();
       } catch (error) {
         assertEquals(error.message, "Server Closed");
       }

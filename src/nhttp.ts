@@ -27,36 +27,13 @@ import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
+import {
+  awaiter,
+  buildListenOptions,
+  closeServer,
+  onNext,
+} from "./nhttp_util.ts";
 
-const awaiter = (rev: RequestEvent) => {
-  return (async (t, d) => {
-    while (rev[s_response] === void 0) {
-      await new Promise((ok) => setTimeout(ok, t));
-      if (t === d) break;
-      t++;
-    }
-    return rev[s_response];
-  })(0, 100);
-};
-
-const onNext = (
-  ret: TRet,
-  rev: RequestEvent,
-  next: NextFunction,
-) => {
-  if (ret?.then) {
-    return (async () => {
-      try {
-        rev.send(await ret, 1);
-        return rev[s_response] ?? awaiter(rev);
-      } catch (e) {
-        return next(e);
-      }
-    })();
-  }
-  rev.send(ret, 1);
-  return rev[s_response] ?? awaiter(rev);
-};
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
@@ -355,31 +332,6 @@ export class NHttp<
    * });
    */
   handleEvent = (evt: FetchEvent) => this.handle(evt.request);
-  private closeServer() {
-    try {
-      if (!this.alive) {
-        throw new Error("Server Closed");
-      }
-      this.alive = false;
-      this.server.close();
-      for (const httpConn of this.track) {
-        httpConn.close();
-      }
-      this.track.clear();
-    } catch { /* noop */ }
-  }
-  private buildListenOptions(opts: number | ListenOptions) {
-    let isSecure = false;
-    if (typeof opts === "number") {
-      opts = { port: opts };
-    } else if (typeof opts === "object") {
-      isSecure = opts.certFile !== void 0 ||
-        opts.cert !== void 0 ||
-        opts.alpnProtocols !== void 0;
-      if (opts.handler) this.handle = opts.handler;
-    }
-    return { opts, isSecure };
-  }
   /**
    * Mock request.
    * @example
@@ -416,7 +368,7 @@ export class NHttp<
       opts: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    const { opts, isSecure } = this.buildListenOptions(options);
+    const { opts, isSecure } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {
         callback(err, {
@@ -439,7 +391,7 @@ export class NHttp<
       }
       runCallback();
       if (opts.signal) {
-        opts.signal.addEventListener("abort", () => this.closeServer(), {
+        opts.signal.addEventListener("abort", () => closeServer.bind(this)(), {
           once: true,
         });
       }
@@ -447,7 +399,7 @@ export class NHttp<
       return await this.acceptConn();
     } catch (error) {
       runCallback(error);
-      this.closeServer();
+      closeServer.bind(this)();
     }
   }
 
