@@ -8,8 +8,8 @@ const app = nhttp();
 
 app.engine(renderToString);
 
-app.get("/", async ({ response }) => {
-  await response.render(<h1>Hello World</h1>);
+app.get("/", ({ response }) => {
+  return response.render(<h1>Hello World</h1>);
 });
 
 app.listen(8000, (_err, info) => {

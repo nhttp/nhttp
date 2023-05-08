@@ -16,6 +16,7 @@ export type {
   Handler,
   Handlers,
   NextFunction,
+  NFile,
   TApp,
   TObject,
   TRet,

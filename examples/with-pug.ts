@@ -5,8 +5,8 @@ const app = nhttp();
 
 app.engine(pug.renderFile, { base: "public", ext: "pug" });
 
-app.get("/", async ({ response }) => {
-  await response.render("index", { title: "Hello, World" });
+app.get("/", ({ response }) => {
+  return response.render("index", { title: "Hello, Pug" });
 });
 
 app.listen(8000, (_err, info) => {

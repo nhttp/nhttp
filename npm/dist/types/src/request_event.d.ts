@@ -178,7 +178,7 @@ export declare class RequestEvent<O extends TObject = TObject> {
     [node_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;
 }
-export declare function toRes(body?: TSendBody): any;
+export declare function toRes(body?: TSendBody): TRet;
 export declare function createRequest(handle: FetchHandler, url: string, init?: RequestInit): {
     text: () => Promise<string>;
     json: () => Promise<any>;

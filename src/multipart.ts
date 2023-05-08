@@ -2,7 +2,7 @@ import { memoBody } from "./body.ts";
 import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Handler, TObject, TQueryFunc, TRet } from "./types.ts";
+import { Handler, NFile, TObject, TQueryFunc, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
 const uid = () =>
@@ -113,17 +113,18 @@ class Multipart {
     let i = 0;
     const len = files.length;
     while (i < len) {
-      const file = <File & { filename: string; path: string }> files[i];
+      const file = <NFile> files[i];
       if (opts.callback) {
         await opts.callback(file);
       }
       opts.dest ??= "";
       if (opts.dest) {
-        if (opts.dest.lastIndexOf("/") === -1) opts.dest += "/";
+        if (opts.dest[opts.dest.length - 1] !== "/") opts.dest += "/";
         if (opts.dest[0] === "/") opts.dest = opts.dest.substring(1);
       }
       file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
+      file.pathfile = file.path;
       opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
       await opts.writeFile(file.path, new Uint8Array(arrBuff));

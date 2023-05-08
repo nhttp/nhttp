@@ -10,7 +10,7 @@ const html = `
                 const message = document.getElementById("message");
                 const evtSource = new EventSource("/sse");
                 evtSource.onmessage = function (event) {
-                    message.innerHTML = event.data;
+                    message.innerHTML += event.data;
                 }
             }
         </script>
@@ -28,7 +28,10 @@ app.get("/sse", ({ response }) => {
   response.type("text/event-stream");
   return new ReadableStream({
     start(controller) {
-      controller.enqueue(`data: hello from sse\n\n`);
+      controller.enqueue(`data: hello from sse >>\n\n`);
+      setInterval(() => {
+        controller.enqueue(`data: >>\n\n`);
+      }, 500);
     },
     cancel(err) {
       console.log(err);
@@ -37,7 +40,8 @@ app.get("/sse", ({ response }) => {
 });
 
 app.get("/", ({ response }) => {
-  response.type("html").send(html);
+  response.type("html");
+  return html;
 });
 
 app.listen(8000, (_err, info) => {

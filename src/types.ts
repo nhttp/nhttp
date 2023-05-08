@@ -173,7 +173,11 @@ export type ListenOptions = {
   signal?: AbortSignal;
   [k: string]: TRet;
 };
-
+export interface NFile extends File {
+  filename: string;
+  path: string;
+  pathfile: string;
+}
 export type EngineOptions = {
   /**
    * Extension

@@ -7,9 +7,7 @@ app.use((rev, next) => {
   return next();
 });
 
-app.get("/", ({ response, user }) => {
-  response.send(user);
-});
+app.get("/", ({ user }) => user);
 
 app.listen(8000, (_err, info) => {
   console.log(`Running on port ${info.port}`);

@@ -291,7 +291,7 @@ export class NHttp<
             }
           })();
         }
-        return <Response> toRes(ret);
+        return toRes(ret);
       } catch (err) {
         return this.onErr(err, req, conn, ctx);
       }

@@ -53,7 +53,8 @@ const wsHandler: Handler = ({ request }) => {
   return response;
 };
 const htmlHandler: Handler = ({ response }) => {
-  response.type("html").send(html);
+  response.type("html");
+  return html;
 };
 
 const app = nhttp();

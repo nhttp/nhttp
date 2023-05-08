@@ -6,8 +6,8 @@ const viewPath = `${Deno.cwd()}/public/`;
 configure({ views: viewPath });
 app.engine(renderFile, { ext: "eta" });
 
-app.get("/", async ({ response }) => {
-  await response.render("index", { title: "Hello, World" });
+app.get("/", ({ response }) => {
+  return response.render("index", { title: "Hello, Eta" });
 });
 
 app.listen(8000, (_err, info) => {

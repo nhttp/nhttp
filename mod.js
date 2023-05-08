@@ -631,13 +631,14 @@ var Multipart = class {
       }
       opts.dest ??= "";
       if (opts.dest) {
-        if (opts.dest.lastIndexOf("/") === -1)
+        if (opts.dest[opts.dest.length - 1] !== "/")
           opts.dest += "/";
         if (opts.dest[0] === "/")
           opts.dest = opts.dest.substring(1);
       }
       file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
+      file.pathfile = file.path;
       opts.writeFile ??= Deno.writeFile;
       const arrBuff = await file.arrayBuffer();
       await opts.writeFile(file.path, new Uint8Array(arrBuff));
@@ -1293,9 +1294,7 @@ function toRes(body) {
   }
   if (typeof body === "number")
     return new Response(body.toString());
-  if (typeof body === "undefined")
-    return;
-  return new Response(body);
+  return body === void 0 ? void 0 : new Response(body);
 }
 function createRequest(handle, url, init = {}) {
   const res = () => {
@@ -1929,8 +1928,24 @@ var NodeResponse = class {
 };
 
 // npm/src/node/index.ts
-async function handleNode(handler, req, res) {
-  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+async function sendStream(resWeb, res) {
+  if (resWeb[s_body2] instanceof ReadableStream) {
+    for await (const chunk of resWeb[s_body2])
+      res.write(chunk);
+    res.end();
+    return;
+  }
+  const chunks = [];
+  for await (const chunk of resWeb.body)
+    chunks.push(chunk);
+  const data = Buffer.concat(chunks);
+  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+    const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+    res.setHeader("Content-Type", type);
+  }
+  res.end(data);
+}
+function handleResWeb(resWeb, res) {
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {
@@ -1956,22 +1971,18 @@ async function handleNode(handler, req, res) {
   if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
     res.end(resWeb[s_body2]);
   } else {
-    if (resWeb[s_body2] instanceof ReadableStream) {
-      for await (const chunk of resWeb[s_body2])
-        res.write(chunk);
-      res.end();
-      return;
-    }
-    const chunks = [];
-    for await (const chunk of resWeb.body)
-      chunks.push(chunk);
-    const data = Buffer.concat(chunks);
-    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
-      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-      res.setHeader("Content-Type", type);
-    }
-    res.end(data);
+    sendStream(resWeb, res);
   }
+}
+async function asyncHandleResWeb(resWeb, res) {
+  handleResWeb(await resWeb, res);
+}
+function handleNode(handler, req, res) {
+  const resWeb = handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  if (resWeb?.then)
+    asyncHandleResWeb(resWeb, res);
+  else
+    handleResWeb(resWeb, res);
 }
 async function serveNode(handler, opts = {
   port: 3e3

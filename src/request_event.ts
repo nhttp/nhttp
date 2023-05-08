@@ -323,7 +323,7 @@ export class RequestEvent<O extends TObject = TObject> {
   }
   [k: string | symbol]: TRet;
 }
-export function toRes(body?: TSendBody) {
+export function toRes(body?: TSendBody): TRet {
   if (typeof body === "string") return new Response(body);
   if (body instanceof Response) return body;
   if (typeof body === "object") {
@@ -338,8 +338,7 @@ export function toRes(body?: TSendBody) {
     return Response.json(body);
   }
   if (typeof body === "number") return new Response(body.toString());
-  if (typeof body === "undefined") return;
-  return new Response(<TRet> body);
+  return body === void 0 ? void 0 : new Response(<TRet> body);
 }
 export function createRequest(
   handle: FetchHandler,

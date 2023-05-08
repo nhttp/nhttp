@@ -3,7 +3,8 @@ import nhttp from "../mod.ts";
 const app = nhttp();
 
 app.get("/", ({ response }) => {
-  response.header("name", "john").send("hello, john");
+  response.header("name", "john");
+  return "hello, john";
 });
 
 app.listen(8000, (_err, info) => {
