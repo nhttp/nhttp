@@ -9,28 +9,59 @@ const uid = () =>
   `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
     .replace(".", "");
 export type TMultipartUpload = {
+  /**
+   * fieldName.
+   * @requires
+   */
   name: string;
+  /**
+   * maxCount.
+   * @default
+   * not_set
+   */
   maxCount?: number;
+  /**
+   * maxSize.
+   * @default
+   * not_set
+   */
   maxSize?: number | string;
+  /**
+   * accept content-type.
+   * @default
+   * not_set
+   */
   accept?: string | string[];
+  /**
+   * callback when upload.
+   * @default
+   * not_set
+   */
   callback?: (file: File & { filename: string }) => void | Promise<void>;
+  /**
+   * destination folder uploads.
+   * @default
+   * "/"
+   */
   dest?: string;
+  /**
+   * required fieldName.
+   * @default
+   * false
+   */
   required?: boolean;
   /**
-   * writeFile. default `Deno.writeFile`.
-   * @example
-   * // example upload with Bun.
-   * const upload = multipart.upload({
-   *    name: "image",
-   *    writeFile: Bun.write
-   * });
-   * app.post("/hello", upload, (rev) => {
-   *    console.log(rev.file);
-   *    console.log(rev.body);
-   *    return "success upload";
-   * });
+   * custom writeFile.
+   * @default
+   * not_set
    */
   writeFile?: (pathfile: string, data: Uint8Array) => void | Promise<void>;
+  /**
+   * custom storage function. (s3, supabase, gdrive, etc).
+   * @default
+   * not_set
+   */
+  storage?: (file: NFile) => void | Promise<void>;
 };
 
 type TMultipartHandler = {
@@ -125,9 +156,13 @@ class Multipart {
       file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
       file.pathfile = file.path;
-      opts.writeFile ??= Deno.writeFile;
-      const arrBuff = await file.arrayBuffer();
-      await opts.writeFile(file.path, new Uint8Array(arrBuff));
+      if (opts.storage) {
+        await opts.storage(file);
+      } else {
+        opts.writeFile ??= Deno.writeFile;
+        const arrBuff = await file.arrayBuffer();
+        await opts.writeFile(file.path, new Uint8Array(arrBuff));
+      }
       i++;
     }
   }

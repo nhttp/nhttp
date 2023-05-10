@@ -178,6 +178,7 @@ export interface NFile extends File {
   filename: string;
   path: string;
   pathfile: string;
+  [k: string]: TRet;
 }
 export type EngineOptions = {
   /**
