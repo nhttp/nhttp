@@ -5,29 +5,14 @@ import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
 
-async function sendStream(resWeb: TRet, res: TRet) {
-  if (resWeb[s_body] instanceof ReadableStream) {
-    for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
-    res.end();
-    return;
-  }
-  const chunks = [];
-  for await (const chunk of resWeb.body as TRet) chunks.push(chunk);
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-  // @ts-ignore: Buffer for nodejs
-  const data = Buffer.concat(chunks);
-  if (
-    resWeb[s_body] instanceof FormData && !res.getHeader("Content-Type")
-  ) {
-    const type = `multipart/form-data;boundary=${
-      data.toString().split("\r")[0]
-    }`;
-    res.setHeader("Content-Type", type);
-  }
-  res.end(data);
-}
-
-function handleResWeb(resWeb: TRet, res: TRet) {
+export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
+  const resWeb: TRet = await handler(
+    new NodeRequest(
+      `http://${req.headers.host}${req.url}`,
+      void 0,
+      { req, res },
+    ) as unknown as Request,
+  );
   if (res.writableEnded) return;
   if (resWeb[s_init]) {
     if (resWeb[s_init].headers) {
@@ -59,24 +44,26 @@ function handleResWeb(resWeb: TRet, res: TRet) {
   ) {
     res.end(resWeb[s_body]);
   } else {
-    sendStream(resWeb, res);
+    if (resWeb[s_body] instanceof ReadableStream) {
+      for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of resWeb.body as TRet) chunks.push(chunk);
+    /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+    // @ts-ignore: Buffer for nodejs
+    const data = Buffer.concat(chunks);
+    if (
+      resWeb[s_body] instanceof FormData && !res.getHeader("Content-Type")
+    ) {
+      const type = `multipart/form-data;boundary=${
+        data.toString().split("\r")[0]
+      }`;
+      res.setHeader("Content-Type", type);
+    }
+    res.end(data);
   }
-}
-
-async function asyncHandleResWeb(resWeb: Promise<TRet>, res: TRet) {
-  handleResWeb(await resWeb, res);
-}
-
-export function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
-  const resWeb: TRet = handler(
-    new NodeRequest(
-      `http://${req.headers.host}${req.url}`,
-      void 0,
-      { req, res },
-    ) as unknown as Request,
-  );
-  if (resWeb?.then) asyncHandleResWeb(resWeb, res);
-  else handleResWeb(resWeb, res);
 }
 export async function serveNode(
   handler: FetchHandler,

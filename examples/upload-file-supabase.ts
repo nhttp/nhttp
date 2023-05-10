@@ -8,8 +8,8 @@ const supabase = createClient(url, api_key);
 const upload = multipart.upload({
   name: "image",
   dest: "upload/to/myfolder",
-  writeFile: async (pathfile, buff) => {
-    await supabase.storage.from("bucket_name").upload(pathfile, buff);
+  storage: async (file) => {
+    await supabase.storage.from("bucket_name").upload(file.pathfile, file);
   },
 });
 

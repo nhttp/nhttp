@@ -205,4 +205,19 @@ Deno.test("multipart upload", async (t) => {
     const ok = data === undefined;
     assertEquals(ok, true);
   });
+  await t.step("upload file storage", async () => {
+    const upload = multipart.upload({
+      name: "myfile",
+      storage: () => {},
+    });
+    const form = new FormData();
+    form.set(
+      "myfile",
+      new File(["hello world"], "text.txt", { type: "text/plain" }),
+    );
+    const rev = new RequestEvent(req(form));
+    const data = await upload(rev, ((err) => err) as MyNext);
+    const ok = data === undefined;
+    assertEquals(ok, true);
+  });
 });

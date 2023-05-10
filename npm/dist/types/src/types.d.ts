@@ -122,6 +122,7 @@ export type ListenOptions = {
     transport?: "tcp";
     alpnProtocols?: string[];
     handler?: FetchHandler;
+    showInfo?: boolean;
     signal?: AbortSignal;
     [k: string]: TRet;
 };
@@ -129,6 +130,7 @@ export interface NFile extends File {
     filename: string;
     path: string;
     pathfile: string;
+    [k: string]: TRet;
 }
 export type EngineOptions = {
     /**

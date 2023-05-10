@@ -435,6 +435,29 @@ Deno.test("nhttp", async (t) => {
     const val = await app.handle(myReq("GET", "/john"));
     assertEquals(await val.text(), `{"name":"john"}`);
   });
+  await t.step("onNext", async () => {
+    const app = nhttp();
+    app.use((_, next) => next());
+    app.get("/", async (rev) => {
+      await rev.foo();
+      return "foo";
+    });
+    const res = await app.req("/").res();
+    assertEquals(res.status, 500);
+  });
+  await t.step("onNext awaiter", async () => {
+    const app = nhttp();
+    app.use((_, next) => {
+      return next();
+    });
+    app.get("/", (rev) => {
+      setTimeout(() => {
+        rev.send("foo");
+      }, 100);
+    });
+    const res = await app.req("/").res();
+    assertEquals(res.status, 200);
+  });
   await t.step("awaiter", async () => {
     const app = nhttp();
     app.get("/", async (r) => {

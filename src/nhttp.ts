@@ -30,7 +30,7 @@ import { oldSchool } from "./http_response.ts";
 import {
   awaiter,
   buildListenOptions,
-  closeServer,
+  HttpServer,
   onNext,
 } from "./nhttp_util.ts";
 
@@ -43,8 +43,6 @@ export class NHttp<
   private stackError!: boolean;
   private bodyParser?: TBodyParser | boolean;
   private parseMultipart?: TQueryFunc;
-  private alive = true;
-  private track = new Set<Deno.HttpConn>();
   server!: TRet;
 
   constructor(
@@ -262,11 +260,7 @@ export class NHttp<
       this._on404,
     );
   }
-  private onErr = async (err: Error, req: Request, conn?: TRet, ctx?: TRet) => {
-    const rev = <Rev> new RequestEvent(req, conn, ctx);
-    rev.send(await this._onError(err, rev) as TRet, 1);
-    return rev[s_response] ?? awaiter(rev);
-  };
+
   /**
    * handle
    * @example
@@ -274,26 +268,17 @@ export class NHttp<
    * // or
    * Bun.serve({ fetch: app.handle });
    */
-  handle: FetchHandler = (req: Request, conn?: TRet, ctx?: TRet) => {
+  handle: FetchHandler = async (req: Request, conn?: TRet, ctx?: TRet) => {
     const url = getUrl(req.url);
     const method = req.method;
     let fns = this.route[method + url];
     if (fns && !fns[0].length) {
       try {
-        const ret = fns[0]();
-        // fast check Promise in Node.
-        if (ret?.then) {
-          return (async () => {
-            try {
-              return toRes(await ret);
-            } catch (err) {
-              return this.onErr(err, req, conn, ctx);
-            }
-          })();
-        }
-        return toRes(ret);
+        return toRes(await fns[0]());
       } catch (err) {
-        return this.onErr(err, req, conn, ctx);
+        const rev = <Rev> new RequestEvent(req, conn, ctx);
+        rev.send(await this._onError(err, rev) as TRet, 1);
+        return rev[s_response] ?? awaiter(rev);
       }
     }
     let i = 0;
@@ -313,7 +298,8 @@ export class NHttp<
     // GET/HEAD cannot have body.
     if (method === "GET" || method === "HEAD") {
       try {
-        return onNext(fns[i++](rev, next), rev, next);
+        rev.send(await fns[i++](rev, next), 1);
+        return rev[s_response] ?? awaiter(rev);
       } catch (e) {
         return next(e);
       }
@@ -324,6 +310,14 @@ export class NHttp<
       this.parseMultipart,
     )(rev, next) as Response;
   };
+  /**
+   * handleRequest
+   * @example
+   * Deno.serve(app.handleRequest);
+   * // or
+   * Bun.serve({ fetch: app.handleRequest });
+   */
+  handleRequest: FetchHandler = (req) => this.handle(req);
   /**
    * handleEvent
    * @example
@@ -368,7 +362,7 @@ export class NHttp<
       opts: ListenOptions,
     ) => void | Promise<void>,
   ) {
-    const { opts, isSecure } = buildListenOptions.bind(this)(options);
+    const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {
         callback(err, {
@@ -381,59 +375,24 @@ export class NHttp<
     };
     try {
       if (this.flash) {
-        if (runCallback()) opts.onListen = () => {};
-        const handler = opts.handler ?? this.handle;
-        if (opts.handler) delete opts.handler;
-        return await (<TObject> Deno).serve(
-          opts,
-          (req: Request) => handler(req),
-        );
+        if ("serve" in Deno) {
+          if (runCallback()) opts.onListen = () => {};
+          return await (<TObject> Deno).serve(opts, handler);
+        }
+        console.error("requires --unstable flags");
+        return;
       }
       runCallback();
+      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
+      const server = new HttpServer(this.server, handler);
       if (opts.signal) {
-        opts.signal.addEventListener("abort", () => closeServer.bind(this)(), {
+        opts.signal.addEventListener("abort", () => server.close(), {
           once: true,
         });
       }
-      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-      return await this.acceptConn();
+      return await server.acceptConn();
     } catch (error) {
       runCallback(error);
-      closeServer.bind(this)();
-    }
-  }
-
-  private async acceptConn() {
-    while (this.alive) {
-      let conn: Deno.Conn;
-      try {
-        conn = await this.server.accept();
-      } catch {
-        break;
-      }
-      let httpConn: Deno.HttpConn;
-      try {
-        httpConn = Deno.serveHttp(conn);
-      } catch {
-        continue;
-      }
-      this.track.add(httpConn);
-      this.handleHttp(httpConn, conn);
-    }
-  }
-
-  private async handleHttp(httpConn: Deno.HttpConn, conn: Deno.Conn) {
-    for (;;) {
-      try {
-        const rev = await httpConn.nextRequest();
-        if (rev) {
-          await rev.respondWith(this.handle(rev.request, conn));
-        } else {
-          break;
-        }
-      } catch {
-        break;
-      }
     }
   }
   private _onError(
