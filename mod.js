@@ -639,9 +639,13 @@ var Multipart = class {
       file.filename ??= uid() + `.${revMimeList(file.type)}`;
       file.path ??= opts.dest + file.filename;
       file.pathfile = file.path;
-      opts.writeFile ??= Deno.writeFile;
-      const arrBuff = await file.arrayBuffer();
-      await opts.writeFile(file.path, new Uint8Array(arrBuff));
+      if (opts.storage) {
+        await opts.storage(file);
+      } else {
+        opts.writeFile ??= Deno.writeFile;
+        const arrBuff = await file.arrayBuffer();
+        await opts.writeFile(file.path, new Uint8Array(arrBuff));
+      }
       i++;
     }
   }
