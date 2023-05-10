@@ -13,6 +13,7 @@ import Router, { TRouter } from "./src/router.ts";
 import { serveNode } from "./node/index.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 import { ListenOptions } from "./src/types.ts";
+import { buildListenOptions } from "./src/nhttp_util.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -20,17 +21,12 @@ export class NHttp<
   constructor(opts: TApp = {}) {
     super(opts);
     const oriListen = this.listen.bind(this);
-    this.listen = async (opts, callback) => {
+    this.listen = async (options, callback) => {
       // @ts-ignore
       if (typeof Deno !== "undefined") {
-        return oriListen(opts, callback);
+        return await oriListen(options, callback);
       }
-      let handler = this.handle;
-      if (typeof opts === "number") {
-        opts = { port: opts };
-      } else if (typeof opts === "object") {
-        if (opts.handler) handler = opts.handler;
-      }
+      const { opts, handler } = buildListenOptions.bind(this)(options);
       const runCallback = (err?: Error) => {
         if (callback) {
           const _opts = opts as TRet;

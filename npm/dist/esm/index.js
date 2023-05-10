@@ -1321,76 +1321,98 @@ var awaiter = (rev) => {
     return rev[s_response];
   })(0, 100);
 };
-var onNext = (ret, rev, next) => {
-  if (ret?.then) {
-    return (async () => {
-      try {
-        rev.send(await ret, 1);
-        return rev[s_response] ?? awaiter(rev);
-      } catch (e) {
-        return next(e);
-      }
-    })();
+var onNext = async (ret, rev, next) => {
+  try {
+    rev.send(await ret, 1);
+    return rev[s_response] ?? awaiter(rev);
+  } catch (e) {
+    return next(e);
   }
-  rev.send(ret, 1);
-  return rev[s_response] ?? awaiter(rev);
 };
 function buildListenOptions(opts) {
   let isSecure = false;
+  let handler = this.handleRequest;
   if (typeof opts === "number") {
     opts = { port: opts };
   } else if (typeof opts === "object") {
     isSecure = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
+    handler = opts.handler ?? opts.fetch ?? (opts.showInfo ? this.handle : this.handleRequest);
     if (opts.handler)
-      this.handle = opts.handler;
+      delete opts.handler;
+    if (opts.fetch)
+      delete opts.fetch;
   }
-  return { opts, isSecure };
+  return { opts, isSecure, handler };
 }
-function closeServer() {
-  try {
-    if (!this.alive) {
-      throw new Error("Server Closed");
-    }
-    this.alive = false;
-    this.server.close();
-    for (const httpConn of this.track) {
-      httpConn.close();
-    }
-    this.track.clear();
-  } catch {
+var HttpServer = class {
+  constructor(listener, handle) {
+    this.listener = listener;
+    this.handle = handle;
+    this.alive = true;
+    this.track = /* @__PURE__ */ new Set();
   }
-}
+  async acceptConn() {
+    while (this.alive) {
+      let conn;
+      try {
+        conn = await this.listener.accept();
+      } catch {
+        break;
+      }
+      let httpConn;
+      try {
+        httpConn = Deno.serveHttp(conn);
+      } catch {
+        continue;
+      }
+      this.track.add(httpConn);
+      this.handleHttp(httpConn, conn);
+    }
+  }
+  close() {
+    try {
+      if (!this.alive) {
+        throw new Error("Server Closed");
+      }
+      this.alive = false;
+      this.listener.close();
+      for (const t of this.track)
+        t.close();
+      this.track.clear();
+    } catch {
+    }
+  }
+  async handleHttp(httpConn, conn) {
+    for (; ; ) {
+      try {
+        const rev = await httpConn.nextRequest();
+        if (rev) {
+          await rev.respondWith(this.handle(rev.request, conn));
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+  }
+};
 
 // npm/src/src/nhttp.ts
 var NHttp = class extends Router {
   constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
     super();
-    this.alive = true;
-    this.track = /* @__PURE__ */ new Set();
-    this.onErr = async (err, req, conn, ctx) => {
-      const rev = new RequestEvent(req, conn, ctx);
-      rev.send(await this._onError(err, rev), 1);
-      return rev[s_response] ?? awaiter(rev);
-    };
-    this.handle = (req, conn, ctx) => {
+    this.handle = async (req, conn, ctx) => {
       const url = getUrl(req.url);
       const method = req.method;
       let fns = this.route[method + url];
       if (fns && !fns[0].length) {
         try {
-          const ret = fns[0]();
-          if (ret?.then) {
-            return (async () => {
-              try {
-                return toRes(await ret);
-              } catch (err) {
-                return this.onErr(err, req, conn, ctx);
-              }
-            })();
-          }
-          return toRes(ret);
+          return toRes(await fns[0]());
         } catch (err) {
-          return this.onErr(err, req, conn, ctx);
+          const rev2 = new RequestEvent(req, conn, ctx);
+          rev2.send(await this._onError(err, rev2), 1);
+          return rev2[s_response] ?? awaiter(rev2);
         }
       }
       let i = 0;
@@ -1405,13 +1427,15 @@ var NHttp = class extends Router {
       };
       if (method === "GET" || method === "HEAD") {
         try {
-          return onNext(fns[i++](rev, next), rev, next);
+          rev.send(await fns[i++](rev, next), 1);
+          return rev[s_response] ?? awaiter(rev);
         } catch (e) {
           return next(e);
         }
       }
       return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
     };
+    this.handleRequest = (req) => this.handle(req);
     this.handleEvent = (evt) => this.handle(evt.request);
     oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
@@ -1578,7 +1602,7 @@ var NHttp = class extends Router {
     return createRequest(this.handle, url, init);
   }
   async listen(options, callback) {
-    const { opts, isSecure } = buildListenOptions.bind(this)(options);
+    const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err) => {
       if (callback) {
         callback(err, {
@@ -1591,57 +1615,26 @@ var NHttp = class extends Router {
     };
     try {
       if (this.flash) {
-        if (runCallback())
-          opts.onListen = () => {
-          };
-        const handler = opts.handler ?? this.handle;
-        if (opts.handler)
-          delete opts.handler;
-        return await Deno.serve(opts, (req) => handler(req));
+        if ("serve" in Deno) {
+          if (runCallback())
+            opts.onListen = () => {
+            };
+          return await Deno.serve(opts, handler);
+        }
+        console.error("requires --unstable flags");
+        return;
       }
       runCallback();
+      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
+      const server = new HttpServer(this.server, handler);
       if (opts.signal) {
-        opts.signal.addEventListener("abort", () => closeServer.bind(this)(), {
+        opts.signal.addEventListener("abort", () => server.close(), {
           once: true
         });
       }
-      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-      return await this.acceptConn();
+      return await server.acceptConn();
     } catch (error) {
       runCallback(error);
-      closeServer.bind(this)();
-    }
-  }
-  async acceptConn() {
-    while (this.alive) {
-      let conn;
-      try {
-        conn = await this.server.accept();
-      } catch {
-        break;
-      }
-      let httpConn;
-      try {
-        httpConn = Deno.serveHttp(conn);
-      } catch {
-        continue;
-      }
-      this.track.add(httpConn);
-      this.handleHttp(httpConn, conn);
-    }
-  }
-  async handleHttp(httpConn, conn) {
-    for (; ; ) {
-      try {
-        const rev = await httpConn.nextRequest();
-        if (rev) {
-          await rev.respondWith(this.handle(rev.request, conn));
-        } else {
-          break;
-        }
-      } catch {
-        break;
-      }
     }
   }
   _onError(err, rev) {
@@ -1928,24 +1921,8 @@ var NodeResponse = class {
 };
 
 // npm/src/node/index.ts
-async function sendStream(resWeb, res) {
-  if (resWeb[s_body2] instanceof ReadableStream) {
-    for await (const chunk of resWeb[s_body2])
-      res.write(chunk);
-    res.end();
-    return;
-  }
-  const chunks = [];
-  for await (const chunk of resWeb.body)
-    chunks.push(chunk);
-  const data = Buffer.concat(chunks);
-  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
-    const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-    res.setHeader("Content-Type", type);
-  }
-  res.end(data);
-}
-function handleResWeb(resWeb, res) {
+async function handleNode(handler, req, res) {
+  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {
@@ -1971,18 +1948,22 @@ function handleResWeb(resWeb, res) {
   if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
     res.end(resWeb[s_body2]);
   } else {
-    sendStream(resWeb, res);
+    if (resWeb[s_body2] instanceof ReadableStream) {
+      for await (const chunk of resWeb[s_body2])
+        res.write(chunk);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of resWeb.body)
+      chunks.push(chunk);
+    const data = Buffer.concat(chunks);
+    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+      res.setHeader("Content-Type", type);
+    }
+    res.end(data);
   }
-}
-async function asyncHandleResWeb(resWeb, res) {
-  handleResWeb(await resWeb, res);
-}
-function handleNode(handler, req, res) {
-  const resWeb = handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
-  if (resWeb?.then)
-    asyncHandleResWeb(resWeb, res);
-  else
-    handleResWeb(resWeb, res);
 }
 async function serveNode(handler, opts = {
   port: 3e3
@@ -2010,17 +1991,11 @@ var NHttp2 = class extends NHttp {
   constructor(opts = {}) {
     super(opts);
     const oriListen = this.listen.bind(this);
-    this.listen = async (opts2, callback) => {
+    this.listen = async (options, callback) => {
       if (typeof Deno !== "undefined") {
-        return oriListen(opts2, callback);
+        return await oriListen(options, callback);
       }
-      let handler = this.handle;
-      if (typeof opts2 === "number") {
-        opts2 = { port: opts2 };
-      } else if (typeof opts2 === "object") {
-        if (opts2.handler)
-          handler = opts2.handler;
-      }
+      const { opts: opts2, handler } = buildListenOptions.bind(this)(options);
       const runCallback = (err) => {
         if (callback) {
           const _opts = opts2;

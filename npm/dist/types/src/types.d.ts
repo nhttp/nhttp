@@ -122,6 +122,7 @@ export type ListenOptions = {
     transport?: "tcp";
     alpnProtocols?: string[];
     handler?: FetchHandler;
+    showInfo?: boolean;
     signal?: AbortSignal;
     [k: string]: TRet;
 };

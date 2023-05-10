@@ -8,8 +8,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private stackError;
     private bodyParser?;
     private parseMultipart?;
-    private alive;
-    private track;
     server: TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**
@@ -42,7 +40,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
         directly?: boolean;
     }, opts?: EngineOptions): void;
     matchFns(rev: RequestEvent, method: string, url: string): import("./types").Handler<Rev>[];
-    private onErr;
     /**
      * handle
      * @example
@@ -51,6 +48,14 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * Bun.serve({ fetch: app.handle });
      */
     handle: FetchHandler;
+    /**
+     * handleRequest
+     * @example
+     * Deno.serve(app.handleRequest);
+     * // or
+     * Bun.serve({ fetch: app.handleRequest });
+     */
+    handleRequest: FetchHandler;
     /**
      * handleEvent
      * @example
@@ -93,8 +98,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * }, callback);
      */
     listen(options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>): Promise<any>;
-    private acceptConn;
-    private handleHttp;
     private _onError;
     private _on404;
 }

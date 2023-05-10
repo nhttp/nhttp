@@ -1,6 +1,6 @@
 import { assertEquals } from "./deps_test.ts";
 import { nhttp } from "./nhttp.ts";
-import { closeServer } from "./nhttp_util.ts";
+import { HttpServer } from "./nhttp_util.ts";
 
 Deno.test({
   name: "listen",
@@ -37,6 +37,18 @@ Deno.test({
     }, (_, info) => {
       assertEquals(info.port, 8004);
     });
+    app2.listen({
+      port: 8004,
+      fetch: () => new Response("OK"),
+    }, (_, info) => {
+      assertEquals(info.port, 8004);
+    });
+    app2.listen({
+      port: 8004,
+      showInfo: true,
+    }, (_, info) => {
+      assertEquals(info.port, 8004);
+    });
   },
 });
 Deno.test({
@@ -52,7 +64,10 @@ Deno.test({
       await res.body?.cancel();
       ac.abort();
       try {
-        closeServer.bind(app)();
+        const server = new HttpServer(app.server, app.handle);
+        server.close();
+        server["alive"] = false;
+        server.close();
       } catch (error) {
         assertEquals(error.message, "Server Closed");
       }
@@ -73,11 +88,6 @@ Deno.test({
       assertEquals(res.ok, true);
       await res.body?.cancel();
       ac.abort();
-      try {
-        closeServer.bind(app)();
-      } catch (error) {
-        assertEquals(error.message, "Server Closed");
-      }
       await p;
     });
   },
@@ -97,11 +107,6 @@ Deno.test({
       assertEquals(res.ok, true);
       await res.body?.cancel();
       ac.abort();
-      try {
-        closeServer.bind(app)();
-      } catch (error) {
-        assertEquals(error.message, "Server Closed");
-      }
       await p;
     });
   },
