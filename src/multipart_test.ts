@@ -18,6 +18,7 @@ Deno.test("multipart upload", async (t) => {
       callback: (file) => {
         file.filename = "text.txt";
       },
+      writeFile: true,
     });
     const form = new FormData();
     form.set(
@@ -32,7 +33,7 @@ Deno.test("multipart upload", async (t) => {
   await t.step("upload file with handler", async () => {
     const upload = multipart.upload({
       name: "myfile",
-      writeFile: () => {},
+      writeFile: false,
     });
     const form = new FormData();
     form.set(

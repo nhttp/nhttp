@@ -124,6 +124,12 @@ export declare class HttpResponse {
      */
     render: (fileOrElem: TRet, params?: TObject, ...args: TRet) => Promise<void>;
     /**
+     * shorthand for send html body
+     * @example
+     * response.html("<h1>Hello World</h1>");
+     */
+    html(html: string | Uint8Array): void;
+    /**
      * shorthand for send json body
      * @example
      * response.json({ name: "john" });

@@ -1,5 +1,5 @@
-import { RequestEvent } from "./request_event";
-import { Handler, Handlers, NextFunction, RouterOrWare, TObject, TRet } from "./types";
+import type { RequestEvent } from "./request_event";
+import type { Handler, Handlers, NextFunction, RouterOrWare, TObject, TRet } from "./types";
 export declare function findParams(el: TObject, url: string): any;
 export type TRouter = {
     base?: string;
@@ -13,6 +13,7 @@ export declare const ANY_METHODS: readonly ["GET", "POST", "PUT", "DELETE", "PAT
  */
 export default class Router<Rev extends RequestEvent = RequestEvent> {
     route: TObject;
+    fn: TObject;
     c_routes: TObject[];
     midds: TRet[];
     pmidds?: TRet[];

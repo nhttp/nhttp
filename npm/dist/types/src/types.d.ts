@@ -1,16 +1,24 @@
 import { RequestEvent } from "./request_event";
 import Router from "./router";
-export type Merge<A, B> = {
-    [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
-};
 export type TRet = any;
 export type EObject = {};
 export type TObject = {
     [k: string]: TRet;
 };
+declare global {
+    interface Request {
+        _info?: {
+            conn?: TRet;
+            ctx?: TRet;
+        };
+    }
+}
+export type Merge<A, B> = {
+    [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
+};
 export type TSendBody = string | Response | ReadableStream | Blob | TObject | null | number;
 export type NextFunction = (err?: Error) => Promise<Response>;
-export type RetHandler = Promise<void | string | TObject> | void | string | TObject;
+export type RetHandler = Promise<void | string | TObject | number> | void | string | TObject | number;
 export type Handler<T = EObject, Rev extends RequestEvent = RequestEvent> = (rev: Merge<Rev, T>, next: NextFunction, ...args: TRet) => RetHandler;
 export type Handlers<T = EObject, Rev extends RequestEvent = RequestEvent> = Array<Handler<T, Rev> | Handler<T, Rev>[]>;
 export type TValidBody = number | string | false | undefined;

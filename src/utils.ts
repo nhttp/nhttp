@@ -33,11 +33,8 @@ class EHeaders {
     this.set = (k: string, v: string) => headers.set(k, v);
     this.append = (k: string, v: string) => headers.append(k, v);
     this.delete = (s: string) => headers.delete(s);
-    this.entries = () => headers.entries();
     this.forEach = (a: TRet, b: TRet) => headers.forEach(a, b);
     this.has = (a: TRet) => headers.has(a);
-    this.keys = () => headers.keys();
-    this.values = () => headers.values();
   }
   [k: string]: TRet;
 }

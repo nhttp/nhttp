@@ -1,6 +1,6 @@
 import { ROUTE } from "./constant.ts";
-import { RequestEvent } from "./request_event.ts";
-import {
+import type { RequestEvent } from "./request_event.ts";
+import type {
   Handler,
   Handlers,
   NextFunction,
@@ -82,6 +82,7 @@ export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {
   route: TObject = {};
+  fn: TObject = {};
   c_routes: TObject[] = [];
   midds: TRet[] = [];
   pmidds?: TRet[];

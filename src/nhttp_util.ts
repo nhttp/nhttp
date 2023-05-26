@@ -12,7 +12,6 @@ export const awaiter = (rev: RequestEvent) => {
     return rev[s_response];
   })(0, 100);
 };
-
 export const onNext = async (
   ret: TRet,
   rev: RequestEvent,
@@ -25,7 +24,6 @@ export const onNext = async (
     return next(e);
   }
 };
-
 export function buildListenOptions(this: TRet, opts: number | ListenOptions) {
   let isSecure = false;
   let handler: FetchHandler = this.handleRequest;

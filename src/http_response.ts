@@ -1,4 +1,4 @@
-import { JSON_TYPE, MIME_LIST } from "./constant.ts";
+import { HTML_TYPE, JSON_TYPE, MIME_LIST } from "./constant.ts";
 import { serializeCookie } from "./cookie.ts";
 import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
@@ -185,6 +185,14 @@ export class HttpResponse {
     params?: TObject,
     ...args: TRet
   ) => Promise<void>;
+  /**
+   * shorthand for send html body
+   * @example
+   * response.html("<h1>Hello World</h1>");
+   */
+  html(html: string | Uint8Array) {
+    this.type(HTML_TYPE).send(html);
+  }
   /**
    * shorthand for send json body
    * @example

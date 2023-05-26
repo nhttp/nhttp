@@ -179,6 +179,7 @@ export class NHttp<
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns;
+          if (!fns[0].length) this.fn[key] = fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
       }
@@ -197,14 +198,17 @@ export class NHttp<
    * });
    */
   engine(
-    render: ((...args: TRet) => TRet) & { directly?: boolean },
+    render: ((...args: TRet) => TRet) & {
+      check?: (elem: TRet) => boolean;
+    },
     opts: EngineOptions = {},
   ) {
+    const check = render.check;
     this.use((rev: RequestEvent, next) => {
-      if (render.directly) {
+      if (check !== undefined) {
         const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
-          if (typeof body === "string") {
+          if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
@@ -245,7 +249,7 @@ export class NHttp<
       return next();
     });
   }
-  matchFns(rev: RequestEvent, method: string, url: string) {
+  matchFns = (rev: RequestEvent, method: string, url: string) => {
     const iof = url.indexOf("?");
     if (iof !== -1) {
       rev.path = url.substring(0, iof);
@@ -259,31 +263,31 @@ export class NHttp<
       (obj) => (rev.params = obj),
       this._on404,
     );
-  }
-
+  };
   /**
-   * handle
+   * handleRequest
    * @example
-   * Deno.serve(app.handle);
+   * Deno.serve(app.handleRequest);
    * // or
-   * Bun.serve({ fetch: app.handle });
+   * Bun.serve({ fetch: app.handleRequest });
    */
-  handle: FetchHandler = async (req: Request, conn?: TRet, ctx?: TRet) => {
-    const url = getUrl(req.url);
-    const method = req.method;
-    let fns = this.route[method + url];
-    if (fns && !fns[0].length) {
+  handleRequest: FetchHandler = async (req) => {
+    const method = req.method, url = getUrl(req.url);
+    const key = method + url;
+    const fn = this.fn[key];
+    // just skip no middleware
+    if (fn) {
       try {
-        return toRes(await fns[0]());
+        return toRes(await fn());
       } catch (err) {
-        const rev = <Rev> new RequestEvent(req, conn, ctx);
+        const rev = <Rev> new RequestEvent(req);
         rev.send(await this._onError(err, rev) as TRet, 1);
         return rev[s_response] ?? awaiter(rev);
       }
     }
     let i = 0;
-    const rev = <Rev> new RequestEvent(req, conn, ctx);
-    fns ??= this.matchFns(rev, method, url);
+    const rev = <Rev> new RequestEvent(req);
+    const fns = this.route[key] ?? this.matchFns(rev, method, url);
     const next: NextFunction = (err) => {
       try {
         return onNext(
@@ -298,7 +302,7 @@ export class NHttp<
     // GET/HEAD cannot have body.
     if (method === "GET" || method === "HEAD") {
       try {
-        rev.send(await fns[i++](rev, next), 1);
+        rev.send(await fns[i++](rev, next) as TRet, 1);
         return rev[s_response] ?? awaiter(rev);
       } catch (e) {
         return next(e);
@@ -308,16 +312,20 @@ export class NHttp<
       this.bodyParser,
       this.parseQuery,
       this.parseMultipart,
-    )(rev, next) as Response;
+    )(rev, next);
   };
   /**
-   * handleRequest
+   * handle
    * @example
-   * Deno.serve(app.handleRequest);
+   * Deno.serve(app.handle);
    * // or
-   * Bun.serve({ fetch: app.handleRequest });
+   * Bun.serve({ fetch: app.handle });
    */
-  handleRequest: FetchHandler = (req) => this.handle(req);
+  handle: FetchHandler = (req: Request, conn?: TRet, ctx?: TRet) => {
+    if (conn) req._info = { conn, ctx };
+    return this.handleRequest(req);
+  };
+
   /**
    * handleEvent
    * @example
@@ -340,9 +348,9 @@ export class NHttp<
    * const hello_post = await app.req("/", { method: "POST" }).text();
    * assertEquals(hello_post, "hello, post");
    */
-  req(url: string, init: RequestInit = {}) {
+  req = (url: string, init: RequestInit = {}) => {
     return createRequest(this.handle, url, init);
-  }
+  };
   /**
    * listen the server
    * @example
@@ -355,13 +363,13 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-  async listen(
+  listen = async (
     options: number | ListenOptions,
     callback?: (
       err: Error | undefined,
       opts: ListenOptions,
     ) => void | Promise<void>,
-  ) {
+  ) => {
     const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {
@@ -377,7 +385,7 @@ export class NHttp<
       if (this.flash) {
         if ("serve" in Deno) {
           if (runCallback()) opts.onListen = () => {};
-          return await (<TObject> Deno).serve(opts, handler);
+          return (<TObject> Deno).serve(opts, handler);
         }
         console.error("requires --unstable flags");
         return;
@@ -394,7 +402,7 @@ export class NHttp<
     } catch (error) {
       runCallback(error);
     }
-  }
+  };
   private _onError(
     err: TObject,
     rev: Rev,

@@ -152,7 +152,15 @@ Deno.test("nhttp", async (t) => {
   });
   await t.step("engine jsx", async () => {
     const renderToHtml = (elem: TRet) => elem;
-    renderToHtml.directly = true;
+    renderToHtml.check = (elem: TRet) => typeof elem === "string";
+    const app = nhttp();
+    app.engine(renderToHtml);
+    app.get("/", (_rev) => "hello");
+    await superdeno(app.handle).get("/").expect(200);
+  });
+  await t.step("engine jsx check false", async () => {
+    const renderToHtml = (elem: TRet) => elem;
+    renderToHtml.check = (elem: TRet) => typeof elem === "object";
     const app = nhttp();
     app.engine(renderToHtml);
     app.get("/", (_rev) => "hello");
@@ -308,13 +316,10 @@ Deno.test("nhttp", async (t) => {
       headers.append("name", "kasja");
       assertEquals((headers as TRet).key, "val");
       assertEquals(typeof headers.get("name"), "string");
-      assertEquals(typeof headers.entries(), "object");
       headers.forEach((val, key) => {
         assertEquals(typeof val, "string");
         assertEquals(typeof key, "string");
       });
-      assertEquals(typeof headers.keys(), "object");
-      assertEquals(typeof headers.values(), "object");
       assertEquals(headers.has("name"), true);
       headers.delete("name");
       return "base";
@@ -381,7 +386,7 @@ Deno.test("nhttp", async (t) => {
     });
     app.onError((err) => err.message);
     app.on404(() => "404");
-    const noop = await app.handle(myReq("GET", "/"));
+    const noop = await app.handle(myReq("GET", "/"), {});
     const noop2 = await app.handle(myReq("GET", "/noop"));
     const noop3 = await app.handle(myReq("GET", "/noop2"));
     const notFound = await app.handle(myReq("GET", "/404"));
@@ -502,15 +507,19 @@ Deno.test("nhttp", async (t) => {
       throw "noop";
     });
 
+    await app.req("/promise").text();
     const promise = await app.req("/promise").text();
     assertEquals(promise, "hello");
 
+    await app.req("/").text();
     const index = await app.req("/").text();
     assertEquals(index, "hello");
 
+    await app.req("/error").json();
     const err = await app.req("/error").json();
     assertEquals(typeof err, "object");
 
+    await app.req("/promise-error").json();
     const err2 = await app.req("/promise-error").json();
     assertEquals(typeof err2, "object");
 
@@ -520,6 +529,7 @@ Deno.test("nhttp", async (t) => {
       });
     });
 
+    await app.req("/error").text();
     const err3 = await app.req("/error").text();
     assertEquals(err3, "err");
   });

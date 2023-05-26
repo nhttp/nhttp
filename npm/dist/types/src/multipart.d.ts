@@ -44,11 +44,11 @@ export type TMultipartUpload = {
      */
     required?: boolean;
     /**
-     * custom writeFile.
+     * writeFile.
      * @default
-     * not_set
+     * true
      */
-    writeFile?: (pathfile: string, data: Uint8Array) => void | Promise<void>;
+    writeFile?: boolean | ((pathfile: string, data: Uint8Array) => void | Promise<void>);
     /**
      * custom storage function. (s3, supabase, gdrive, etc).
      * @default

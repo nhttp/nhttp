@@ -37,17 +37,9 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * });
      */
     engine(render: ((...args: TRet) => TRet) & {
-        directly?: boolean;
+        check?: (elem: TRet) => boolean;
     }, opts?: EngineOptions): void;
-    matchFns(rev: RequestEvent, method: string, url: string): import("./types").Handler<Rev>[];
-    /**
-     * handle
-     * @example
-     * Deno.serve(app.handle);
-     * // or
-     * Bun.serve({ fetch: app.handle });
-     */
-    handle: FetchHandler;
+    matchFns: (rev: RequestEvent, method: string, url: string) => import("./types").Handler<Rev>[];
     /**
      * handleRequest
      * @example
@@ -56,6 +48,14 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * Bun.serve({ fetch: app.handleRequest });
      */
     handleRequest: FetchHandler;
+    /**
+     * handle
+     * @example
+     * Deno.serve(app.handle);
+     * // or
+     * Bun.serve({ fetch: app.handle });
+     */
+    handle: FetchHandler;
     /**
      * handleEvent
      * @example
@@ -78,7 +78,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * const hello_post = await app.req("/", { method: "POST" }).text();
      * assertEquals(hello_post, "hello, post");
      */
-    req(url: string, init?: RequestInit): {
+    req: (url: string, init?: RequestInit) => {
         text: () => Promise<string>;
         json: () => Promise<any>;
         ok: () => Promise<boolean>;
@@ -97,7 +97,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *    alpnProtocols: ["h2", "http/1.1"]
      * }, callback);
      */
-    listen(options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>): Promise<any>;
+    listen: (options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>) => Promise<any>;
     private _onError;
     private _on404;
 }

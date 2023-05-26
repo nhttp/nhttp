@@ -12,14 +12,12 @@ export declare class RequestEvent<O extends TObject = TObject> {
      * The request from the client in the form of the web platform {@linkcode Request}.
      */
     request: Request;
-    private _info?;
-    private _ctx?;
     constructor(
     /**
      * Original {@linkcode Request}.
      * The request from the client in the form of the web platform {@linkcode Request}.
      */
-    request: Request, _info?: TObject, _ctx?: TObject);
+    request: Request);
     /**
      * response as HttpResponse
      */
@@ -30,6 +28,16 @@ export declare class RequestEvent<O extends TObject = TObject> {
     get route(): MatchRoute;
     /**
      * lookup Object info like `conn / env / context`.
+     * requires `showInfo` flags.
+     * @example
+     * ```ts
+     * app.get("/", (rev) => {
+     *   console.log(rev.info);
+     *   return "foo";
+     * });
+     *
+     * app.listen({ port: 8000, showInfo: true });
+     * ```
      */
     get info(): TInfo<O>;
     /**

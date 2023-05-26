@@ -101,10 +101,16 @@ export const multipart = {
     if (typeof Deno !== "undefined") return multi.upload(opts);
     if (Array.isArray(opts)) {
       for (let i = 0; i < opts.length; i++) {
-        opts[i].writeFile ??= writeFile;
+        if (opts[i].writeFile !== false) {
+          if (opts[i].writeFile === true) opts[i].writeFile = void 0;
+          opts[i].writeFile ??= writeFile;
+        }
       }
     } else if (typeof opts === "object") {
-      opts.writeFile ??= writeFile;
+      if (opts.writeFile !== false) {
+        if (opts.writeFile === true) opts.writeFile = void 0;
+        opts.writeFile ??= writeFile;
+      }
     }
     return multi.upload(opts);
   },

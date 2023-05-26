@@ -1,3 +1,10 @@
+import { Helmet as HelmetOri } from "./helmet.ts";
+import {
+  isValidElement as isValidElementOri,
+  renderToHtml as renderToHtmlOri,
+  renderToString as renderToStringOri,
+} from "./render.ts";
+
 // deno-lint-ignore no-explicit-any
 type TRet = any;
 const dangerHTML = "dangerouslySetInnerHTML";
@@ -17,8 +24,50 @@ type JsxProps = {
 export type FC<T extends unknown = unknown> = (
   props: JsxProps & T,
 ) => JSX.Element;
+
 const emreg =
   /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/;
+
+/**
+ * Helmet
+ * @deprecated
+ * Move to `lib/jsx/helmet`.
+ * ```ts
+ * // Deno
+ * import { Helmet } from "https://deno.land/x/nhttp@1.2.17/lib/jsx/helmet.ts";
+ *
+ * // Node
+ * import { Helmet } from "nhttp-land/jsx/helmet";
+ * ```
+ */
+export const Helmet = HelmetOri;
+/**
+ * renderToHtml
+ * @deprecated
+ * Move to `lib/jsx/render.ts`.
+ * ```ts
+ * // Deno
+ * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.17/lib/jsx/render.ts";
+ *
+ * // Node
+ * import { renderToHtml } from "nhttp-land/jsx/render";
+ * ```
+ */
+export const renderToHtml = renderToHtmlOri;
+/**
+ * renderToString
+ * @deprecated
+ * Move to `lib/jsx/render.ts`.
+ * ```ts
+ * // Deno
+ * import { renderToString } from "https://deno.land/x/nhttp@1.2.17/lib/jsx/render.ts";
+ *
+ * // Node
+ * import { renderToString } from "nhttp-land/jsx/render";
+ * ```
+ */
+export const renderToString = renderToStringOri;
+export const isValidElement = isValidElementOri;
 
 function escapeHtml(unsafe: string) {
   return unsafe
@@ -39,12 +88,11 @@ export function n(
     return typeof el === "number" ? String(el) : el;
   }).filter(Boolean);
   if (typeof type === "function") {
-    if (type.name === "Helmet") props.h_children = children;
-    else props.children = children.join("");
+    props.children = children.join("");
     return type(props);
   }
   let str = `<${type}`;
-  for (const k in props) {
+  for (let k in props) {
     const val = props[k];
     if (
       val !== undefined &&
@@ -52,6 +100,10 @@ export function n(
       k !== dangerHTML &&
       k !== "children"
     ) {
+      if (typeof k === "string") {
+        k = k.toLowerCase();
+        if (k === "classname") k = "class";
+      }
       const type = typeof val;
       if (type === "boolean" || type === "object") {
         if (type === "object") {
@@ -92,67 +144,3 @@ export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
 export const Fragment: FC = ({ children }) => children;
 n.Fragment = Fragment;
 h.Fragment = Fragment;
-type FCHelmet = ((props: TRet) => TRet) & {
-  head?: () => string[];
-  body?: () => string[];
-  htmlAttr?: () => string;
-  bodyAttr?: () => string;
-};
-
-function toHelmet(olds: string[], childs: string[]) {
-  const idx = olds.findIndex((el) => el.startsWith("<title>"));
-  const latest = childs.map((item: string) => {
-    if (item.startsWith("<title>") && idx !== -1) olds.splice(idx, 1);
-    return item;
-  }) as string[];
-  const arr = latest.concat(olds);
-  return arr.filter((item, i) => arr.indexOf(item) === i);
-}
-function toAttr(regex: RegExp, child: string) {
-  const arr = regex.exec(child) ?? [];
-  return arr.length === 2 ? arr[1] : "";
-}
-export const Helmet: FCHelmet = ({ h_children, body }) => {
-  const heads = Helmet.head?.() ?? [];
-  const bodys = Helmet.body?.() ?? [];
-  const childs: string[] = [];
-  for (let i = 0; i < h_children.length; i++) {
-    const child = h_children[i];
-    if (child.startsWith("<html")) {
-      Helmet.htmlAttr = () => toAttr(/<html\s([^>]+)><\/html>/gm, child);
-    } else if (child.startsWith("<body")) {
-      Helmet.bodyAttr = () => toAttr(/<body\s([^>]+)><\/body>/gm, child);
-    } else childs.push(child);
-  }
-  if (body) Helmet.body = () => toHelmet(bodys, childs);
-  else Helmet.head = () => toHelmet(heads, childs);
-  return null;
-};
-const tt = "\n\t";
-export const resetHelmet = () => {
-  Helmet.head = void 0;
-  Helmet.body = void 0;
-  Helmet.htmlAttr = void 0;
-  Helmet.bodyAttr = void 0;
-};
-export const renderToString = (elem: JSX.Element): string => <TRet> elem;
-export const renderToHtml = (elem: JSX.Element) => {
-  const head = Helmet.head?.();
-  const body = Helmet.body?.();
-  const htmlAttr = Helmet.htmlAttr?.() ?? `lang="en"`;
-  const bodyAttr = Helmet.bodyAttr?.() ?? "";
-  resetHelmet();
-  // deno-fmt-ignore
-  return `<!DOCTYPE html>
-<html${htmlAttr ? ` ${htmlAttr}` : ""}>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">${head ? `${tt}${head.join(tt)}` : ""}
-  </head>
-  <body${bodyAttr ? ` ${bodyAttr}` : ""}>
-    ${elem}${body ? `${tt}${body.join(tt)}` : ""}
-  </body>
-</html>`;
-};
-
-renderToHtml.directly = true;

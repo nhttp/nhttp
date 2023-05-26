@@ -62,12 +62,32 @@ async function verifyBody(
 
 const isNotValid = (v: TValidBody) => v === false || v === 0;
 const uptd = (m: string) => m.toLowerCase().includes("unexpected end of json");
+
+async function handleBody(
+  validate: TValidBody,
+  rev: RequestEvent,
+  next: NextFunction,
+  cb: (body: string) => void,
+) {
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
+  try {
+    const body = await verifyBody(rev, validate);
+    if (!body) return next();
+    cb(body);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
 async function jsonBody(
   validate: TValidBody,
   rev: RequestEvent,
   next: NextFunction,
 ) {
-  if (validate === void 0) {
+  if (validate === undefined) {
     try {
       const body = await rev.request.json();
       if (body) {
@@ -80,62 +100,9 @@ async function jsonBody(
       return next(e);
     }
   }
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body) return next();
+  return handleBody(validate, rev, next, (body) => {
     rev.body = JSON.parse(body);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
-}
-
-async function urlencodedBody(
-  validate: TValidBody,
-  parseQuery: TQueryFunc,
-  rev: RequestEvent,
-  next: NextFunction,
-) {
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body) return next();
-    const parse = parseQuery ?? parseQueryOri;
-    rev.body = parse(body);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
-}
-
-async function rawBody(
-  validate: TValidBody,
-  rev: RequestEvent,
-  next: NextFunction,
-) {
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body) return next();
-    try {
-      rev.body = JSON.parse(body);
-    } catch (_err) {
-      rev.body = { _raw: body };
-    }
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  });
 }
 async function multipartBody(
   validate: TValidBody,
@@ -166,23 +133,35 @@ export function bodyParser(
   parseMultipart?: TQueryFunc,
 ): Handler {
   return (rev, next) => {
-    if (opts === false) return next();
-    if (opts === true) opts = void 0;
+    if (typeof opts === "boolean") {
+      if (opts === false) return next();
+      opts = void 0;
+    }
     const type = (<TRet> rev.request).raw
       ? (<TRet> rev.request).raw.req.headers["content-type"]
       : rev.request.headers.get("content-type");
-    if (!type) return next();
-    if (isTypeBody(type, c_types[0])) {
-      return jsonBody(opts?.json, rev, next);
-    }
-    if (isTypeBody(type, c_types[1])) {
-      return urlencodedBody(opts?.urlencoded, parseQuery, rev, next);
-    }
-    if (isTypeBody(type, c_types[2])) {
-      return rawBody(opts?.raw, rev, next);
-    }
-    if (isTypeBody(type, c_types[3])) {
-      return multipartBody(opts?.multipart, parseMultipart, rev, next);
+    if (type) {
+      if (isTypeBody(type, c_types[0])) {
+        return jsonBody(opts?.json, rev, next);
+      }
+      if (isTypeBody(type, c_types[1])) {
+        return handleBody(opts?.urlencoded, rev, next, (body) => {
+          const parse = parseQuery ?? parseQueryOri;
+          rev.body = parse(body);
+        });
+      }
+      if (isTypeBody(type, c_types[2])) {
+        return handleBody(opts?.raw, rev, next, (body) => {
+          try {
+            rev.body = JSON.parse(body);
+          } catch {
+            rev.body = { _raw: body };
+          }
+        });
+      }
+      if (isTypeBody(type, c_types[3])) {
+        return multipartBody(opts?.multipart, parseMultipart, rev, next);
+      }
     }
     return next();
   };

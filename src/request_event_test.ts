@@ -133,11 +133,9 @@ Deno.test("RequestEvent", async (t) => {
     assertEquals(typeof inspect(2, {}), "string");
   });
   await t.step("miss req", () => {
-    const rev = new RequestEvent(
-      { url: "/" } as TRet,
-      {},
-      () => ({}),
-    );
+    const req = new Request("http://127.0.0.1:8000/");
+    req._info = { conn: {}, ctx: () => ({}) };
+    const rev = new RequestEvent(req);
     assertEquals(typeof rev.request, "object");
   });
   await t.step("waitUntil", () => {
@@ -155,15 +153,16 @@ Deno.test("RequestEvent", async (t) => {
     }
   });
   await t.step("waitUntil2", () => {
-    const rev = new RequestEvent(
-      new Request("http://127.0.0.1:8000/"),
-      void 0,
-      {
+    const req = new Request("http://127.0.0.1:8000/");
+    req._info = {
+      conn: void 0,
+      ctx: {
         waitUntil: (promise: Promise<TRet>) => {
           promise.catch(console.error);
         },
       },
-    );
+    };
+    const rev = new RequestEvent(req);
     const val = Promise.resolve("hay");
     const val2 = "hay";
     rev.waitUntil(val);

@@ -51,11 +51,13 @@ export type TMultipartUpload = {
    */
   required?: boolean;
   /**
-   * custom writeFile.
+   * writeFile.
    * @default
-   * not_set
+   * true
    */
-  writeFile?: (pathfile: string, data: Uint8Array) => void | Promise<void>;
+  writeFile?:
+    | boolean
+    | ((pathfile: string, data: Uint8Array) => void | Promise<void>);
   /**
    * custom storage function. (s3, supabase, gdrive, etc).
    * @default
@@ -158,7 +160,8 @@ class Multipart {
       file.pathfile = file.path;
       if (opts.storage) {
         await opts.storage(file);
-      } else {
+      } else if (opts.writeFile !== false) {
+        if (opts.writeFile === true) opts.writeFile = void 0;
         opts.writeFile ??= Deno.writeFile;
         const arrBuff = await file.arrayBuffer();
         await opts.writeFile(file.path, new Uint8Array(arrBuff));

@@ -1,7 +1,7 @@
 import { JsonResponse } from "./http_response.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TRet } from "./types.ts";
-import { JSON_TYPE } from "./constant.ts";
+import { HTML_TYPE, JSON_TYPE } from "./constant.ts";
 import { s_params } from "./symbol.ts";
 import { RequestEvent } from "./request_event.ts";
 
@@ -58,6 +58,11 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       response.json({ name: "john" });
       assertEquals(response.statusCode, 200);
+    });
+    await t.step("html", () => {
+      const response = buildRes();
+      response.html("<h1>hello</h1>");
+      assertEquals(response.getHeader("content-type"), HTML_TYPE);
     });
     await t.step("cookie", () => {
       const response = buildRes();

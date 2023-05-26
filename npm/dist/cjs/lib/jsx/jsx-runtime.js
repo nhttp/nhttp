@@ -23,12 +23,12 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 var jsx_runtime_exports = {};
 __export(jsx_runtime_exports, {
   Fragment: () => import_index.Fragment,
-  jsx: () => createElem,
-  jsxDev: () => createElem,
-  jsxs: () => createElem
+  jsx: () => createElement,
+  jsxDev: () => createElement,
+  jsxs: () => createElement
 });
 var import_index = require("./index");
-const createElem = (name, props) => {
+const createElement = (name, props) => {
   const { children = [], ...rest } = props ?? {};
   const args = children.pop ? children : [children];
   return (0, import_index.n)(name, rest, ...args);

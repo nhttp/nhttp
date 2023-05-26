@@ -1,6 +1,16 @@
 // deno-lint-ignore-file no-explicit-any ban-types
 import { RequestEvent } from "./request_event.ts";
 import Router from "./router.ts";
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+export type TRet = any;
+/* eslint-disable  @typescript-eslint/ban-types */
+export type EObject = {};
+export type TObject = { [k: string]: TRet };
+declare global {
+  interface Request {
+    _info?: { conn?: TRet; ctx?: TRet };
+  }
+}
 
 export type Merge<A, B> = {
   [K in keyof (A & B)]: (
@@ -8,11 +18,7 @@ export type Merge<A, B> = {
       : (K extends keyof A ? A[K] : never)
   );
 };
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-export type TRet = any;
-/* eslint-disable  @typescript-eslint/ban-types */
-export type EObject = {};
-export type TObject = { [k: string]: TRet };
+
 export type TSendBody =
   | string
   | Response
@@ -25,10 +31,11 @@ export type NextFunction = (
   err?: Error,
 ) => Promise<Response>;
 export type RetHandler =
-  | Promise<void | string | TObject>
+  | Promise<void | string | TObject | number>
   | void
   | string
-  | TObject;
+  | TObject
+  | number;
 export type Handler<
   T = EObject,
   Rev extends RequestEvent = RequestEvent,

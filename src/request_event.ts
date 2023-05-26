@@ -36,8 +36,6 @@ export class RequestEvent<O extends TObject = TObject> {
      * The request from the client in the form of the web platform {@linkcode Request}.
      */
     public request: Request,
-    private _info?: TObject,
-    private _ctx?: TObject,
   ) {}
   /**
    * response as HttpResponse
@@ -73,12 +71,23 @@ export class RequestEvent<O extends TObject = TObject> {
   }
   /**
    * lookup Object info like `conn / env / context`.
+   * requires `showInfo` flags.
+   * @example
+   * ```ts
+   * app.get("/", (rev) => {
+   *   console.log(rev.info);
+   *   return "foo";
+   * });
+   *
+   * app.listen({ port: 8000, showInfo: true });
+   * ```
    */
   get info(): TInfo<O> {
+    const info = this.request._info;
     return {
-      conn: <TRet> this._info ?? {},
-      env: this._info ?? {},
-      context: this._ctx ?? {},
+      conn: <TRet> info?.conn ?? {},
+      env: info?.conn ?? {},
+      context: info?.ctx ?? {},
     };
   }
   /**
@@ -99,8 +108,9 @@ export class RequestEvent<O extends TObject = TObject> {
    */
   waitUntil(promise: Promise<TRet>) {
     if (promise instanceof Promise) {
-      if (this._ctx && this._ctx.waitUntil) {
-        this._ctx.waitUntil(promise);
+      const ctx = this.request._info?.ctx;
+      if (typeof ctx?.waitUntil === "function") {
+        ctx.waitUntil(promise);
         return;
       }
       promise.catch(console.error);

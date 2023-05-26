@@ -1,8 +1,8 @@
 import { Fragment } from "./index";
 type TRet = any;
 type CE = (name: TRet, props: TRet, ...args: TRet) => TRet;
-declare const createElem: CE;
+declare const createElement: CE;
 export { Fragment };
-export { createElem as jsx };
-export { createElem as jsxs };
-export { createElem as jsxDev };
+export { createElement as jsx };
+export { createElement as jsxs };
+export { createElement as jsxDev };

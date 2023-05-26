@@ -238,11 +238,8 @@ var EHeaders = class {
     this.set = (k, v) => headers.set(k, v);
     this.append = (k, v) => headers.append(k, v);
     this.delete = (s) => headers.delete(s);
-    this.entries = () => headers.entries();
     this.forEach = (a, b) => headers.forEach(a, b);
     this.has = (a) => headers.has(a);
-    this.keys = () => headers.keys();
-    this.values = () => headers.values();
   }
 };
 function findFn(fn) {
@@ -516,6 +513,7 @@ var ANY_METHODS = [
 var Router = class {
   constructor({ base = "" } = {}) {
     this.route = {};
+    this.fn = {};
     this.c_routes = [];
     this.midds = [];
     this.base = "";
@@ -694,7 +692,9 @@ var Multipart = class {
       file.pathfile = file.path;
       if (opts.storage) {
         await opts.storage(file);
-      } else {
+      } else if (opts.writeFile !== false) {
+        if (opts.writeFile === true)
+          opts.writeFile = void 0;
         opts.writeFile ??= Deno.writeFile;
         const arrBuff = await file.arrayBuffer();
         await opts.writeFile(file.path, new Uint8Array(arrBuff));
@@ -812,6 +812,21 @@ async function verifyBody(rev, limit) {
 }
 var isNotValid = (v) => v === false || v === 0;
 var uptd = (m) => m.toLowerCase().includes("unexpected end of json");
+async function handleBody(validate, rev, next, cb) {
+  if (isNotValid(validate)) {
+    rev.body = {};
+    return next();
+  }
+  try {
+    const body = await verifyBody(rev, validate);
+    if (!body)
+      return next();
+    cb(body);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
 async function jsonBody(validate, rev, next) {
   if (validate === void 0) {
     try {
@@ -827,54 +842,9 @@ async function jsonBody(validate, rev, next) {
       return next(e);
     }
   }
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body)
-      return next();
+  return handleBody(validate, rev, next, (body) => {
     rev.body = JSON.parse(body);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
-}
-async function urlencodedBody(validate, parseQuery2, rev, next) {
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body)
-      return next();
-    const parse = parseQuery2 ?? parseQuery;
-    rev.body = parse(body);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
-}
-async function rawBody(validate, rev, next) {
-  if (isNotValid(validate)) {
-    rev.body = {};
-    return next();
-  }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body)
-      return next();
-    try {
-      rev.body = JSON.parse(body);
-    } catch (_err) {
-      rev.body = { _raw: body };
-    }
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  });
 }
 async function multipartBody(validate, parseMultipart, rev, next) {
   if (isNotValid(validate)) {
@@ -895,24 +865,34 @@ async function multipartBody(validate, parseMultipart, rev, next) {
 }
 function bodyParser(opts, parseQuery2, parseMultipart) {
   return (rev, next) => {
-    if (opts === false)
-      return next();
-    if (opts === true)
+    if (typeof opts === "boolean") {
+      if (opts === false)
+        return next();
       opts = void 0;
+    }
     const type = rev.request.raw ? rev.request.raw.req.headers["content-type"] : rev.request.headers.get("content-type");
-    if (!type)
-      return next();
-    if (isTypeBody(type, c_types[0])) {
-      return jsonBody(opts?.json, rev, next);
-    }
-    if (isTypeBody(type, c_types[1])) {
-      return urlencodedBody(opts?.urlencoded, parseQuery2, rev, next);
-    }
-    if (isTypeBody(type, c_types[2])) {
-      return rawBody(opts?.raw, rev, next);
-    }
-    if (isTypeBody(type, c_types[3])) {
-      return multipartBody(opts?.multipart, parseMultipart, rev, next);
+    if (type) {
+      if (isTypeBody(type, c_types[0])) {
+        return jsonBody(opts?.json, rev, next);
+      }
+      if (isTypeBody(type, c_types[1])) {
+        return handleBody(opts?.urlencoded, rev, next, (body) => {
+          const parse = parseQuery2 ?? parseQuery;
+          rev.body = parse(body);
+        });
+      }
+      if (isTypeBody(type, c_types[2])) {
+        return handleBody(opts?.raw, rev, next, (body) => {
+          try {
+            rev.body = JSON.parse(body);
+          } catch {
+            rev.body = { _raw: body };
+          }
+        });
+      }
+      if (isTypeBody(type, c_types[3])) {
+        return multipartBody(opts?.multipart, parseMultipart, rev, next);
+      }
     }
     return next();
   };
@@ -1146,6 +1126,9 @@ var HttpResponse = class {
   type(contentType) {
     return this.header("content-type", MIME_LIST[contentType] ?? contentType);
   }
+  html(html) {
+    this.type(HTML_TYPE).send(html);
+  }
   json(body) {
     this.send(body);
   }
@@ -1195,10 +1178,8 @@ var JsonResponse = class extends Response {
 
 // npm/src/src/request_event.ts
 var RequestEvent = class {
-  constructor(request, _info, _ctx) {
+  constructor(request) {
     this.request = request;
-    this._info = _info;
-    this._ctx = _ctx;
   }
   get response() {
     return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
@@ -1223,16 +1204,18 @@ var RequestEvent = class {
     return this[s_route] ??= ret ?? {};
   }
   get info() {
+    const info = this.request._info;
     return {
-      conn: this._info ?? {},
-      env: this._info ?? {},
-      context: this._ctx ?? {}
+      conn: info?.conn ?? {},
+      env: info?.conn ?? {},
+      context: info?.ctx ?? {}
     };
   }
   waitUntil(promise) {
     if (promise instanceof Promise) {
-      if (this._ctx && this._ctx.waitUntil) {
-        this._ctx.waitUntil(promise);
+      const ctx = this.request._info?.ctx;
+      if (typeof ctx?.waitUntil === "function") {
+        ctx.waitUntil(promise);
         return;
       }
       promise.catch(console.error);
@@ -1459,22 +1442,32 @@ var HttpServer = class {
 var NHttp = class extends Router {
   constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
     super();
-    this.handle = async (req, conn, ctx) => {
-      const url = getUrl(req.url);
-      const method = req.method;
-      let fns = this.route[method + url];
-      if (fns && !fns[0].length) {
+    this.matchFns = (rev, method, url) => {
+      const iof = url.indexOf("?");
+      if (iof !== -1) {
+        rev.path = url.substring(0, iof);
+        rev.__parseQuery = this.parseQuery;
+        rev.search = url.substring(iof);
+        url = rev.path;
+      }
+      return this.find(method, url, (obj) => rev.params = obj, this._on404);
+    };
+    this.handleRequest = async (req) => {
+      const method = req.method, url = getUrl(req.url);
+      const key = method + url;
+      const fn = this.fn[key];
+      if (fn) {
         try {
-          return toRes(await fns[0]());
+          return toRes(await fn());
         } catch (err) {
-          const rev2 = new RequestEvent(req, conn, ctx);
+          const rev2 = new RequestEvent(req);
           rev2.send(await this._onError(err, rev2), 1);
           return rev2[s_response] ?? awaiter(rev2);
         }
       }
       let i = 0;
-      const rev = new RequestEvent(req, conn, ctx);
-      fns ??= this.matchFns(rev, method, url);
+      const rev = new RequestEvent(req);
+      const fns = this.route[key] ?? this.matchFns(rev, method, url);
       const next = (err) => {
         try {
           return onNext(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
@@ -1492,8 +1485,51 @@ var NHttp = class extends Router {
       }
       return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
     };
-    this.handleRequest = (req) => this.handle(req);
+    this.handle = (req, conn, ctx) => {
+      if (conn)
+        req._info = { conn, ctx };
+      return this.handleRequest(req);
+    };
     this.handleEvent = (evt) => this.handle(evt.request);
+    this.req = (url, init = {}) => {
+      return createRequest(this.handle, url, init);
+    };
+    this.listen = async (options, callback) => {
+      const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
+      const runCallback = (err) => {
+        if (callback) {
+          callback(err, {
+            ...opts,
+            hostname: opts.hostname ?? "localhost"
+          });
+          return true;
+        }
+        return;
+      };
+      try {
+        if (this.flash) {
+          if ("serve" in Deno) {
+            if (runCallback())
+              opts.onListen = () => {
+              };
+            return Deno.serve(opts, handler);
+          }
+          console.error("requires --unstable flags");
+          return;
+        }
+        runCallback();
+        this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
+        const server = new HttpServer(this.server, handler);
+        if (opts.signal) {
+          opts.signal.addEventListener("abort", () => server.close(), {
+            once: true
+          });
+        }
+        return await server.acceptConn();
+      } catch (error) {
+        runCallback(error);
+      }
+    };
     oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
     this.stackError = stackError !== false;
@@ -1589,6 +1625,8 @@ var NHttp = class extends Router {
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns;
+          if (!fns[0].length)
+            this.fn[key] = fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
       }
@@ -1600,11 +1638,12 @@ var NHttp = class extends Router {
     return this;
   }
   engine(render, opts = {}) {
+    const check = render.check;
     this.use((rev, next) => {
-      if (render.directly) {
+      if (check !== void 0) {
         const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
-          if (typeof body === "string") {
+          if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
@@ -1644,55 +1683,6 @@ var NHttp = class extends Router {
       };
       return next();
     });
-  }
-  matchFns(rev, method, url) {
-    const iof = url.indexOf("?");
-    if (iof !== -1) {
-      rev.path = url.substring(0, iof);
-      rev.__parseQuery = this.parseQuery;
-      rev.search = url.substring(iof);
-      url = rev.path;
-    }
-    return this.find(method, url, (obj) => rev.params = obj, this._on404);
-  }
-  req(url, init = {}) {
-    return createRequest(this.handle, url, init);
-  }
-  async listen(options, callback) {
-    const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
-    const runCallback = (err) => {
-      if (callback) {
-        callback(err, {
-          ...opts,
-          hostname: opts.hostname ?? "localhost"
-        });
-        return true;
-      }
-      return;
-    };
-    try {
-      if (this.flash) {
-        if ("serve" in Deno) {
-          if (runCallback())
-            opts.onListen = () => {
-            };
-          return await Deno.serve(opts, handler);
-        }
-        console.error("requires --unstable flags");
-        return;
-      }
-      runCallback();
-      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-      const server = new HttpServer(this.server, handler);
-      if (opts.signal) {
-        opts.signal.addEventListener("abort", () => server.close(), {
-          once: true
-        });
-      }
-      return await server.acceptConn();
-    } catch (error) {
-      runCallback(error);
-    }
   }
   _onError(err, rev) {
     return defError(err, rev, this.stackError);
@@ -2114,10 +2104,18 @@ var multipart2 = {
       return multipart.upload(opts);
     if (Array.isArray(opts)) {
       for (let i = 0; i < opts.length; i++) {
-        opts[i].writeFile ??= writeFile;
+        if (opts[i].writeFile !== false) {
+          if (opts[i].writeFile === true)
+            opts[i].writeFile = void 0;
+          opts[i].writeFile ??= writeFile;
+        }
       }
     } else if (typeof opts === "object") {
-      opts.writeFile ??= writeFile;
+      if (opts.writeFile !== false) {
+        if (opts.writeFile === true)
+          opts.writeFile = void 0;
+        opts.writeFile ??= writeFile;
+      }
     }
     return multipart.upload(opts);
   }
