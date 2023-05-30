@@ -256,6 +256,11 @@ Deno.test("nhttp", async (t) => {
     });
     await superdeno(app.handle).get("/").expect(404);
   });
+  await t.step("json bigint", async () => {
+    const app = nhttp();
+    app.get("/", () => ({ int: BigInt(9007199254740991) }));
+    await superdeno(app.handle).get("/").expect(200);
+  });
   await t.step("noop path", async () => {
     const app = nhttp();
     app.get("/hello/", (_rev) => "hello");
