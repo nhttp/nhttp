@@ -283,6 +283,6 @@ export class JsonResponse extends Response {
       if (init.headers instanceof Headers) init.headers.set(TYPE, JSON_TYPE);
       else (<TObject> init.headers)[TYPE] = JSON_TYPE;
     } else init.headers = { [TYPE]: JSON_TYPE };
-    super(JSON.stringify(body), init);
+    super(JSON.stringify(body, (_, v) => typeof v === 'bigint' ? v.toString() : v), init);
   }
 }
