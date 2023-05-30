@@ -82,7 +82,6 @@ export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {
   route: TObject = {};
-  fn: TObject = {};
   c_routes: TObject[] = [];
   midds: TRet[] = [];
   pmidds?: TRet[];
@@ -271,7 +270,11 @@ export default class Router<
     setParam: (obj: TObject) => void,
     notFound: (rev: Rev, next: NextFunction) => TRet,
   ): Handler<Rev>[] {
-    if (this.route[method + path]) return this.route[method + path];
+    const fns = this.route[method + path];
+    if (fns) {
+      if (typeof fns === "function") return [fns];
+      return fns;
+    }
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r) {
       setParam(findParams(r, path));
