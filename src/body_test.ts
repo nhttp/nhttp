@@ -1,50 +1,41 @@
 import { bodyParser } from "./body.ts";
 import { assertEquals } from "./deps_test.ts";
+import { nhttp } from "./nhttp.ts";
 import { RequestEvent } from "./request_event.ts";
 import { TRet } from "./types.ts";
-import { encoder } from "./utils.ts";
 const base = "http://127.0.0.1:8000";
 type MyNext = (err?: Error) => TRet;
 Deno.test("body parser", async (t) => {
   const request = (
-    content: string | FormData,
-    type: string,
-    lose?: boolean,
-    lose2?: boolean,
+    body: TRet,
+    type?: string,
     method = "POST",
     customRaw?: boolean,
   ) => {
-    const ret: TRet = {
-      [lose ? "noop" : "formData"]: () => lose2 ? new Error("noop") : content,
+    const headers = type
+      ? {
+        headers: {
+          "content-type": type,
+        },
+      }
+      : {};
+    const req = new Request(base, {
       method,
-      headers: new Headers({ "content-type": type }),
-      bodyUsed: false,
-      body: "noop",
-      url: base + "/",
-      json() {
-        return JSON.parse(content as string);
-      },
-      arrayBuffer() {
-        return encoder.encode(content as string);
-      },
-      clone() {
-        return this;
-      },
-    };
+      ...headers,
+      body,
+    });
     if (customRaw) {
-      ret.raw = { req: { headers: { "content-type": type } } };
+      (<TRet> req).raw = { req: { headers: { "content-type": type } } };
     }
-    return ret;
+    return req;
   };
   await t.step("content-type", async (t) => {
     const createBody = async (
       content: string | FormData,
-      type: string,
-      lose?: boolean,
-      lose2?: boolean,
+      type?: string,
       opts?: TRet,
     ) => {
-      const rev = new RequestEvent(request(content, type, lose, lose2) as TRet);
+      const rev = new RequestEvent(request(content, type) as TRet);
       await bodyParser(opts)(
         rev,
         ((err?: Error) => err?.message || "noop") as MyNext,
@@ -54,7 +45,7 @@ Deno.test("body parser", async (t) => {
 
     await t.step("content-type noop", async () => {
       const ret = await createBody(
-        `{"name": "john"}`,
+        `{"name": "john"`,
         "application/noop",
       );
       assertEquals(ret, {});
@@ -68,8 +59,6 @@ Deno.test("body parser", async (t) => {
       const ret2 = await createBody(
         `{"name": "john"}`,
         "application/json",
-        void 0,
-        void 0,
         { json: "1mb" },
       );
       assertEquals(ret2, { "name": "john" });
@@ -84,10 +73,7 @@ Deno.test("body parser", async (t) => {
     await t.step("content-type multipart", async () => {
       const form = new FormData();
       form.set("name", "john");
-      const ret = await createBody(
-        form,
-        "multipart/form-data",
-      );
+      const ret = await createBody(form);
       assertEquals(ret, { "name": "john" });
     });
     await t.step("content-type multipart no request.formData", async () => {
@@ -106,8 +92,6 @@ Deno.test("body parser", async (t) => {
       const ret = await createBody(
         form,
         "multipart/form-data",
-        false,
-        true,
       );
       assertEquals(ret, {});
     });
@@ -119,28 +103,27 @@ Deno.test("body parser", async (t) => {
       const ret = await createBody(`my name john`, "text/plain");
       assertEquals(ret, { "_raw": "my name john" });
     });
-    await t.step("content-type custom raw", async () => {
-      const createBody = async (
-        content: string | FormData,
-        type: string,
-      ) => {
-        const rev = new RequestEvent(
-          request(content, type, void 0, void 0, void 0, true) as TRet,
-        );
-        await bodyParser()(
-          rev,
-          ((err?: Error) => err?.message || "noop") as MyNext,
-        );
-        return rev.body;
-      };
-      const ret = await createBody(
-        `{"name": "john"}`,
-        "application/noop",
-      );
-      assertEquals(ret, {});
-    });
   });
-
+  await t.step("content-type custom raw", async () => {
+    const createBody = async (
+      content: string | FormData,
+      type: string,
+    ) => {
+      const rev = new RequestEvent(
+        request(content, type, "POST", true) as TRet,
+      );
+      await bodyParser()(
+        rev,
+        ((err?: Error) => err?.message || "noop") as MyNext,
+      );
+      return rev.body;
+    };
+    const ret = await createBody(
+      `{"name": "john"`,
+      "application/json",
+    );
+    assertEquals(ret, {});
+  });
   await t.step("body disable", async (t) => {
     await t.step("disable value 0", async (t) => {
       const createBody = async (content: string | FormData, type: string) => {
@@ -273,25 +256,77 @@ Deno.test("body parser", async (t) => {
     const ret3 = await createBody("text/plain");
     assertEquals(ret3, {});
   });
-  await t.step("JSON body unexpected next", async () => {
-    const createBody = async (body = {}) => {
-      const rev = new RequestEvent(
-        new Request(base + "/", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          ...body,
-        }),
-      );
-      await bodyParser()(
-        rev,
-        ((err?: Error) => err?.message || "noop") as MyNext,
-      );
-      return rev.body;
+  await t.step("has body", async () => {
+    const app = nhttp();
+    app.post(
+      "/",
+      bodyParser({
+        json: "1mb",
+        raw: "1mb",
+        urlencoded: "1mb",
+      }),
+      (rev) => rev.body,
+    );
+    const req = (type: string, body: TRet) => {
+      const init = {
+        method: "POST",
+        headers: {
+          "content-type": type,
+        },
+        body,
+      };
+      return app.req("/", init).json();
     };
-    const ret = await createBody();
-    assertEquals(ret, {});
-    const ret2 = await createBody({ body: "noop" });
-    assertEquals(ret2, {});
+    const json = await req(
+      "application/json",
+      JSON.stringify({ name: "john" }),
+    );
+    assertEquals(json, { name: "john" });
+
+    const raw = await req("text/plain", `{ "name": "john" }`);
+    assertEquals(raw, { name: "john" });
+
+    const urlencoded = await req(
+      "application/x-www-form-urlencoded",
+      "name=john",
+    );
+    assertEquals(urlencoded, { name: "john" });
+  });
+  await t.step("has body miss", async () => {
+    const app = nhttp();
+    app.post(
+      "/",
+      bodyParser({
+        json: "0kb",
+        raw: "0kb",
+        urlencoded: "0kb",
+      }),
+      (rev) => rev.body,
+    );
+    const req = (type: string, body: TRet) => {
+      const init = {
+        method: "POST",
+        headers: {
+          "content-type": type,
+        },
+        body,
+      };
+      return app.req("/", init).status();
+    };
+    const json = await req(
+      "application/json",
+      JSON.stringify({ name: "john" }),
+    );
+    assertEquals(json, 400);
+
+    const raw = await req("text/plain", `{ "name": "john" }`);
+    assertEquals(raw, 400);
+
+    const urlencoded = await req(
+      "application/x-www-form-urlencoded",
+      "name=john",
+    );
+    assertEquals(urlencoded, 400);
   });
   await t.step("false and cosume", async () => {
     const req = new Request(base + "/", {

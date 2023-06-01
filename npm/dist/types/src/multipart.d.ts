@@ -1,4 +1,4 @@
-import { Handler, NFile, TQueryFunc } from "./types";
+import { Handler, NFile } from "./types";
 export type TMultipartUpload = {
     /**
      * fieldName.
@@ -56,11 +56,8 @@ export type TMultipartUpload = {
      */
     storage?: (file: NFile) => void | Promise<void>;
 };
-type TMultipartHandler = {
-    parse?: TQueryFunc;
-};
 declare class Multipart {
-    createBody(formData: FormData, { parse }?: TMultipartHandler): any;
+    createBody(formData: FormData): any;
     private isFile;
     private cleanUp;
     private validate;

@@ -10,6 +10,9 @@ declare global {
   interface Request {
     _info?: { conn?: TRet; ctx?: TRet };
   }
+  interface BigInt {
+    toJSON: () => string;
+  }
 }
 
 export type Merge<A, B> = {

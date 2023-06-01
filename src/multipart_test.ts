@@ -1,7 +1,6 @@
 import { multipart, TMultipartUpload } from "./multipart.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
-import { myParse } from "./utils.ts";
 import { RequestEvent } from "./request_event.ts";
 type MyNext = (err?: Error) => TRet;
 Deno.test("multipart upload", async (t) => {
@@ -154,28 +153,6 @@ Deno.test("multipart upload", async (t) => {
   await t.step("multipart", async (t) => {
     await t.step("isFile", () => {
       assertEquals(multipart["isFile"]({ arrayBuffer: () => {} }), true);
-    });
-
-    await t.step("createBody with parser", () => {
-      const form = new FormData();
-      form.append("name", "john");
-      form.append("address[one]", "jakarta");
-      form.append("address[two]", "majalengka");
-      const myParseTest = (obj: TObject) => {
-        const arr = [] as TObject[];
-        for (const key in obj) {
-          arr.push([key, obj[key]]);
-        }
-        return arr;
-      };
-      assertEquals(
-        typeof multipart.createBody(form, {
-          // example parse using options
-          // Use qs.parse instead for case. https://github.com/ljharb/qs.
-          parse: (f: TRet) => myParse(myParseTest(f) as TRet),
-        }),
-        "object",
-      );
     });
     await t.step("createBody without parser", () => {
       const form = new FormData();

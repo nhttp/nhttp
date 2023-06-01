@@ -27,12 +27,7 @@ import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
-import {
-  awaiter,
-  buildListenOptions,
-  HttpServer,
-  onNext,
-} from "./nhttp_util.ts";
+import { buildListenOptions, HttpServer, onNext } from "./nhttp_util.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -42,7 +37,6 @@ export class NHttp<
   private flash?: boolean;
   private stackError!: boolean;
   private bodyParser?: TBodyParser | boolean;
-  private parseMultipart?: TQueryFunc;
   server!: TRet;
 
   constructor(
@@ -57,13 +51,6 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
-    if (parseQuery) {
-      this.use((rev: RequestEvent, next) => {
-        rev.__parseMultipart = parseQuery;
-        return next();
-      });
-    }
-    this.parseMultipart = parseQuery;
     this.bodyParser = bodyParser;
   }
   /**
@@ -178,8 +165,7 @@ export class NHttp<
         if (this.route[key]) {
           this.route[key] = this.route[key].concat(fns);
         } else {
-          this.route[key] = fns;
-          if (!fns[0].length) this.fn[key] = fns[0];
+          this.route[key] = fns[0].length ? fns : fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
       }
@@ -273,21 +259,19 @@ export class NHttp<
    */
   handleRequest: FetchHandler = async (req) => {
     const method = req.method, url = getUrl(req.url);
-    const key = method + url;
-    const fn = this.fn[key];
+    let fns = this.route[method + url], noop: Error | undefined;
     // just skip no middleware
-    if (fn) {
+    if (typeof fns === "function") {
       try {
-        return toRes(await fn());
+        const ret = fns();
+        return toRes(ret) ?? toRes(await ret);
       } catch (err) {
-        const rev = <Rev> new RequestEvent(req);
-        rev.send(await this._onError(err, rev) as TRet, 1);
-        return rev[s_response] ?? awaiter(rev);
+        noop = err;
       }
     }
     let i = 0;
     const rev = <Rev> new RequestEvent(req);
-    const fns = this.route[key] ?? this.matchFns(rev, method, url);
+    fns ??= this.matchFns(rev, method, url);
     const next: NextFunction = (err) => {
       try {
         return onNext(
@@ -299,20 +283,8 @@ export class NHttp<
         return next(e);
       }
     };
-    // GET/HEAD cannot have body.
-    if (method === "GET" || method === "HEAD") {
-      try {
-        rev.send(await fns[i++](rev, next) as TRet, 1);
-        return rev[s_response] ?? awaiter(rev);
-      } catch (e) {
-        return next(e);
-      }
-    }
-    return bodyParserOri(
-      this.bodyParser,
-      this.parseQuery,
-      this.parseMultipart,
-    )(rev, next);
+    if (method === "GET" || noop) return next(noop);
+    return bodyParserOri(this.bodyParser, this.parseQuery)(rev, next);
   };
   /**
    * handle

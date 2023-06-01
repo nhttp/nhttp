@@ -7,7 +7,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
     private flash?;
     private stackError;
     private bodyParser?;
-    private parseMultipart?;
     server: TRet;
     constructor({ parseQuery, bodyParser, env, flash, stackError }?: TApp);
     /**

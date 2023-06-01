@@ -1,5 +1,6 @@
 {
   "tasks": {
+    "fmtlint": "deno fmt && deno lint",
     "bench": "deno bench -A bench/benchmark.ts",
     "build:npm": "deno run -A ./scripts/build_npm.ts",
     "rm:cov": "deno run -A scripts/rm_cov.ts",

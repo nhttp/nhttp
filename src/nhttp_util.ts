@@ -2,6 +2,8 @@ import { RequestEvent } from "./request_event.ts";
 import { s_response } from "./symbol.ts";
 import { FetchHandler, ListenOptions, NextFunction, TRet } from "./types.ts";
 
+type HandleRes = (res: TRet, rev: RequestEvent) => TRet;
+
 export const awaiter = (rev: RequestEvent) => {
   return (async (t, d) => {
     while (rev[s_response] === void 0) {
@@ -12,18 +14,20 @@ export const awaiter = (rev: RequestEvent) => {
     return rev[s_response];
   })(0, 100);
 };
-export const onNext = async (
-  ret: TRet,
+
+const onRes: HandleRes = (res, rev) => {
+  rev.send(res, 1);
+  return rev[s_response] ?? awaiter(rev);
+};
+
+const onAsyncRes: HandleRes = async (res, rev) => onRes(await res, rev);
+
+export const onNext = (
+  res: TRet,
   rev: RequestEvent,
   next: NextFunction,
-) => {
-  try {
-    rev.send(await ret, 1);
-    return rev[s_response] ?? awaiter(rev);
-  } catch (e) {
-    return next(e);
-  }
-};
+) => res?.then ? onAsyncRes(res, rev).catch(next) : onRes(res, rev);
+
 export function buildListenOptions(this: TRet, opts: number | ListenOptions) {
   let isSecure = false;
   let handler: FetchHandler = this.handleRequest;

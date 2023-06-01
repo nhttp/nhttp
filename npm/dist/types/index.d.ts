@@ -20,9 +20,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Base
     module<Opts extends ListenOptions = ListenOptions>(opts?: Opts): TRet;
 }
 export declare const multipart: {
-    createBody: (formData: FormData, { parse }?: {
-        parse?: any;
-    }) => any;
+    createBody: (formData: FormData) => any;
     /**
      * upload handler multipart/form-data.
      * @example

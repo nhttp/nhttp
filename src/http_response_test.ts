@@ -29,6 +29,10 @@ Deno.test("HttpResponse", async (t) => {
       assertEquals(resp.headers.get(type), JSON_TYPE);
       assertEquals(resp.headers.get("name"), "john");
     });
+    await t.step("bigint", async () => {
+      const resp = new JsonResponse({ int: BigInt(9007199254740991) });
+      assertEquals(await resp.json(), { "int": "9007199254740991" });
+    });
   });
   await t.step("response", async (t) => {
     await t.step("header", () => {

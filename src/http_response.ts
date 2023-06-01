@@ -275,6 +275,11 @@ export function oldSchool() {
     data: unknown,
     init: ResInit = {},
   ) => new JsonResponse(data, init);
+  if (!BigInt.prototype.toJSON) {
+    BigInt.prototype.toJSON = function () {
+      return this.toString();
+    };
+  }
 }
 
 export class JsonResponse extends Response {
@@ -283,6 +288,9 @@ export class JsonResponse extends Response {
       if (init.headers instanceof Headers) init.headers.set(TYPE, JSON_TYPE);
       else (<TObject> init.headers)[TYPE] = JSON_TYPE;
     } else init.headers = { [TYPE]: JSON_TYPE };
-    super(JSON.stringify(body, (_, v) => typeof v === 'bigint' ? v.toString() : v), init);
+    super(
+      JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v),
+      init,
+    );
   }
 }
