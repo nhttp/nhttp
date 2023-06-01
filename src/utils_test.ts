@@ -1,5 +1,4 @@
 import { Handler } from "../mod.ts";
-import { memoBody } from "./body.ts";
 import { getReqCookies, serializeCookie } from "./cookie.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TObject, TRet } from "./types.ts";
@@ -89,70 +88,6 @@ Deno.test("utils", async (t) => {
   await t.step("needPatch obj", () => {
     const obj = needPatch(void 0 as unknown as TObject, [1], "2");
     assertEquals(typeof obj, "object");
-  });
-  await t.step("memo Body", async (t) => {
-    const createReq = (body: BodyInit, type: string) =>
-      new Request("http://127.0.0.1:8000/", {
-        method: "POST",
-        body,
-        headers: { "content-type": type },
-      });
-    await t.step("json", async () => {
-      const req = createReq(
-        JSON.stringify({ name: "john" }),
-        "application/json",
-      );
-      memoBody(req, await req.arrayBuffer());
-      const body = await req.json();
-      assertEquals(typeof body, "object");
-    });
-    await t.step("json2", async () => {
-      const req = createReq(
-        JSON.stringify({ name: "john" }),
-        "application/json",
-      );
-      memoBody(req, await req.json(), 1);
-      const body = await req.json();
-      assertEquals(typeof body, "object");
-    });
-    await t.step("text", async () => {
-      const req = createReq("name=john", "application/x-www-form-urlencoded");
-      memoBody(req, await req.arrayBuffer());
-      const body = await req.text();
-      assertEquals(typeof body, "string");
-    });
-    await t.step("buffer", async () => {
-      const req = createReq("name=john", "application/x-www-form-urlencoded");
-      memoBody(req, await req.arrayBuffer());
-      const body = await req.arrayBuffer();
-      assertEquals(typeof body, "object");
-    });
-    await t.step("formData", async () => {
-      const req = createReq(
-        new FormData(),
-        `multipart/form-data; boundary="sample"`,
-      );
-      memoBody(req, await req.arrayBuffer());
-      const body = await req.formData();
-      assertEquals(typeof body, "object");
-    });
-    await t.step("json2", async () => {
-      const req = createReq(
-        JSON.stringify({ name: "john" }),
-        `application/json`,
-      );
-      Object.defineProperty(req, "json", {
-        writable: false,
-      });
-      memoBody(req, await req.arrayBuffer());
-      assertEquals(typeof req.json, "undefined");
-    });
-    await t.step("blob", async () => {
-      const req = createReq("name=john", `text/plain`);
-      memoBody(req, await req.arrayBuffer());
-      const body = await req.blob();
-      assertEquals(typeof body, "object");
-    });
   });
   await t.step("middAssets", () => {
     const midd: Handler = (rev, next) => {

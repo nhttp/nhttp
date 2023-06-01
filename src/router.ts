@@ -271,10 +271,7 @@ export default class Router<
     notFound: (rev: Rev, next: NextFunction) => TRet,
   ): Handler<Rev>[] {
     const fns = this.route[method + path];
-    if (fns) {
-      if (typeof fns === "function") return [fns];
-      return fns;
-    }
+    if (fns) return fns.pop ? fns : [fns];
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r) {
       setParam(findParams(r, path));

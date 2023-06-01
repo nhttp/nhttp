@@ -37,7 +37,6 @@ export class NHttp<
   private flash?: boolean;
   private stackError!: boolean;
   private bodyParser?: TBodyParser | boolean;
-  private parseMultipart?: TQueryFunc;
   server!: TRet;
 
   constructor(
@@ -52,13 +51,6 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
-    if (parseQuery) {
-      this.use((rev: RequestEvent, next) => {
-        rev.__parseMultipart = parseQuery;
-        return next();
-      });
-    }
-    this.parseMultipart = parseQuery;
     this.bodyParser = bodyParser;
   }
   /**
@@ -271,7 +263,8 @@ export class NHttp<
     // just skip no middleware
     if (typeof fns === "function") {
       try {
-        return toRes(await fns());
+        const ret = fns();
+        return toRes(ret) ?? toRes(await ret);
       } catch (err) {
         noop = err;
       }
@@ -290,13 +283,8 @@ export class NHttp<
         return next(e);
       }
     };
-    // GET/HEAD cannot have body.
-    if (method === "GET" || method === "HEAD" || noop) return next(noop);
-    return bodyParserOri(
-      this.bodyParser,
-      this.parseQuery,
-      this.parseMultipart,
-    )(rev, next);
+    if (method.charCodeAt(0) === 71 || noop) return next(noop);
+    return bodyParserOri(this.bodyParser, this.parseQuery)(rev, next);
   };
   /**
    * handle

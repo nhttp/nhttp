@@ -1,8 +1,7 @@
-import { memoBody } from "./body.ts";
 import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { RequestEvent } from "./request_event.ts";
-import { Handler, NFile, TObject, TQueryFunc, TRet } from "./types.ts";
+import { Handler, NFile, TObject, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
 const uid = () =>
@@ -66,27 +65,10 @@ export type TMultipartUpload = {
   storage?: (file: NFile) => void | Promise<void>;
 };
 
-type TMultipartHandler = {
-  parse?: TQueryFunc;
-};
-
 class Multipart {
-  public createBody(
-    formData: FormData,
-    { parse }: TMultipartHandler = {},
-  ) {
-    return parse
-      ? parse(Object.fromEntries(
-        Array.from(formData.keys()).map((key) => [
-          key,
-          formData.getAll(key).length > 1
-            ? formData.getAll(key)
-            : formData.get(key),
-        ]),
-      ))
-      : parseQuery(formData);
+  public createBody(formData: FormData) {
+    return parseQuery(formData);
   }
-
   private isFile(file: TRet) {
     return typeof file === "object" && typeof file.arrayBuffer === "function";
   }
@@ -176,10 +158,7 @@ class Multipart {
       type?.includes("multipart/form-data")
     ) {
       const formData = await rev.request.formData();
-      rev.body = await this.createBody(formData, {
-        parse: rev.__parseMultipart as TQueryFunc,
-      });
-      memoBody(rev.request, formData);
+      rev.body = await this.createBody(formData);
     }
   }
   private async handleArrayUpload(rev: RequestEvent, opts: TMultipartUpload[]) {

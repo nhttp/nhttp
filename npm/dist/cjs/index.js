@@ -238,8 +238,11 @@ var EHeaders = class {
     this.set = (k, v) => headers.set(k, v);
     this.append = (k, v) => headers.append(k, v);
     this.delete = (s) => headers.delete(s);
+    this.entries = () => headers.entries();
     this.forEach = (a, b) => headers.forEach(a, b);
     this.has = (a) => headers.has(a);
+    this.keys = () => headers.keys();
+    this.values = () => headers.values();
   }
 };
 function findFn(fn) {
@@ -513,7 +516,6 @@ var ANY_METHODS = [
 var Router = class {
   constructor({ base = "" } = {}) {
     this.route = {};
-    this.fn = {};
     this.c_routes = [];
     this.midds = [];
     this.base = "";
@@ -597,8 +599,9 @@ var Router = class {
     return this.on("CONNECT", path, ...handlers);
   }
   find(method, path, setParam, notFound) {
-    if (this.route[method + path])
-      return this.route[method + path];
+    const fns = this.route[method + path];
+    if (fns)
+      return fns.pop ? fns : [fns];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r) {
       setParam(findParams(r, path));
@@ -623,11 +626,8 @@ var Router = class {
 // npm/src/src/multipart.ts
 var uid = () => `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`.replace(".", "");
 var Multipart = class {
-  createBody(formData, { parse } = {}) {
-    return parse ? parse(Object.fromEntries(Array.from(formData.keys()).map((key) => [
-      key,
-      formData.getAll(key).length > 1 ? formData.getAll(key) : formData.get(key)
-    ]))) : parseQuery(formData);
+  createBody(formData) {
+    return parseQuery(formData);
   }
   isFile(file) {
     return typeof file === "object" && typeof file.arrayBuffer === "function";
@@ -706,10 +706,7 @@ var Multipart = class {
     const type = rev.headers.get("content-type");
     if (rev.request.bodyUsed === false && type?.includes("multipart/form-data")) {
       const formData = await rev.request.formData();
-      rev.body = await this.createBody(formData, {
-        parse: rev.__parseMultipart
-      });
-      memoBody(rev.request, formData);
+      rev.body = await this.createBody(formData);
     }
   }
   async handleArrayUpload(rev, opts) {
@@ -778,108 +775,84 @@ var c_types = [
   "text/plain",
   "multipart/form-data"
 ];
-var isTypeBody = (a, b) => {
-  return a === b || a.includes(b);
-};
-function cloneReq(req, body, n) {
-  return new Request(req.url, {
-    method: "POST",
-    body: n ? JSON.stringify(body) : body,
-    headers: req.headers
-  });
-}
-function memoBody(req, body, n) {
-  try {
-    req.json = () => cloneReq(req, body, n).json();
-    req.text = () => cloneReq(req, body, n).text();
-    req.arrayBuffer = () => cloneReq(req, body, n).arrayBuffer();
-    req.formData = () => cloneReq(req, body, n).formData();
-    req.blob = () => cloneReq(req, body, n).blob();
-  } catch (_e) {
+var TYPE = "content-type";
+var isTypeBody = (a, b) => a === b || a.includes(b);
+function verify(rev, limit, len) {
+  if (len === void 0) {
+    len = encoder.encode(JSON.stringify(rev.body)).byteLength;
+  }
+  if (limit && len > toBytes(limit)) {
+    rev.body = {};
+    throw new HttpError(400, `Body is too large. max limit ${limit}`);
   }
 }
 async function verifyBody(rev, limit) {
   const arrBuff = await rev.request.arrayBuffer();
   const len = arrBuff.byteLength;
-  if (limit && len > toBytes(limit)) {
-    rev.body = {};
-    throw new HttpError(400, `Body is too large. max limit ${limit}`, "BadRequestError");
-  }
+  verify(rev, limit, len);
   if (len === 0)
     return;
-  memoBody(rev.request, arrBuff);
   return decURIComponent(decoder.decode(arrBuff));
 }
 var isNotValid = (v) => v === false || v === 0;
-var uptd = (m) => m.toLowerCase().includes("unexpected end of json");
 async function handleBody(validate, rev, next, cb) {
   if (isNotValid(validate)) {
     rev.body = {};
     return next();
   }
-  try {
-    const body = await verifyBody(rev, validate);
-    if (!body)
-      return next();
-    cb(body);
+  const body = await verifyBody(rev, validate);
+  if (!body)
     return next();
-  } catch (error) {
-    return next(error);
-  }
+  cb(body);
+  return next();
 }
 async function jsonBody(validate, rev, next) {
   if (validate === void 0) {
-    try {
-      const body = await rev.request.json();
-      if (body) {
-        rev.body = body;
-        memoBody(rev.request, body, 1);
-      }
-      return next();
-    } catch (e) {
-      if (uptd(e.message))
-        return next();
-      return next(e);
-    }
+    rev.body = JSON.parse(await rev.request.text() || "{}");
+    return next();
   }
-  return handleBody(validate, rev, next, (body) => {
+  return await handleBody(validate, rev, next, (body) => {
     rev.body = JSON.parse(body);
   });
 }
-async function multipartBody(validate, parseMultipart, rev, next) {
+async function multipartBody(validate, rev, next) {
   if (isNotValid(validate)) {
     rev.body = {};
     return next();
   }
-  try {
-    const formData = await rev.request.formData();
-    const body = await multipart.createBody(formData, {
-      parse: parseMultipart
-    });
-    rev.body = body;
-    memoBody(rev.request, formData);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  const formData = await rev.request.formData();
+  rev.body = await multipart.createBody(formData);
+  return next();
 }
-function bodyParser(opts, parseQuery2, parseMultipart) {
-  return (rev, next) => {
+function bodyParser(opts, parseQuery2) {
+  return function nhttpBodyParser(rev, next) {
     if (typeof opts === "boolean") {
       if (opts === false)
         return next();
       opts = void 0;
     }
-    const type = rev.request.raw ? rev.request.raw.req.headers["content-type"] : rev.request.headers.get("content-type");
+    const type = rev.request.raw ? rev.request.raw.req.headers[TYPE] : rev.request.headers.get(TYPE);
     if (type) {
+      if (rev._hasBody) {
+        if (opts !== void 0) {
+          if (isTypeBody(type, c_types[0]))
+            verify(rev, opts.json);
+          else if (isTypeBody(type, c_types[1]))
+            verify(rev, opts.urlencoded);
+          else if (isTypeBody(type, c_types[2]))
+            verify(rev, opts.raw);
+        }
+        return next();
+      }
+      rev._hasBody = 1;
       if (isTypeBody(type, c_types[0])) {
-        return jsonBody(opts?.json, rev, next);
+        return jsonBody(opts?.json, rev, next).catch(next);
       }
       if (isTypeBody(type, c_types[1])) {
         return handleBody(opts?.urlencoded, rev, next, (body) => {
           const parse = parseQuery2 ?? parseQuery;
           rev.body = parse(body);
-        });
+        }).catch(next);
       }
       if (isTypeBody(type, c_types[2])) {
         return handleBody(opts?.raw, rev, next, (body) => {
@@ -888,10 +861,10 @@ function bodyParser(opts, parseQuery2, parseMultipart) {
           } catch {
             rev.body = { _raw: body };
           }
-        });
+        }).catch(next);
       }
       if (isTypeBody(type, c_types[3])) {
-        return multipartBody(opts?.multipart, parseMultipart, rev, next);
+        return multipartBody(opts?.multipart, rev, next).catch(next);
       }
     }
     return next();
@@ -1054,7 +1027,7 @@ var deno_inspect = Symbol.for("Deno.customInspect");
 var node_inspect = Symbol.for("nodejs.util.inspect.custom");
 
 // npm/src/src/http_response.ts
-var TYPE = "content-type";
+var TYPE2 = "content-type";
 var HttpResponse = class {
   constructor(send, init) {
     this.send = send;
@@ -1162,17 +1135,22 @@ var HttpResponse = class {
 };
 function oldSchool() {
   Response.json ??= (data, init = {}) => new JsonResponse(data, init);
+  if (!BigInt.prototype.toJSON) {
+    BigInt.prototype.toJSON = function() {
+      return this.toString();
+    };
+  }
 }
 var JsonResponse = class extends Response {
   constructor(body, init = {}) {
     if (init.headers) {
       if (init.headers instanceof Headers)
-        init.headers.set(TYPE, JSON_TYPE);
+        init.headers.set(TYPE2, JSON_TYPE);
       else
-        init.headers[TYPE] = JSON_TYPE;
+        init.headers[TYPE2] = JSON_TYPE;
     } else
-      init.headers = { [TYPE]: JSON_TYPE };
-    super(JSON.stringify(body), init);
+      init.headers = { [TYPE2]: JSON_TYPE };
+    super(JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v), init);
   }
 };
 
@@ -1325,6 +1303,8 @@ var RequestEvent = class {
 function toRes(body) {
   if (typeof body === "string")
     return new Response(body);
+  if (body instanceof Promise)
+    return;
   if (body instanceof Response)
     return body;
   if (typeof body === "object") {
@@ -1361,14 +1341,12 @@ var awaiter = (rev) => {
     return rev[s_response];
   })(0, 100);
 };
-var onNext = async (ret, rev, next) => {
-  try {
-    rev.send(await ret, 1);
-    return rev[s_response] ?? awaiter(rev);
-  } catch (e) {
-    return next(e);
-  }
+var onRes = (res, rev) => {
+  rev.send(res, 1);
+  return rev[s_response] ?? awaiter(rev);
 };
+var onAsyncRes = async (res, rev) => onRes(await res, rev);
+var onNext = (res, rev, next) => res?.then ? onAsyncRes(res, rev).catch(next) : onRes(res, rev);
 function buildListenOptions(opts) {
   let isSecure = false;
   let handler = this.handleRequest;
@@ -1454,20 +1432,18 @@ var NHttp = class extends Router {
     };
     this.handleRequest = async (req) => {
       const method = req.method, url = getUrl(req.url);
-      const key = method + url;
-      const fn = this.fn[key];
-      if (fn) {
+      let fns = this.route[method + url], noop;
+      if (typeof fns === "function") {
         try {
-          return toRes(await fn());
+          const ret = fns();
+          return toRes(ret) ?? toRes(await ret);
         } catch (err) {
-          const rev2 = new RequestEvent(req);
-          rev2.send(await this._onError(err, rev2), 1);
-          return rev2[s_response] ?? awaiter(rev2);
+          noop = err;
         }
       }
       let i = 0;
       const rev = new RequestEvent(req);
-      const fns = this.route[key] ?? this.matchFns(rev, method, url);
+      fns ??= this.matchFns(rev, method, url);
       const next = (err) => {
         try {
           return onNext(err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next), rev, next);
@@ -1475,15 +1451,9 @@ var NHttp = class extends Router {
           return next(e);
         }
       };
-      if (method === "GET" || method === "HEAD") {
-        try {
-          rev.send(await fns[i++](rev, next), 1);
-          return rev[s_response] ?? awaiter(rev);
-        } catch (e) {
-          return next(e);
-        }
-      }
-      return bodyParser(this.bodyParser, this.parseQuery, this.parseMultipart)(rev, next);
+      if (method.charCodeAt(0) === 71 || noop)
+        return next(noop);
+      return bodyParser(this.bodyParser, this.parseQuery)(rev, next);
     };
     this.handle = (req, conn, ctx) => {
       if (conn)
@@ -1538,13 +1508,6 @@ var NHttp = class extends Router {
       this.stackError = false;
     }
     this.flash = flash;
-    if (parseQuery2) {
-      this.use((rev, next) => {
-        rev.__parseMultipart = parseQuery2;
-        return next();
-      });
-    }
-    this.parseMultipart = parseQuery2;
     this.bodyParser = bodyParser2;
   }
   onError(fn) {
@@ -1624,9 +1587,7 @@ var NHttp = class extends Router {
         if (this.route[key]) {
           this.route[key] = this.route[key].concat(fns);
         } else {
-          this.route[key] = fns;
-          if (!fns[0].length)
-            this.fn[key] = fns[0];
+          this.route[key] = fns[0].length ? fns : fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
       }
@@ -1969,7 +1930,9 @@ var NodeResponse = class {
 
 // npm/src/node/index.ts
 async function handleNode(handler, req, res) {
-  const resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  let resWeb = handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  if (resWeb.then)
+    resWeb = await resWeb;
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {

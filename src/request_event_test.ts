@@ -134,9 +134,11 @@ Deno.test("RequestEvent", async (t) => {
   });
   await t.step("miss req", () => {
     const req = new Request("http://127.0.0.1:8000/");
-    req._info = { conn: {}, ctx: () => ({}) };
+    req._info = { conn: {}, ctx: {} };
     const rev = new RequestEvent(req);
-    assertEquals(typeof rev.request, "object");
+    assertEquals(typeof rev.info.conn, "object");
+    assertEquals(typeof rev.info.env, "object");
+    assertEquals(typeof rev.info.context, "object");
   });
   await t.step("waitUntil", () => {
     const rev = new RequestEvent(

@@ -6,13 +6,14 @@ import { NodeResponse } from "./response.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
 
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
-  const resWeb: TRet = await handler(
+  let resWeb: TRet = handler(
     new NodeRequest(
       `http://${req.headers.host}${req.url}`,
       void 0,
       { req, res },
     ) as unknown as Request,
   );
+  if (resWeb.then) resWeb = await resWeb;
   if (res.writableEnded) return;
   if (resWeb[s_init]) {
     if (resWeb[s_init].headers) {

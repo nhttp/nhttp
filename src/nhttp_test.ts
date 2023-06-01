@@ -321,10 +321,13 @@ Deno.test("nhttp", async (t) => {
       headers.append("name", "kasja");
       assertEquals((headers as TRet).key, "val");
       assertEquals(typeof headers.get("name"), "string");
+      assertEquals(typeof headers.entries(), "object");
       headers.forEach((val, key) => {
         assertEquals(typeof val, "string");
         assertEquals(typeof key, "string");
       });
+      assertEquals(typeof headers.keys(), "object");
+      assertEquals(typeof headers.values(), "object");
       assertEquals(headers.has("name"), true);
       headers.delete("name");
       return "base";
@@ -432,12 +435,6 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.get("/", (rev) => rev.query);
     await superdeno(app.handle).get("/?foo=bar").expect({ foo: "bar" });
-  });
-  await t.step("option parse query", async () => {
-    const app = nhttp({ parseQuery: (str: string) => str });
-    app.get("/", ({ __parseMultipart }) => __parseMultipart("test"));
-    const val = await app.handle(myReq("GET", "/"));
-    assertEquals(await val.text(), "test");
   });
   await t.step("params", async () => {
     const app = nhttp();
