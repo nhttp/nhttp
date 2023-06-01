@@ -283,7 +283,7 @@ export class NHttp<
         return next(e);
       }
     };
-    if (method.charCodeAt(0) === 71 || noop) return next(noop);
+    if (method === "GET" || noop) return next(noop);
     return bodyParserOri(this.bodyParser, this.parseQuery)(rev, next);
   };
   /**

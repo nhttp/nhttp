@@ -1398,7 +1398,7 @@ var NHttp = class extends Router {
           return next(e);
         }
       };
-      if (method.charCodeAt(0) === 71 || noop)
+      if (method === "GET" || noop)
         return next(noop);
       return bodyParser(this.bodyParser, this.parseQuery)(rev, next);
     };
