@@ -91,8 +91,8 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * app.listen({ port: 8000, hostname: 'localhost' });
      * app.listen({
      *    port: 443,
-     *    cert: "./path/to/localhost.crt",
-     *    key: "./path/to/localhost.key",
+     *    certFile: "./path/to/my.crt",
+     *    keyFile: "./path/to/my.key",
      *    alpnProtocols: ["h2", "http/1.1"]
      * }, callback);
      */

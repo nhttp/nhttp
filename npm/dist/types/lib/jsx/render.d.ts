@@ -1,7 +1,7 @@
 import { TRet } from "../deps";
 type TOptionsRender = {
-    onRenderElement: (elem: TRet) => string;
-    onRenderHtml: (html: string) => string;
+    onRenderElement: (elem: TRet) => string | Promise<string>;
+    onRenderHtml: (html: string) => string | Promise<string>;
 };
 export declare const renderToString: (elem: JSX.Element) => string;
 export declare const options: TOptionsRender;

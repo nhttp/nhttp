@@ -2,8 +2,8 @@ import { TRet } from "../deps.ts";
 import Helmet, { HelmetRewind } from "./helmet.ts";
 
 type TOptionsRender = {
-  onRenderElement: (elem: TRet) => string;
-  onRenderHtml: (html: string) => string;
+  onRenderElement: (elem: TRet) => string | Promise<string>;
+  onRenderHtml: (html: string) => string | Promise<string>;
 };
 
 export const renderToString = (elem: JSX.Element): string => <TRet> elem;
@@ -23,7 +23,11 @@ const toHtml = (
 };
 export const renderToHtml: RenderHTML = (elem) => {
   const body = options.onRenderElement(elem);
-  return options.onRenderHtml(toHtml(body, Helmet.rewind()));
+  const render = (str: string) => {
+    return options.onRenderHtml(toHtml(str, Helmet.rewind()));
+  };
+  if (body instanceof Promise) return body.then(render);
+  return render(body);
 };
 
 export const isValidElement = (elem: JSX.Element) => {

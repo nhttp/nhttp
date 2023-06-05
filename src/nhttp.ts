@@ -198,7 +198,14 @@ export class NHttp<
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            rev[s_response] = new Response(render(body), rev[s_init]);
+            const res = render(body);
+            if (res instanceof Promise) {
+              res.then((res) => {
+                rev[s_response] = new Response(res, rev[s_init]);
+              }).catch(next);
+            } else {
+              rev[s_response] = new Response(res, rev[s_init]);
+            }
           } else {
             send(body, lose);
           }
@@ -330,8 +337,8 @@ export class NHttp<
    * app.listen({ port: 8000, hostname: 'localhost' });
    * app.listen({
    *    port: 443,
-   *    cert: "./path/to/localhost.crt",
-   *    key: "./path/to/localhost.key",
+   *    certFile: "./path/to/my.crt",
+   *    keyFile: "./path/to/my.key",
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */

@@ -1555,7 +1555,14 @@ var NHttp = class extends Router {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            rev[s_response] = new Response(render(body), rev[s_init]);
+            const res = render(body);
+            if (res instanceof Promise) {
+              res.then((res2) => {
+                rev[s_response] = new Response(res2, rev[s_init]);
+              }).catch(next);
+            } else {
+              rev[s_response] = new Response(res, rev[s_init]);
+            }
           } else {
             send(body, lose);
           }

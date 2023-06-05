@@ -158,6 +158,25 @@ Deno.test("nhttp", async (t) => {
     app.get("/", (_rev) => "hello");
     await superdeno(app.handle).get("/").expect(200);
   });
+  await t.step("engine jsx promise", async () => {
+    const renderToHtml = async (elem: TRet) => await Promise.resolve(elem);
+    renderToHtml.check = (elem: TRet) => typeof elem === "string";
+    const app = nhttp();
+    app.engine(renderToHtml);
+    app.get("/", (_rev) => "hello");
+    await superdeno(app.handle).get("/").expect(200);
+  });
+  await t.step("engine jsx promise error", async () => {
+    const renderToHtml = async (elem: TRet) => {
+      elem.noop();
+      return await Promise.resolve(elem);
+    };
+    renderToHtml.check = (elem: TRet) => typeof elem === "string";
+    const app = nhttp();
+    app.engine(renderToHtml);
+    app.get("/", (_rev) => "hello");
+    await superdeno(app.handle).get("/").expect(500);
+  });
   await t.step("engine jsx check false", async () => {
     const renderToHtml = (elem: TRet) => elem;
     renderToHtml.check = (elem: TRet) => typeof elem === "object";

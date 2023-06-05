@@ -43,7 +43,12 @@ const toHtml = (body, { bodyTag, headTag, htmlAttr, bodyAttr }) => {
 };
 const renderToHtml = (elem) => {
   const body = options.onRenderElement(elem);
-  return options.onRenderHtml(toHtml(body, import_helmet.default.rewind()));
+  const render = (str) => {
+    return options.onRenderHtml(toHtml(str, import_helmet.default.rewind()));
+  };
+  if (body instanceof Promise)
+    return body.then(render);
+  return render(body);
 };
 const isValidElement = (elem) => {
   if (typeof elem === "string" && elem[0] === "<")
