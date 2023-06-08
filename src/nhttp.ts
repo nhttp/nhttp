@@ -198,7 +198,7 @@ export class NHttp<
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            const res = render(body);
+            const res = render(body, rev);
             if (res instanceof Promise) {
               res.then((res) => {
                 rev[s_response] = new Response(res, rev[s_init]);
