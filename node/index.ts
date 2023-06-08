@@ -80,10 +80,14 @@ export async function serveNode(
   }
   const port = opts.port;
   const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
-  let server: TRet;
-  if (isSecure) server = await import("node:https");
-  else server = await import("node:http");
-  return server.createServer(
+  let createServer = opts.createServer;
+  if (createServer === void 0) {
+    let server: undefined | TRet;
+    if (isSecure) server = await import("node:https");
+    else server = await import("node:http");
+    createServer = server.createServer;
+  }
+  return createServer(
     opts,
     (req: TRet, res: TRet) => {
       /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
