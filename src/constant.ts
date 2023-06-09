@@ -1,6 +1,7 @@
 import { TObject } from "./types.ts";
 export const JSON_TYPE = "application/json";
 export const HTML_TYPE = "text/html; charset=utf-8";
+export const C_TYPE = "content-type";
 export const STATUS_ERROR_LIST: Record<number, string> = {
   400: "Bad Request",
   401: "Unauthorized",

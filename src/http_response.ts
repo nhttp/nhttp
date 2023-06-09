@@ -275,7 +275,7 @@ export function oldSchool() {
     data: unknown,
     init: ResInit = {},
   ) => new JsonResponse(data, init);
-  if (!BigInt.prototype.toJSON) {
+  if (BigInt.prototype.toJSON === undefined) {
     BigInt.prototype.toJSON = function () {
       return this.toString();
     };

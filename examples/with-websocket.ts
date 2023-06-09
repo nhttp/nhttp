@@ -14,16 +14,16 @@ const html = `
                 const form = document.getElementById("my_form");
                 const message = document.getElementById("my_message");
                 ws.onmessage = (e) => {
-                    chat.innerHTML += "<b>Friend: </b>" + e.data + "<br/>";
+                  chat.innerHTML += "<b>Friend: </b>" + e.data + "<br/>";
                 }
                 form.onsubmit = (e) => {
-                    e.preventDefault();
-                    if (!message.value || ws.readyState !== 1){
-                        return;
-                    }
-                    ws.send(message.value);
-                    chat.innerHTML += "<b>Me: </b>" + message.value + "<br/>";
-                    message.value = "";
+                  e.preventDefault();
+                  if (!message.value || ws.readyState !== 1){
+                      return;
+                  }
+                  ws.send(message.value);
+                  chat.innerHTML += "<b>Me: </b>" + message.value + "<br/>";
+                  message.value = "";
                 }
             };
         </script>

@@ -4,16 +4,22 @@ import { FetchHandler, ListenOptions } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
 import { s_body, s_headers, s_init } from "./symbol.ts";
-
+export function mutateResponse() {
+  if ((<TRet> globalThis).NativeResponse === undefined) {
+    (<TRet> globalThis).NativeResponse = Response;
+    (<TRet> globalThis).NativeRequest = Request;
+    (<TRet> globalThis).Response = NodeResponse;
+    (<TRet> globalThis).Request = NodeRequest;
+  }
+}
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
-  let resWeb: TRet = handler(
+  let resWeb: TRet = await handler(
     new NodeRequest(
       `http://${req.headers.host}${req.url}`,
       void 0,
       { req, res },
     ) as unknown as Request,
   );
-  if (resWeb.then) resWeb = await resWeb;
   if (res.writableEnded) return;
   if (resWeb[s_init]) {
     if (resWeb[s_init].headers) {
@@ -72,18 +78,17 @@ export async function serveNode(
     port: 3000,
   },
 ) {
-  if (!(<TRet> globalThis).NativeResponse) {
-    (<TRet> globalThis).NativeResponse = Response;
-    (<TRet> globalThis).NativeRequest = Request;
-    (<TRet> globalThis).Response = NodeResponse;
-    (<TRet> globalThis).Request = NodeRequest;
-  }
+  mutateResponse();
   const port = opts.port;
   const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
-  let server: TRet;
-  if (isSecure) server = await import("node:https");
-  else server = await import("node:http");
-  return server.createServer(
+  let createServer = opts.createServer;
+  if (createServer === void 0) {
+    let server: undefined | TRet;
+    if (isSecure) server = await import("node:https");
+    else server = await import("node:http");
+    createServer = server.createServer;
+  }
+  return createServer(
     opts,
     (req: TRet, res: TRet) => {
       /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */

@@ -10,7 +10,7 @@ declare global {
 import { NHttp as BaseApp } from "./src/nhttp.ts";
 import { RequestEvent, TApp, TRet } from "./src/index.ts";
 import Router, { TRouter } from "./src/router.ts";
-import { serveNode } from "./node/index.ts";
+import { handleNode, mutateResponse, serveNode } from "./node/index.ts";
 import { multipart as multi, TMultipartUpload } from "./src/multipart.ts";
 import { ListenOptions } from "./src/types.ts";
 import { buildListenOptions } from "./src/nhttp_util.ts";
@@ -20,6 +20,14 @@ export class NHttp<
 > extends BaseApp<Rev> {
   constructor(opts: TApp = {}) {
     super(opts);
+    const oriHandle = this.handle.bind(this);
+    this.handle = ((req: TRet, conn?: TRet, ctx?: TRet) => {
+      if (req.on === void 0) return oriHandle(req, conn, ctx);
+      mutateResponse();
+      /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+      // @ts-ignore: immediate for nodejs
+      setImmediate(() => handleNode(this.handleRequest, req, conn));
+    }) as TRet;
     const oriListen = this.listen.bind(this);
     this.listen = async (options, callback) => {
       // @ts-ignore

@@ -1,14 +1,8 @@
+import { C_TYPE } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
 import { RequestEvent } from "./request_event.ts";
-import {
-  Handler,
-  NextFunction,
-  TBodyParser,
-  TQueryFunc,
-  TRet,
-  TValidBody,
-} from "./types.ts";
+import { Handler, TBodyParser, TQueryFunc, TRet, TValidBody } from "./types.ts";
 import {
   decoder,
   decURIComponent,
@@ -22,8 +16,8 @@ const c_types = [
   "text/plain",
   "multipart/form-data",
 ];
-const TYPE = "content-type";
-export const isTypeBody = (a: string, b: string) => a === b || a.includes(b);
+
+export const isTypeBody = (a: string, b: string) => a === b || a?.includes(b);
 function verify(rev: RequestEvent, limit: TValidBody, len?: number) {
   if (len === void 0) {
     len = encoder.encode(JSON.stringify(rev.body)).byteLength;
@@ -53,59 +47,72 @@ const isNotValid = (v: TValidBody) => v === false || v === 0;
 async function handleBody(
   validate: TValidBody,
   rev: RequestEvent,
-  next: NextFunction,
   cb: (body: string) => void,
 ) {
   if (isNotValid(validate)) {
     rev.body = {};
-    return next();
+  } else {
+    const body = await verifyBody(rev, validate);
+    if (body) cb(body);
   }
-  const body = await verifyBody(rev, validate);
-  if (!body) return next();
-  cb(body);
-  return next();
-}
-async function jsonBody(
-  validate: TValidBody,
-  rev: RequestEvent,
-  next: NextFunction,
-) {
-  if (validate === undefined) {
-    rev.body = JSON.parse(await rev.request.text() || "{}");
-    return next();
-  }
-  return await handleBody(validate, rev, next, (body) => {
-    rev.body = JSON.parse(body);
-  });
 }
 async function multipartBody(
   validate: TValidBody,
   rev: RequestEvent,
-  next: NextFunction,
 ) {
   if (isNotValid(validate)) {
     rev.body = {};
-    return next();
+  } else {
+    const formData = await rev.request.formData();
+    rev.body = await multipart.createBody(formData);
   }
-  const formData = await rev.request.formData();
-  rev.body = await multipart.createBody(formData);
-  return next();
 }
+export const getType = (req: TRet) => {
+  return req.raw ? req.raw.req.headers[C_TYPE] : req.headers.get(C_TYPE);
+};
 
+export async function writeBody(
+  rev: RequestEvent,
+  type: string,
+  opts?: TBodyParser,
+  parseQuery?: TQueryFunc,
+) {
+  if (isTypeBody(type, c_types[0])) {
+    await handleBody(opts?.json, rev, (body) => {
+      rev.body = JSON.parse(body);
+    });
+  } else if (isTypeBody(type, c_types[1])) {
+    await handleBody(opts?.urlencoded, rev, (body) => {
+      const parse = parseQuery ?? parseQueryOri;
+      rev.body = parse(body);
+    });
+  } else if (isTypeBody(type, c_types[2])) {
+    await handleBody(opts?.raw, rev, (body) => {
+      try {
+        rev.body = JSON.parse(body);
+      } catch {
+        rev.body = { _raw: body };
+      }
+    });
+  } else if (isTypeBody(type, c_types[3])) {
+    await multipartBody(opts?.multipart, rev);
+  }
+}
 export function bodyParser(
   opts?: TBodyParser | boolean,
   parseQuery?: TQueryFunc,
 ): Handler {
-  return function nhttpBodyParser(rev, next) {
+  return async (rev, next) => {
     if (typeof opts === "boolean") {
-      if (opts === false) return next();
-      opts = void 0;
+      if (opts === false) {
+        rev.body = {};
+        return next();
+      }
+      opts = undefined;
     }
-    const type = (<TRet> rev.request).raw
-      ? (<TRet> rev.request).raw.req.headers[TYPE]
-      : rev.request.headers.get(TYPE);
+    const type = getType(rev.request);
     if (type) {
-      if (rev._hasBody) {
+      if (rev.request.bodyUsed) {
         if (opts !== void 0) {
           if (isTypeBody(type, c_types[0])) verify(rev, opts.json);
           else if (isTypeBody(type, c_types[1])) verify(rev, opts.urlencoded);
@@ -113,27 +120,10 @@ export function bodyParser(
         }
         return next();
       }
-      rev._hasBody = 1;
-      if (isTypeBody(type, c_types[0])) {
-        return jsonBody(opts?.json, rev, next).catch(next);
-      }
-      if (isTypeBody(type, c_types[1])) {
-        return handleBody(opts?.urlencoded, rev, next, (body) => {
-          const parse = parseQuery ?? parseQueryOri;
-          rev.body = parse(body);
-        }).catch(next);
-      }
-      if (isTypeBody(type, c_types[2])) {
-        return handleBody(opts?.raw, rev, next, (body) => {
-          try {
-            rev.body = JSON.parse(body);
-          } catch {
-            rev.body = { _raw: body };
-          }
-        }).catch(next);
-      }
-      if (isTypeBody(type, c_types[3])) {
-        return multipartBody(opts?.multipart, rev, next).catch(next);
+      try {
+        await writeBody(rev, type, opts, parseQuery);
+      } catch (e) {
+        return next(e);
       }
     }
     return next();

@@ -1,7 +1,7 @@
-import { TRet } from "../deps";
+import { type RequestEvent, TRet } from "../deps";
 type TOptionsRender = {
-    onRenderElement: (elem: TRet) => string | Promise<string>;
-    onRenderHtml: (html: string) => string | Promise<string>;
+    onRenderElement: (elem: TRet, rev: RequestEvent) => string | Promise<string>;
+    onRenderHtml: (html: string, rev: RequestEvent) => string | Promise<string>;
 };
 export declare const renderToString: (elem: JSX.Element) => string;
 export declare const options: TOptionsRender;
