@@ -192,9 +192,9 @@ export function parseQueryArray(query: string) {
   return myParse(data);
 }
 
-export function parseQuery(query?: null | string | FormData) {
-  if (!query) return {};
+export function parseQuery(query: undefined | null | string | FormData) {
   if (typeof query === "string") {
+    if (query === "") return {};
     if (query.includes("]=")) return parseQueryArray(query);
     const data: TRet = {};
     const invoke = (key: string) => {
@@ -210,7 +210,7 @@ export function parseQuery(query?: null | string | FormData) {
     else invoke(query);
     return data;
   }
-  return myParse(Array.from(query.entries()));
+  return (!query) ? {} : myParse(Array.from(query.entries()));
 }
 
 export function concatRegexp(prefix: string | RegExp, path: RegExp) {

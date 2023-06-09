@@ -20,14 +20,14 @@ import {
   parseQuery as parseQueryOri,
   toPathx,
 } from "./utils.ts";
-import { bodyParser as bodyParserOri } from "./body.ts";
+import { getType, isTypeBody, writeBody } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { createRequest, RequestEvent, toRes } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
-import { buildListenOptions, HttpServer, onNext } from "./nhttp_util.ts";
+import { awaiter, buildListenOptions, HttpServer } from "./nhttp_util.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -36,7 +36,7 @@ export class NHttp<
   private env: string;
   private flash?: boolean;
   private stackError!: boolean;
-  private bodyParser?: TBodyParser | boolean;
+  private bodyParser?: TBodyParser | false;
   server!: TRet;
 
   constructor(
@@ -51,6 +51,7 @@ export class NHttp<
       this.stackError = false;
     }
     this.flash = flash;
+    if (bodyParser === true) bodyParser = undefined;
     this.bodyParser = bodyParser;
   }
   /**
@@ -214,12 +215,12 @@ export class NHttp<
       rev.response.render = (elem, params, ...args) => {
         if (typeof elem === "string") {
           if (opts.ext) {
-            if (!elem.includes(".")) {
+            if (elem.includes(".") === false) {
               elem += "." + opts.ext;
             }
           }
           if (opts.base) {
-            if (!opts.base.endsWith("/")) {
+            if (opts.base.endsWith("/") === false) {
               opts.base += "/";
             }
             if (opts.base[0] === "/") {
@@ -270,8 +271,7 @@ export class NHttp<
     // just skip no middleware
     if (typeof fns === "function") {
       try {
-        const ret = fns();
-        return toRes(ret) ?? toRes(await ret);
+        return toRes(await fns());
       } catch (err) {
         noop = err;
       }
@@ -279,19 +279,40 @@ export class NHttp<
     let i = 0;
     const rev = <Rev> new RequestEvent(req);
     fns ??= this.matchFns(rev, method, url);
-    const next: NextFunction = (err) => {
+    const next: NextFunction = async (err) => {
       try {
-        return onNext(
-          err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next),
-          rev,
-          next,
+        rev.send(
+          await (err
+            ? this._onError(err, rev)
+            : (fns[i++] ?? this._on404)(rev, next)),
+          1,
         );
       } catch (e) {
         return next(e);
       }
+      return rev[s_response] ?? awaiter(rev);
     };
-    if (method === "GET" || noop) return next(noop);
-    return bodyParserOri(this.bodyParser, this.parseQuery)(rev, next);
+    if (noop) return next(noop);
+    try {
+      if (method !== "GET") {
+        const opts = this.bodyParser;
+        if (opts === undefined || opts !== false) {
+          const type = getType(req);
+          if (
+            isTypeBody(type, "application/json") &&
+            opts?.json === undefined
+          ) {
+            rev.body = JSON.parse(await req.text() || "{}");
+          } else if (type) {
+            await writeBody(rev, type, opts, this.parseQuery);
+          }
+        }
+      }
+      rev.send(await fns[i++](rev, next), 1);
+    } catch (e) {
+      return next(e);
+    }
+    return rev[s_response] ?? awaiter(rev);
   };
   /**
    * handle

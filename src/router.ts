@@ -20,7 +20,7 @@ import {
 export function findParams(el: TObject, url: string) {
   const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
-  if (!el.wild || !el.path) return params;
+  if (el.wild === false || !el.wild || !el.path) return params;
   if (el.path instanceof RegExp) return params;
   const path = el.path;
   if (path.indexOf("*") !== -1) {

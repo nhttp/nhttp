@@ -41,10 +41,10 @@ const options = {
 const toHtml = (body, { bodyTag, headTag, htmlAttr, bodyAttr }) => {
   return `<!DOCTYPE html><html${htmlAttr ? ` ${htmlAttr}` : ""}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${headTag ? `${headTag.join("")}` : ""}</head><body${bodyAttr ? ` ${bodyAttr}` : ""}>${body}${bodyTag ? `${bodyTag.join("")}` : ""}</body></html>`;
 };
-const renderToHtml = (elem) => {
-  const body = options.onRenderElement(elem);
+const renderToHtml = (elem, rev) => {
+  const body = options.onRenderElement(elem, rev);
   const render = (str) => {
-    return options.onRenderHtml(toHtml(str, import_helmet.default.rewind()));
+    return options.onRenderHtml(toHtml(str, import_helmet.default.rewind()), rev);
   };
   if (body instanceof Promise)
     return body.then(render);

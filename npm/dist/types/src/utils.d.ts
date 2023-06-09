@@ -23,7 +23,7 @@ export declare function toPathx(path: string | RegExp, flag?: boolean): {
 export declare function needPatch(data: TObject | TObject[], keys: number[], value: string): string | TObject;
 export declare function myParse(arr: EArr[]): TObject;
 export declare function parseQueryArray(query: string): TObject;
-export declare function parseQuery(query?: null | string | FormData): any;
+export declare function parseQuery(query: undefined | null | string | FormData): any;
 export declare function concatRegexp(prefix: string | RegExp, path: RegExp): RegExp;
 /**
  * Wrapper middleware for framework express like (req, res, next)

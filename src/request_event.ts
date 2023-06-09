@@ -335,7 +335,6 @@ export class RequestEvent<O extends TObject = TObject> {
 }
 export function toRes(body?: TSendBody): TRet {
   if (typeof body === "string") return new Response(body);
-  if (body instanceof Promise) return;
   if (body instanceof Response) return body;
   if (typeof body === "object") {
     if (
