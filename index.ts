@@ -28,50 +28,54 @@ export class NHttp<
       // @ts-ignore: immediate for nodejs
       setImmediate(() => handleNode(this.handleRequest, req, conn));
     }) as TRet;
-    const oriListen = this.listen.bind(this);
-    this.listen = async (options, callback) => {
-      // @ts-ignore
-      if (typeof Deno !== "undefined") {
-        return await oriListen(options, callback);
-      }
-      const { opts, handler } = buildListenOptions.bind(this)(options);
-      const runCallback = (err?: Error) => {
-        if (callback) {
-          const _opts = opts as TRet;
-          callback(err, {
-            ..._opts,
-            hostname: _opts.hostname || "localhost",
-          });
+    // @ts-ignore
+    if (typeof Deno === "undefined") {
+      this.listen = (options, callback) => {
+        const { opts, handler } = buildListenOptions.bind(this)(options);
+        const runCallback = (err?: Error) => {
+          if (callback) {
+            const _opts = opts as TRet;
+            callback(err, {
+              ..._opts,
+              hostname: _opts.hostname || "localhost",
+            });
+          }
+        };
+        try {
+          if (opts.signal) {
+            opts.signal.addEventListener("abort", () => {
+              try {
+                this.server?.close?.();
+                this.server?.stop?.();
+              } catch { /* noop */ }
+            }, { once: true });
+          }
+          // @ts-ignore
+          if (typeof Bun !== "undefined") {
+            opts.fetch = handler;
+            if (!globalThis.bunServer) {
+              // @ts-ignore
+              globalThis.bunServer = this.server = Bun.serve(opts);
+              runCallback();
+            } else {
+              globalThis.bunServer.reload(opts);
+            }
+            return this.server;
+          }
+          return (async () => {
+            try {
+              this.server = await serveNode(handler, opts);
+              runCallback();
+              return this.server;
+            } catch (error) {
+              runCallback(error);
+            }
+          })();
+        } catch (error) {
+          runCallback(error);
         }
       };
-      try {
-        if (opts.signal) {
-          opts.signal.addEventListener("abort", () => {
-            try {
-              this.server?.close?.();
-              this.server?.stop?.();
-            } catch { /* noop */ }
-          }, { once: true });
-        }
-        // @ts-ignore
-        if (typeof Bun !== "undefined") {
-          opts.fetch = handler;
-          if (!globalThis.bunServer) {
-            // @ts-ignore
-            globalThis.bunServer = this.server = Bun.serve(opts);
-            runCallback();
-          } else {
-            globalThis.bunServer.reload(opts);
-          }
-          return;
-        }
-        this.server = await serveNode(handler, opts);
-        runCallback();
-        return;
-      } catch (error) {
-        runCallback(error);
-      }
-    };
+    }
   }
 
   module<Opts extends ListenOptions = ListenOptions>(

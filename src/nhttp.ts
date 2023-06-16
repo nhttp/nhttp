@@ -363,7 +363,7 @@ export class NHttp<
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
-  listen = async (
+  listen = (
     options: number | ListenOptions,
     callback?: (
       err: Error | undefined,
@@ -377,7 +377,7 @@ export class NHttp<
           ...opts,
           hostname: opts.hostname ?? "localhost",
         });
-        return true;
+        return 1;
       }
       return;
     };
@@ -385,20 +385,21 @@ export class NHttp<
       if (this.flash) {
         if ("serve" in Deno) {
           if (runCallback()) opts.onListen = () => {};
-          return (<TObject> Deno).serve(opts, handler);
+          return this.server = (<TObject> Deno).serve(opts, handler);
         }
         console.error("requires --unstable flags");
         return;
       }
       runCallback();
       this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-      const server = new HttpServer(this.server, handler);
+      const http = new HttpServer(this.server, handler);
       if (opts.signal) {
-        opts.signal.addEventListener("abort", () => server.close(), {
+        opts.signal.addEventListener("abort", () => http.close(), {
           once: true,
         });
       }
-      return await server.acceptConn();
+      http.acceptConn().catch(runCallback);
+      return this.server;
     } catch (error) {
       runCallback(error);
     }

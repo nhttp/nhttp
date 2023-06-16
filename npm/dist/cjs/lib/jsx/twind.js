@@ -44,8 +44,8 @@ const install = (config = {}, isProduction) => {
 install();
 const useTwind = (opts) => {
   const hook = import_render.options.onRenderHtml;
-  import_render.options.onRenderHtml = (html) => {
-    return hook((0, import_core.inline)(html, opts));
+  import_render.options.onRenderHtml = (html, rev) => {
+    return hook((0, import_core.inline)(html, opts), rev);
   };
 };
 var twind_default = useTwind;

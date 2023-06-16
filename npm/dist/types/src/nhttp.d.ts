@@ -37,7 +37,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      */
     engine(render: ((...args: TRet) => TRet) & {
         check?: (elem: TRet) => boolean;
-    }, opts?: EngineOptions): void;
+    }, opts?: EngineOptions): this;
     matchFns: (rev: RequestEvent, method: string, url: string) => import("./types").Handler<Rev>[];
     /**
      * handleRequest
@@ -96,7 +96,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      *    alpnProtocols: ["h2", "http/1.1"]
      * }, callback);
      */
-    listen: (options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>) => Promise<any>;
+    listen: (options: number | ListenOptions, callback?: (err: Error | undefined, opts: ListenOptions) => void | Promise<void>) => any;
     private _onError;
     private _on404;
 }

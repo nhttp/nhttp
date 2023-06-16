@@ -1417,7 +1417,7 @@ var NHttp = class extends Router {
     this.req = (url, init = {}) => {
       return createRequest(this.handle, url, init);
     };
-    this.listen = async (options, callback) => {
+    this.listen = (options, callback) => {
       const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
       const runCallback = (err) => {
         if (callback) {
@@ -1425,7 +1425,7 @@ var NHttp = class extends Router {
             ...opts,
             hostname: opts.hostname ?? "localhost"
           });
-          return true;
+          return 1;
         }
         return;
       };
@@ -1435,20 +1435,21 @@ var NHttp = class extends Router {
             if (runCallback())
               opts.onListen = () => {
               };
-            return Deno.serve(opts, handler);
+            return this.server = Deno.serve(opts, handler);
           }
           console.error("requires --unstable flags");
           return;
         }
         runCallback();
         this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-        const server = new HttpServer(this.server, handler);
+        const http = new HttpServer(this.server, handler);
         if (opts.signal) {
-          opts.signal.addEventListener("abort", () => server.close(), {
+          opts.signal.addEventListener("abort", () => http.close(), {
             once: true
           });
         }
-        return await server.acceptConn();
+        http.acceptConn().catch(runCallback);
+        return this.server;
       } catch (error) {
         runCallback(error);
       }
@@ -1555,7 +1556,7 @@ var NHttp = class extends Router {
   }
   engine(render, opts = {}) {
     const check = render.check;
-    this.use((rev, next) => {
+    return this.use((rev, next) => {
       if (check !== void 0) {
         const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
@@ -1974,48 +1975,52 @@ var NHttp2 = class extends NHttp {
       mutateResponse();
       setImmediate(() => handleNode(this.handleRequest, req, conn));
     };
-    const oriListen = this.listen.bind(this);
-    this.listen = async (options, callback) => {
-      if (typeof Deno !== "undefined") {
-        return await oriListen(options, callback);
-      }
-      const { opts: opts2, handler } = buildListenOptions.bind(this)(options);
-      const runCallback = (err) => {
-        if (callback) {
-          const _opts = opts2;
-          callback(err, {
-            ..._opts,
-            hostname: _opts.hostname || "localhost"
-          });
+    if (typeof Deno === "undefined") {
+      this.listen = (options, callback) => {
+        const { opts: opts2, handler } = buildListenOptions.bind(this)(options);
+        const runCallback = (err) => {
+          if (callback) {
+            const _opts = opts2;
+            callback(err, {
+              ..._opts,
+              hostname: _opts.hostname || "localhost"
+            });
+          }
+        };
+        try {
+          if (opts2.signal) {
+            opts2.signal.addEventListener("abort", () => {
+              try {
+                this.server?.close?.();
+                this.server?.stop?.();
+              } catch {
+              }
+            }, { once: true });
+          }
+          if (typeof Bun !== "undefined") {
+            opts2.fetch = handler;
+            if (!globalThis.bunServer) {
+              globalThis.bunServer = this.server = Bun.serve(opts2);
+              runCallback();
+            } else {
+              globalThis.bunServer.reload(opts2);
+            }
+            return this.server;
+          }
+          return (async () => {
+            try {
+              this.server = await serveNode(handler, opts2);
+              runCallback();
+              return this.server;
+            } catch (error) {
+              runCallback(error);
+            }
+          })();
+        } catch (error) {
+          runCallback(error);
         }
       };
-      try {
-        if (opts2.signal) {
-          opts2.signal.addEventListener("abort", () => {
-            try {
-              this.server?.close?.();
-              this.server?.stop?.();
-            } catch {
-            }
-          }, { once: true });
-        }
-        if (typeof Bun !== "undefined") {
-          opts2.fetch = handler;
-          if (!globalThis.bunServer) {
-            globalThis.bunServer = this.server = Bun.serve(opts2);
-            runCallback();
-          } else {
-            globalThis.bunServer.reload(opts2);
-          }
-          return;
-        }
-        this.server = await serveNode(handler, opts2);
-        runCallback();
-        return;
-      } catch (error) {
-        runCallback(error);
-      }
-    };
+    }
   }
   module(opts = {}) {
     opts.fetch ??= this.handle;

@@ -27,8 +27,7 @@ Deno.test({
       assertEquals(info.key, "./dummy/localhost.key");
       assertEquals(info.alpnProtocols, ["h2", "http/1.1"]);
     });
-    const listen = app.listen(8002);
-    assertEquals(listen instanceof Promise, true);
+    app.listen(8002);
     const app2 = nhttp({ flash: true });
     app2.listen(8003);
     app2.listen({
@@ -83,12 +82,11 @@ Deno.test({
       const ac = new AbortController();
       const app = nhttp({ flash: true });
       app.get("/", () => "home");
-      const p = app.listen({ port: 8081, signal: ac.signal });
+      app.listen({ port: 8081, signal: ac.signal });
       const res = await fetch("http://localhost:8081/");
       assertEquals(res.ok, true);
       await res.body?.cancel();
       ac.abort();
-      await p;
     });
   },
 });
@@ -100,14 +98,13 @@ Deno.test({
       const ac = new AbortController();
       const app = nhttp({ flash: true });
       app.get("/", () => "home");
-      const p = app.listen({ port: 8082, signal: ac.signal }, () => {
+      app.listen({ port: 8082, signal: ac.signal }, () => {
         console.log("run");
       });
       const res = await fetch("http://localhost:8082/");
       assertEquals(res.ok, true);
       await res.body?.cancel();
       ac.abort();
-      await p;
     });
   },
 });

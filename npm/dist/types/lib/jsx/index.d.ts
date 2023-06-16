@@ -17,7 +17,7 @@ export type FC<T extends unknown = unknown> = (props: JsxProps & T) => JSX.Eleme
  * Move to `lib/jsx/helmet`.
  * ```ts
  * // Deno
- * import { Helmet } from "https://deno.land/x/nhttp@1.2.20/lib/jsx/helmet";
+ * import { Helmet } from "https://deno.land/x/nhttp@1.2.22/lib/jsx/helmet";
  *
  * // Node
  * import { Helmet } from "nhttp-land/jsx/helmet";
@@ -38,7 +38,7 @@ export declare const Helmet: ((props: any) => any) & {
  * Move to `lib/jsx/render`.
  * ```ts
  * // Deno
- * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.20/lib/jsx/render";
+ * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.22/lib/jsx/render";
  *
  * // Node
  * import { renderToHtml } from "nhttp-land/jsx/render";
@@ -51,7 +51,7 @@ export declare const renderToHtml: import("./render").RenderHTML;
  * Move to `lib/jsx/render`.
  * ```ts
  * // Deno
- * import { renderToString } from "https://deno.land/x/nhttp@1.2.20/lib/jsx/render";
+ * import { renderToString } from "https://deno.land/x/nhttp@1.2.22/lib/jsx/render";
  *
  * // Node
  * import { renderToString } from "nhttp-land/jsx/render";

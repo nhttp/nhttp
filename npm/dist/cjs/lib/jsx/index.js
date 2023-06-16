@@ -62,7 +62,7 @@ function n(type, props, ...args) {
           k = "class";
       }
       const type2 = typeof val;
-      if (type2 === "boolean" || type2 === "object") {
+      if (type2 === "boolean" || type2 === "object" || type2 === "function") {
         if (type2 === "object") {
           str += ` ${k}="${Object.keys(val).reduce((a, b) => a + b.split(/(?=[A-Z])/).join("-").toLowerCase() + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";", "")}"`;
         } else if (val === true)
