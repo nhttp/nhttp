@@ -191,7 +191,7 @@ export class NHttp<
     opts: EngineOptions = {},
   ) {
     const check = render.check;
-    this.use((rev: RequestEvent, next) => {
+    return this.use((rev: RequestEvent, next) => {
       if (check !== undefined) {
         const send = rev.send.bind(rev);
         rev.send = (body, lose) => {
