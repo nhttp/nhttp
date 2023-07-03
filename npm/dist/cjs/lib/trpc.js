@@ -26,21 +26,24 @@ __export(trpc_exports, {
   trpc: () => trpc
 });
 var import_fetch = require("@trpc/server/adapters/fetch");
-const trpc = (opts) => async (rev, next) => {
-  try {
-    const ctx = opts.createContext?.(rev, next) ?? rev;
-    return await (0, import_fetch.fetchRequestHandler)({
-      endpoint: opts.prefix ?? rev.__prefix ?? "",
-      req: rev.request,
-      router: opts.router,
-      createContext: () => ctx,
-      batching: opts.batching,
-      responseMeta: opts.responseMeta,
-      onError: opts.onError
-    });
-  } catch {
-    return next();
-  }
+const trpc = (opts) => {
+  return async (rev, next) => {
+    try {
+      const ctx = opts.createContext?.(rev, next) ?? rev;
+      const endpoint = opts.prefix ?? rev.__prefix ?? rev.path.substring(0, rev.path.lastIndexOf("/")) ?? "";
+      return await (0, import_fetch.fetchRequestHandler)({
+        endpoint,
+        req: rev.request,
+        router: opts.router,
+        createContext: () => ctx,
+        batching: opts.batching,
+        responseMeta: opts.responseMeta,
+        onError: opts.onError
+      });
+    } catch {
+      return next();
+    }
+  };
 };
 var trpc_default = trpc;
 module.exports = __toCommonJS(trpc_exports);

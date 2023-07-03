@@ -273,21 +273,19 @@ export default class Router<
     const fns = this.route[method + path];
     if (fns) return fns.pop ? fns : [fns];
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
-    if (r) {
+    if (r !== void 0) {
       setParam(findParams(r, path));
-      return r.fns;
+      if (r.wild === false) return r.fns;
+      if (r.path !== "*" && r.path !== "/*") return r.fns;
     }
-    if (path !== "/" && path[path.length - 1] === "/") {
-      const k = method + path.slice(0, -1);
-      if (this.route[k]) return this.route[k];
-    }
-    if (this.pmidds) {
+    if (this.pmidds !== void 0) {
       const a = this.pmidds.find((el) => el.pattern.test(path));
-      if (a) {
+      if (a !== void 0) {
         setParam(findParams(a, path));
         return this.midds.concat(a.fns, [notFound]);
       }
     }
+    if (r !== void 0) return r.fns;
     return this.midds.concat([notFound]);
   }
 }

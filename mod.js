@@ -551,22 +551,22 @@ var Router = class {
     if (fns)
       return fns.pop ? fns : [fns];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
-    if (r) {
+    if (r !== void 0) {
       setParam(findParams(r, path));
-      return r.fns;
+      if (r.wild === false)
+        return r.fns;
+      if (r.path !== "*" && r.path !== "/*")
+        return r.fns;
     }
-    if (path !== "/" && path[path.length - 1] === "/") {
-      const k = method + path.slice(0, -1);
-      if (this.route[k])
-        return this.route[k];
-    }
-    if (this.pmidds) {
+    if (this.pmidds !== void 0) {
       const a = this.pmidds.find((el) => el.pattern.test(path));
-      if (a) {
+      if (a !== void 0) {
         setParam(findParams(a, path));
         return this.midds.concat(a.fns, [notFound]);
       }
     }
+    if (r !== void 0)
+      return r.fns;
     return this.midds.concat([notFound]);
   }
 };
@@ -1103,6 +1103,21 @@ var JsonResponse = class extends Response {
 var RequestEvent = class {
   constructor(request) {
     this.request = request;
+    this.waitUntil = (promise) => {
+      if (promise instanceof Promise) {
+        const ctx = this.request._info?.ctx;
+        if (typeof ctx?.waitUntil === "function") {
+          ctx.waitUntil(promise);
+          return;
+        }
+        promise.catch(console.error);
+        return;
+      }
+      throw new HttpError(500, `${promise} is not a Promise.`);
+    };
+    this.respondWith = (r) => {
+      this[s_response] = r;
+    };
   }
   get response() {
     return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
@@ -1133,21 +1148,6 @@ var RequestEvent = class {
       env: info?.conn ?? {},
       context: info?.ctx ?? {}
     };
-  }
-  waitUntil(promise) {
-    if (promise instanceof Promise) {
-      const ctx = this.request._info?.ctx;
-      if (typeof ctx?.waitUntil === "function") {
-        ctx.waitUntil(promise);
-        return;
-      }
-      promise.catch(console.error);
-      return;
-    }
-    throw new HttpError(500, `${promise} is not a Promise.`);
-  }
-  respondWith(r) {
-    this[s_response] = r;
   }
   send(body, lose) {
     if (typeof body === "string") {
@@ -1510,8 +1510,9 @@ var NHttp = class extends Router {
       if (this.pmidds) {
         const arr = [];
         this.pmidds.forEach((el) => {
-          if (el.pattern.test(path))
+          if (el.pattern.test(path)) {
             arr.push(...el.fns);
+          }
         });
         fns = arr.concat([(rev, next) => {
           if (rev.__url && rev.__path) {
@@ -1543,9 +1544,11 @@ var NHttp = class extends Router {
         if (this.route[key]) {
           this.route[key] = this.route[key].concat(fns);
         } else {
-          this.route[key] = fns[0].length ? fns : fns[0];
+          this.route[key] = fns.length && fns[0].length ? fns : fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
+        if (path !== "/")
+          this.route[key + "/"] = this.route[key];
       }
     };
     if (method === "ANY")

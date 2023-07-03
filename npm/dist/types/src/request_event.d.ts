@@ -56,13 +56,13 @@ export declare class RequestEvent<O extends TObject = TObject> {
      *   rev.respondWith(resp);
      * });
      */
-    waitUntil(promise: Promise<TRet>): void;
+    waitUntil: (promise: Promise<TRet>) => void;
     /**
      * The method to be used to respond to the event. The response needs to
      * either be an instance of {@linkcode Response} or a promise that resolves
      * with an instance of `Response`.
      */
-    respondWith(r: Response | PromiseLike<Response>): void | Promise<void>;
+    respondWith: (r: Response | PromiseLike<Response>) => void | Promise<void>;
     /**
      * send body
      * @example

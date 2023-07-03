@@ -500,6 +500,21 @@ Deno.test("nhttp", async (t) => {
     assertEquals(await val.text(), "hello");
     assertEquals(await promise.text(), "hello");
   });
+  await t.step("mix use", async () => {
+    const app = nhttp();
+    app.use("/assets", () => "assets");
+    app.get("/hello", () => "hello");
+    app.get("/hey/*", () => "hey");
+    app.get("*", () => "all");
+    const assets = await app.handle(myReq("GET", "/assets"));
+    const all = await app.handle(myReq("GET", "/"));
+    const hello = await app.handle(myReq("GET", "/hello/"));
+    const hey = await app.handle(myReq("GET", "/hey/hey"));
+    assertEquals(await assets.text(), "assets");
+    assertEquals(await all.text(), "all");
+    assertEquals(await hello.text(), "hello");
+    assertEquals(await hey.text(), "hey");
+  });
   await t.step("oldSchool", () => {
     (Response as TRet).json = void 0;
     nhttp();

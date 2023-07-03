@@ -106,7 +106,7 @@ export class RequestEvent<O extends TObject = TObject> {
    *   rev.respondWith(resp);
    * });
    */
-  waitUntil(promise: Promise<TRet>) {
+  waitUntil = (promise: Promise<TRet>) => {
     if (promise instanceof Promise) {
       const ctx = this.request._info?.ctx;
       if (typeof ctx?.waitUntil === "function") {
@@ -117,15 +117,15 @@ export class RequestEvent<O extends TObject = TObject> {
       return;
     }
     throw new HttpError(500, `${promise} is not a Promise.`);
-  }
+  };
   /**
    * The method to be used to respond to the event. The response needs to
    * either be an instance of {@linkcode Response} or a promise that resolves
    * with an instance of `Response`.
    */
-  respondWith(r: Response | PromiseLike<Response>): void | Promise<void> {
+  respondWith = (r: Response | PromiseLike<Response>): void | Promise<void> => {
     this[s_response] = r;
-  }
+  };
   /**
    * send body
    * @example

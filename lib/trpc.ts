@@ -19,13 +19,17 @@ interface TOpts<TRouter extends AnyRouter> {
   responseMeta?: TRet;
   onError?: TRet;
 }
-export const trpc =
-  <TRouter extends AnyRouter>(opts: TOpts<TRouter>): Handler =>
-  async (rev, next) => {
+export const trpc = <TRouter extends AnyRouter>(
+  opts: TOpts<TRouter>,
+): Handler => {
+  return async (rev, next) => {
     try {
       const ctx = opts.createContext?.(rev, next) ?? rev;
+      const endpoint = opts.prefix ?? rev.__prefix ??
+        rev.path.substring(0, rev.path.lastIndexOf("/")) ??
+        "";
       return await fetchRequestHandler({
-        endpoint: opts.prefix ?? rev.__prefix ?? "",
+        endpoint,
         req: rev.request,
         router: opts.router,
         createContext: () => ctx,
@@ -37,5 +41,6 @@ export const trpc =
       return next();
     }
   };
+};
 
 export default trpc;

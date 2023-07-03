@@ -132,7 +132,9 @@ export class NHttp<
       if (this.pmidds) {
         const arr = [] as TRet[];
         this.pmidds.forEach((el) => {
-          if (el.pattern.test(path)) arr.push(...el.fns);
+          if (el.pattern.test(path)) {
+            arr.push(...el.fns);
+          }
         });
         fns = arr.concat([(rev, next) => {
           if (rev.__url && rev.__path) {
@@ -166,9 +168,10 @@ export class NHttp<
         if (this.route[key]) {
           this.route[key] = this.route[key].concat(fns);
         } else {
-          this.route[key] = fns[0].length ? fns : fns[0];
+          this.route[key] = fns.length && fns[0].length ? fns : fns[0];
           (ROUTE[m] ??= []).push({ path });
         }
+        if (path !== "/") this.route[key + "/"] = this.route[key];
       }
     };
     if (method === "ANY") ANY_METHODS.forEach(invoke);
