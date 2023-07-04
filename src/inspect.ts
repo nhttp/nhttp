@@ -15,6 +15,7 @@ function inspect(target: TObject, obj: TObject) {
 export function revInspect(rev: RequestEvent) {
   return inspect(rev, {
     body: rev.body,
+    newRequest: rev.newRequest,
     cookies: rev.cookies,
     file: rev.file,
     headers: rev.headers,
@@ -27,6 +28,7 @@ export function revInspect(rev: RequestEvent) {
     request: rev.request,
     responseInit: rev.responseInit,
     respondWith: rev.respondWith,
+    requestEvent: rev.requestEvent,
     response: rev.response,
     route: rev.route,
     search: rev.search,

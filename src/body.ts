@@ -36,6 +36,7 @@ async function verifyBody(
   limit: TValidBody,
 ) {
   const arrBuff = await rev.request.arrayBuffer();
+  rev.__nbody = arrBuff;
   const len = arrBuff.byteLength;
   verify(rev, limit, len);
   if (len === 0) return;
@@ -65,6 +66,7 @@ async function multipartBody(
   } else {
     const formData = await rev.request.formData();
     rev.body = await multipart.createBody(formData);
+    rev.__nbody = formData;
   }
 }
 export const getType = (req: TRet) => {

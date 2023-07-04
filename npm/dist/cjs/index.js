@@ -708,6 +708,7 @@ var Multipart = class {
     if (rev.request.bodyUsed === false && type?.includes("multipart/form-data")) {
       const formData = await rev.request.formData();
       rev.body = await this.createBody(formData);
+      rev.__nbody = formData;
     }
   }
   async handleArrayUpload(rev, opts) {
@@ -788,6 +789,7 @@ function verify(rev, limit, len) {
 }
 async function verifyBody(rev, limit) {
   const arrBuff = await rev.request.arrayBuffer();
+  rev.__nbody = arrBuff;
   const len = arrBuff.byteLength;
   verify(rev, limit, len);
   if (len === 0)
@@ -810,6 +812,7 @@ async function multipartBody(validate, rev) {
   } else {
     const formData = await rev.request.formData();
     rev.body = await multipart.createBody(formData);
+    rev.__nbody = formData;
   }
 }
 var getType = (req) => {
@@ -884,6 +887,7 @@ var s_res = Symbol("http_res");
 var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 var s_method = Symbol("method");
+var s_new_req = Symbol("new_req");
 
 // npm/src/src/cookie.ts
 function serializeCookie(name, value, cookie = {}) {
@@ -982,6 +986,7 @@ function inspect(target, obj) {
 function revInspect(rev) {
   return inspect(rev, {
     body: rev.body,
+    newRequest: rev.newRequest,
     cookies: rev.cookies,
     file: rev.file,
     headers: rev.headers,
@@ -994,6 +999,7 @@ function revInspect(rev) {
     request: rev.request,
     responseInit: rev.responseInit,
     respondWith: rev.respondWith,
+    requestEvent: rev.requestEvent,
     response: rev.response,
     route: rev.route,
     search: rev.search,
@@ -1171,6 +1177,7 @@ var RequestEvent = class {
     this.respondWith = (r) => {
       this[s_response] = r;
     };
+    this.requestEvent = () => this;
   }
   get response() {
     return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
@@ -1287,6 +1294,22 @@ var RequestEvent = class {
   }
   getCookies(decode) {
     return getReqCookies(this.headers, decode);
+  }
+  get newRequest() {
+    if (this[s_new_req] !== void 0)
+      return this[s_new_req];
+    const init = {};
+    init.method = this.method;
+    if (["GET", "HEAD"].includes(this.method) === false) {
+      init.body = this.__nbody ?? JSON.stringify(this.body);
+    }
+    init.headers = {};
+    this.headers.forEach((v, k) => {
+      if (!v.includes("multipart/form-data")) {
+        init.headers[k] = v;
+      }
+    });
+    return this[s_new_req] = new Request(this.request.url, init);
   }
   [deno_inspect](inspect2, opts) {
     const ret = revInspect(this);

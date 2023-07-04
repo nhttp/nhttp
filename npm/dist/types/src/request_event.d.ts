@@ -182,6 +182,16 @@ export declare class RequestEvent<O extends TObject = TObject> {
      * const objectWithDecode = rev.getCookies(true);
      */
     getCookies(decode?: boolean): Record<string, string>;
+    /**
+     * invoke self RequestEvent
+     */
+    requestEvent: () => RequestEvent;
+    /**
+     * clone new Request.
+     * @example
+     * const request = rev.newRequest;
+     */
+    get newRequest(): Request;
     [deno_inspect](inspect: TRet, opts: TRet): string;
     [node_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;

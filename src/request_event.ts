@@ -7,6 +7,7 @@ import {
   s_headers,
   s_init,
   s_method,
+  s_new_req,
   s_params,
   s_path,
   s_query,
@@ -314,6 +315,30 @@ export class RequestEvent<O extends TObject = TObject> {
    */
   getCookies(decode?: boolean) {
     return getReqCookies(this.headers, decode);
+  }
+  /**
+   * invoke self RequestEvent
+   */
+  requestEvent = (): RequestEvent => this;
+  /**
+   * clone new Request.
+   * @example
+   * const request = rev.newRequest;
+   */
+  get newRequest(): Request {
+    if (this[s_new_req] !== void 0) return this[s_new_req];
+    const init: TObject = {};
+    init.method = this.method;
+    if (["GET", "HEAD"].includes(this.method) === false) {
+      init.body = this.__nbody ?? JSON.stringify(this.body);
+    }
+    init.headers = {};
+    this.headers.forEach((v, k) => {
+      if (!v.includes("multipart/form-data")) {
+        init.headers[k] = v;
+      }
+    });
+    return this[s_new_req] = new Request(this.request.url, init);
   }
 
   [deno_inspect](inspect: TRet, opts: TRet) {

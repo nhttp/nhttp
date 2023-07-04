@@ -30,7 +30,7 @@ export const trpc = <TRouter extends AnyRouter>(
         "";
       return await fetchRequestHandler({
         endpoint,
-        req: rev.request,
+        req: rev.newRequest,
         router: opts.router,
         createContext: () => ctx,
         batching: opts.batching,

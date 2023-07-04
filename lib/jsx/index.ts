@@ -34,7 +34,7 @@ const emreg =
  * Move to `lib/jsx/helmet`.
  * ```ts
  * // Deno
- * import { Helmet } from "https://deno.land/x/nhttp@1.2.23/lib/jsx/helmet.ts";
+ * import { Helmet } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/helmet.ts";
  *
  * // Node
  * import { Helmet } from "nhttp-land/jsx/helmet";
@@ -47,7 +47,7 @@ export const Helmet = HelmetOri;
  * Move to `lib/jsx/render.ts`.
  * ```ts
  * // Deno
- * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.23/lib/jsx/render.ts";
+ * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/render.ts";
  *
  * // Node
  * import { renderToHtml } from "nhttp-land/jsx/render";
@@ -60,7 +60,7 @@ export const renderToHtml = renderToHtmlOri;
  * Move to `lib/jsx/render.ts`.
  * ```ts
  * // Deno
- * import { renderToString } from "https://deno.land/x/nhttp@1.2.23/lib/jsx/render.ts";
+ * import { renderToString } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/render.ts";
  *
  * // Node
  * import { renderToString } from "nhttp-land/jsx/render";

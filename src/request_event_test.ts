@@ -14,6 +14,7 @@ import {
   s_response,
   s_route,
 } from "./symbol.ts";
+import { nhttp } from "./nhttp.ts";
 
 Deno.test("RequestEvent", async (t) => {
   const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));
@@ -197,5 +198,42 @@ Deno.test("RequestEvent", async (t) => {
     ]);
     const res = toRes(undefined);
     assertEquals(res instanceof Response, false);
+  });
+
+  await t.step("requestEvent and newRequest", async () => {
+    const rev = new RequestEvent(
+      new Request("http://127.0.0.1:8000/"),
+    );
+    assertEquals(rev.requestEvent() instanceof RequestEvent, true);
+    assertEquals(rev.newRequest instanceof Request, true);
+
+    const app = nhttp();
+
+    app.post("/json", async (rev) => {
+      const req = rev.newRequest;
+      const json = await req.json();
+      assertEquals(typeof json === "object", true);
+      return "success";
+    });
+
+    app.post("/form", async (rev) => {
+      const req = rev.newRequest;
+      const form = await req.formData();
+      assertEquals(form instanceof FormData, true);
+      return "success";
+    });
+
+    const json = await app.req("/json", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "john" }),
+    }).text();
+    assertEquals(json, "success");
+
+    const form = await app.req("/form", {
+      method: "POST",
+      body: new FormData(),
+    }).text();
+    assertEquals(form, "success");
   });
 });

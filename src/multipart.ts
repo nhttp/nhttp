@@ -159,6 +159,7 @@ class Multipart {
     ) {
       const formData = await rev.request.formData();
       rev.body = await this.createBody(formData);
+      rev.__nbody = formData;
     }
   }
   private async handleArrayUpload(rev: RequestEvent, opts: TMultipartUpload[]) {

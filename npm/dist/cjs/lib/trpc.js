@@ -33,7 +33,7 @@ const trpc = (opts) => {
       const endpoint = opts.prefix ?? rev.__prefix ?? rev.path.substring(0, rev.path.lastIndexOf("/")) ?? "";
       return await (0, import_fetch.fetchRequestHandler)({
         endpoint,
-        req: rev.request,
+        req: rev.newRequest,
         router: opts.router,
         createContext: () => ctx,
         batching: opts.batching,
