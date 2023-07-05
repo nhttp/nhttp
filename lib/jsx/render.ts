@@ -1,5 +1,6 @@
 import { type RequestEvent, TRet } from "../deps.ts";
 import Helmet, { HelmetRewind } from "./helmet.ts";
+import { isValidElement } from "./is-valid-element.ts";
 
 type TOptionsRender = {
   onRenderElement: (elem: TRet, rev: RequestEvent) => string | Promise<string>;
@@ -28,16 +29,6 @@ export const renderToHtml: RenderHTML = (elem, rev) => {
   };
   if (body instanceof Promise) return body.then(render);
   return render(body);
-};
-
-export const isValidElement = (elem: JSX.Element) => {
-  if (typeof elem === "string" && elem[0] === "<") return true;
-  if (typeof elem === "object") {
-    if (typeof elem.type === "function") return true;
-    const has = (k: string) => Object.hasOwn(elem, k);
-    if (has("type") && has("props") && has("key")) return true;
-  }
-  return false;
 };
 
 renderToHtml.check = isValidElement;

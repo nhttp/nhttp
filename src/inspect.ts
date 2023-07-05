@@ -51,6 +51,7 @@ export function resInspect(res: HttpResponse) {
     attachment: res.attachment,
     render: res.render,
     send: res.send,
+    html: res.html,
     sendStatus: res.sendStatus,
     setHeader: res.setHeader,
     status: res.status,

@@ -1,9 +1,4 @@
-import { Helmet as HelmetOri } from "./helmet.ts";
-import {
-  isValidElement as isValidElementOri,
-  renderToHtml as renderToHtmlOri,
-  renderToString as renderToStringOri,
-} from "./render.ts";
+import { isValidElement } from "./is-valid-element.ts";
 
 // deno-lint-ignore no-explicit-any
 type TRet = any;
@@ -25,50 +20,8 @@ export type FC<T extends unknown = unknown> = (
   props: JsxProps & T,
 ) => JSX.Element;
 
-const emreg =
-  /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/;
-
-/**
- * Helmet
- * @deprecated
- * Move to `lib/jsx/helmet`.
- * ```ts
- * // Deno
- * import { Helmet } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/helmet.ts";
- *
- * // Node
- * import { Helmet } from "nhttp-land/jsx/helmet";
- * ```
- */
-export const Helmet = HelmetOri;
-/**
- * renderToHtml
- * @deprecated
- * Move to `lib/jsx/render.ts`.
- * ```ts
- * // Deno
- * import { renderToHtml } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/render.ts";
- *
- * // Node
- * import { renderToHtml } from "nhttp-land/jsx/render";
- * ```
- */
-export const renderToHtml = renderToHtmlOri;
-/**
- * renderToString
- * @deprecated
- * Move to `lib/jsx/render.ts`.
- * ```ts
- * // Deno
- * import { renderToString } from "https://deno.land/x/nhttp@1.2.24/lib/jsx/render.ts";
- *
- * // Node
- * import { renderToString } from "nhttp-land/jsx/render";
- * ```
- */
-export const renderToString = renderToStringOri;
-export const isValidElement = isValidElementOri;
-
+export { isValidElement };
+const isValue = <T>(val: T) => val != null;
 function escapeHtml(unsafe: string) {
   return unsafe
     .replace(/&/g, "&amp;")
@@ -77,66 +30,76 @@ function escapeHtml(unsafe: string) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+const toStyle = (val: Record<string, TRet>) => {
+  return Object.keys(val).reduce(
+    (a, b) =>
+      a +
+      b
+        .split(/(?=[A-Z])/)
+        .join("-")
+        .toLowerCase() +
+      ":" +
+      (typeof val[b] === "number" ? val[b] + "px" : val[b]) +
+      ";",
+    "",
+  );
+};
 export function n(
   type: TRet,
   props: TRet | undefined | null,
   ...args: TRet[]
 ) {
-  props ??= { children: "" };
-  if (!type) return "";
-  const children = args.map((el) => {
-    return typeof el === "number" ? String(el) : el;
-  }).filter(Boolean);
+  props ??= {};
+  if (isValue(props.children)) args = args.concat(props.children);
+  const children = args.flat().map((
+    el: TRet,
+  ) => (typeof el === "number" ? String(el) : el)).filter(Boolean);
   if (typeof type === "function") {
-    props.children = children.join("");
+    if (children.length) {
+      props.children = children.join("");
+    }
     return type(props);
   }
-  let str = `<${type}`;
-  for (let k in props) {
-    const val = props[k];
+  let elem = `<${type}`;
+  for (const k in props) {
+    let val = props[k];
     if (
-      val !== undefined &&
-      val !== null &&
+      isValue(val) &&
       k !== dangerHTML &&
-      k !== "children"
+      k !== "children" &&
+      typeof val !== "function"
     ) {
-      if (typeof k === "string") {
-        k = k.toLowerCase();
-        if (k === "classname") k = "class";
+      val = typeof val === "object"
+        ? toStyle(val)
+        : val === true
+        ? ""
+        : val === false
+        ? null
+        : val;
+      if (isValue(val)) {
+        let key = k.toLowerCase();
+        if (key === "classname") key = "class";
+        elem += ` ${key}${val === "" ? "" : `="${escapeHtml(val)}"`}`;
       }
-      const type = typeof val;
-      if (type === "boolean" || type === "object" || type === "function") {
-        if (type === "object") {
-          str += ` ${k}="${
-            Object.keys(val).reduce(
-              (a, b) =>
-                a +
-                b
-                  .split(/(?=[A-Z])/)
-                  .join("-")
-                  .toLowerCase() +
-                ":" +
-                (typeof val[b] === "number" ? val[b] + "px" : val[b]) +
-                ";",
-              "",
-            )
-          }"`;
-        } else if (val === true) str += ` ${k}`;
-        else if (val === false) str += "";
-      } else str += ` ${k}="${escapeHtml(val.toString())}"`;
     }
   }
-  str += ">";
-  if (emreg.test(type)) return str;
+  elem += ">";
+  if (
+    /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/
+      .test(type)
+  ) return elem;
   if (props[dangerHTML]) {
-    str += props[dangerHTML].__html;
+    const val = props[dangerHTML].__html;
+    elem += val;
   } else {
-    children.forEach((child) => {
-      if (typeof child === "string") str += child;
-      else if (Array.isArray(child)) str += child.join("");
+    children.forEach((child: TRet) => {
+      if (isValue(child)) {
+        if (typeof child === "string") elem += child;
+        else if (child.pop) elem += child.join("");
+      }
     });
   }
-  return (str += type ? `</${type}>` : "");
+  return (elem += type ? `</${type}>` : "");
 }
 export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
   return n(type, props, ...args);

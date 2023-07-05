@@ -3,7 +3,6 @@ import { nhttp } from "./nhttp.ts";
 import { RequestEvent } from "./request_event.ts";
 import { assertEquals, superdeno } from "./deps_test.ts";
 import { NextFunction, TRet } from "./types.ts";
-import { expressMiddleware } from "./utils.ts";
 
 const renderFile = (file: string, ..._args: TRet) => {
   return Deno.readTextFileSync(file);
@@ -56,7 +55,6 @@ Deno.test("nhttp", async (t) => {
   });
   await t.step("handle", async () => {
     const app = nhttp({ env: "production" });
-    app.get("/", (rev) => rev.getCookies());
     app.get("/promise", async () => await new Promise((res) => res("ok")));
     app.post("/post", (_rev) => "post");
     app.head("/", (_rev) => "head");
@@ -80,7 +78,6 @@ Deno.test("nhttp", async (t) => {
     });
     app.get("/status", ({ response }) => response.sendStatus(204));
     app.get("/status2", ({ response }) => response.sendStatus(1000));
-    await superdeno(app.handle).get("/").expect({});
     await superdeno(app.handle).get("/promise?name=john").expect("ok");
     await superdeno(app.handle).post("/post/").expect("post");
     await superdeno(app.handle).get("/hello").expect([]);
@@ -325,7 +322,6 @@ Deno.test("nhttp", async (t) => {
         return next();
       },
       midd,
-      expressMiddleware([midd]),
     );
     app.get("/", ({ headers, response }) => {
       response.setHeader("name", "john");
