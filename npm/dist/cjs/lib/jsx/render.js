@@ -27,19 +27,30 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 var render_exports = {};
 __export(render_exports, {
-  isValidElement: () => isValidElement,
   options: () => options,
   renderToHtml: () => renderToHtml,
   renderToString: () => renderToString
 });
 var import_helmet = __toESM(require("./helmet"), 1);
+var import_index = require("./index");
+var import_is_valid_element = require("./is-valid-element");
 const renderToString = (elem) => elem;
 const options = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString
 };
-const toHtml = (body, { bodyTag, headTag, htmlAttr, bodyAttr }) => {
-  return `<!DOCTYPE html><html${htmlAttr ? ` ${htmlAttr}` : ""}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${headTag ? `${headTag.join("")}` : ""}</head><body${bodyAttr ? ` ${bodyAttr}` : ""}>${body}${bodyTag ? `${bodyTag.join("")}` : ""}</body></html>`;
+const toHtml = (body, { head, footer, attr }) => {
+  return "<!DOCTYPE html>" + (0, import_index.n)("html", { lang: "en", ...attr.html.toJSON() }, [
+    (0, import_index.n)("head", {}, [
+      (0, import_index.n)("meta", { charset: "utf-8" }),
+      (0, import_index.n)("meta", {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1.0"
+      }),
+      head
+    ]),
+    (0, import_index.n)("body", attr.body.toJSON(), [body, footer])
+  ]);
 };
 const renderToHtml = (elem, rev) => {
   const body = options.onRenderElement(elem, rev);
@@ -50,23 +61,10 @@ const renderToHtml = (elem, rev) => {
     return body.then(render);
   return render(body);
 };
-const isValidElement = (elem) => {
-  if (typeof elem === "string" && elem[0] === "<")
-    return true;
-  if (typeof elem === "object") {
-    if (typeof elem.type === "function")
-      return true;
-    const has = (k) => Object.hasOwn(elem, k);
-    if (has("type") && has("props") && has("key"))
-      return true;
-  }
-  return false;
-};
-renderToHtml.check = isValidElement;
+renderToHtml.check = import_is_valid_element.isValidElement;
 module.exports = __toCommonJS(render_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  isValidElement,
   options,
   renderToHtml,
   renderToString

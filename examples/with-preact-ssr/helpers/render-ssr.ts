@@ -11,8 +11,8 @@ export default function useRenderSSR(app: NHttp) {
     const body = Helmet.render(elem);
     if (!clientPath) return body;
     const props = JSON.stringify(elem.props);
-    const current = Helmet.writeBody?.() ?? [];
-    Helmet.writeBody = () => {
+    const current = Helmet.writeFooterTag?.() ?? [];
+    Helmet.writeFooterTag = () => {
       return [
         ...current,
         `<script>window.__INIT_PROPS__=${props}</script>`,

@@ -20,29 +20,24 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
     return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
   };
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
-var jsx_runtime_exports = {};
-__export(jsx_runtime_exports, {
-  Fragment: () => import_index.Fragment,
-  jsx: () => createElement,
-  jsxDEV: () => createElement,
-  jsxDev: () => createElement,
-  jsxs: () => createElement
+var is_valid_element_exports = {};
+__export(is_valid_element_exports, {
+  isValidElement: () => isValidElement
 });
-var import_index = require("./index");
-const createElement = (type, props) => {
-  const hasChild = props.children != null;
-  const children = hasChild ? props.children : [];
-  if (hasChild)
-    delete props.children;
-  const arr = children.pop ? children : [children];
-  return (0, import_index.n)(type, props, ...arr);
+const isValidElement = (elem) => {
+  if (typeof elem === "string" && elem[0] === "<")
+    return true;
+  if (typeof elem === "object") {
+    if (typeof elem.type === "function")
+      return true;
+    const has = (k) => Object.hasOwn(elem, k);
+    if (has("type") && has("props") && has("key"))
+      return true;
+  }
+  return false;
 };
-module.exports = __toCommonJS(jsx_runtime_exports);
+module.exports = __toCommonJS(is_valid_element_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  Fragment,
-  jsx,
-  jsxDEV,
-  jsxDev,
-  jsxs
+  isValidElement
 });

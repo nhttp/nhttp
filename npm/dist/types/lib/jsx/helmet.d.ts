@@ -1,18 +1,26 @@
-import { TRet } from "../deps";
+import { FC } from "./index";
+declare class Attr extends Map {
+    toString(): string;
+    toJSON(): any;
+}
 export type HelmetRewind = {
-    headTag?: string[];
-    bodyTag?: string[];
-    htmlAttr?: string;
-    bodyAttr?: string;
+    head: string[];
+    footer: string[];
+    attr: {
+        body: Attr;
+        html: Attr;
+    };
+    body?: string;
 };
-type FCHelmet = ((props: TRet) => TRet) & {
-    rewind: () => HelmetRewind;
-    render?: (elem: TRet) => string;
-    writeHead?: () => string[];
-    writeBody?: () => string[];
-    htmlAttr?: () => string;
-    bodyAttr?: () => string;
-    setHead?: () => void;
+type FCHelmet = FC<{
+    footer?: boolean;
+}> & {
+    rewind: (elem?: JSX.Element) => HelmetRewind;
+    render?: (elem: JSX.Element) => JSX.Element;
+    writeHeadTag?: () => string[];
+    writeFooterTag?: () => string[];
+    writeHtmlAttr?: () => Attr;
+    writeBodyAttr?: () => Attr;
 };
 export declare const Helmet: FCHelmet;
 export default Helmet;

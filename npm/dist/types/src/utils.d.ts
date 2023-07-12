@@ -25,21 +25,6 @@ export declare function myParse(arr: EArr[]): TObject;
 export declare function parseQueryArray(query: string): TObject;
 export declare function parseQuery(query: undefined | null | string | FormData): any;
 export declare function concatRegexp(prefix: string | RegExp, path: RegExp): RegExp;
-/**
- * Wrapper middleware for framework express like (req, res, next)
- * @deprecated
- * auto added to `NHttp.use`
- * @example
- * ...
- * import cors from "cors?no-check";
- * import helmet from "helmet?no-check";
- * ...
- * app.use(expressMiddleware([
- *    cors(),
- *    helmet(),
- * ]));
- */
-export declare function expressMiddleware(...middlewares: TRet): TRet;
 export declare function middAssets(str: string): Handler[];
 export declare function pushRoutes(str: string, wares: Handler[], last: TObject, base: TObject): void;
 export declare const getUrl: (s: string) => string;

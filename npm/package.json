@@ -2,7 +2,7 @@
   "name": "nhttp-land",
   "description": "An Simple web-framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.2.24",
+  "version": "1.3.0",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./dist/types/index.d.ts",
@@ -94,6 +94,11 @@
       "import": "./dist/esm/lib/jsx/render.js",
       "require": "./dist/cjs/lib/jsx/render.js"
     },
+    "./jsx/is-valid-element": {
+      "types": "./dist/types/lib/jsx/is-valid-element.d.ts",
+      "import": "./dist/esm/lib/jsx/is-valid-element.js",
+      "require": "./dist/cjs/lib/jsx/is-valid-element.js"
+    },
     "./jsx/jsx-dev-runtime": {
       "types": "./dist/types/lib/jsx/jsx-dev-runtime.d.ts",
       "import": "./dist/esm/lib/jsx/jsx-dev-runtime.js",
@@ -155,6 +160,9 @@
       ],
       "jsx/render": [
         "./dist/types/lib/jsx/render.d.ts"
+      ],
+      "jsx/is-valid-element": [
+        "./dist/types/lib/jsx/is-valid-element.d.ts"
       ],
       "jsx/jsx-dev-runtime": [
         "./dist/types/lib/jsx/jsx-dev-runtime.d.ts"

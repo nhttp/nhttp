@@ -9,5 +9,4 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare const renderToHtml: RenderHTML;
-export declare const isValidElement: (elem: JSX.Element) => boolean;
 export {};

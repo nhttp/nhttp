@@ -1,5 +1,6 @@
 import { type RequestEvent, TRet } from "../deps.ts";
 import Helmet, { HelmetRewind } from "./helmet.ts";
+import { n } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 type TOptionsRender = {
@@ -17,10 +18,19 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
 };
 const toHtml = (
   body: TRet,
-  { bodyTag, headTag, htmlAttr, bodyAttr }: HelmetRewind,
+  { head, footer, attr }: HelmetRewind,
 ) => {
-  // deno-fmt-ignore
-  return `<!DOCTYPE html><html${htmlAttr ? ` ${htmlAttr}` : ""}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${headTag ? `${headTag.join("")}` : ""}</head><body${bodyAttr ? ` ${bodyAttr}` : ""}>${body}${bodyTag ? `${bodyTag.join("")}` : ""}</body></html>`;
+  return "<!DOCTYPE html>" + n("html", { lang: "en", ...attr.html.toJSON() }, [
+    n("head", {}, [
+      n("meta", { charset: "utf-8" }),
+      n("meta", {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1.0",
+      }),
+      head,
+    ]),
+    n("body", attr.body.toJSON(), [body, footer]),
+  ]);
 };
 export const renderToHtml: RenderHTML = (elem, rev) => {
   const body = options.onRenderElement(elem, rev);

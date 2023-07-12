@@ -63,21 +63,6 @@ export type TApp = {
      */
     parseQuery?: TQueryFunc;
     /**
-     * custom bodyLimit or disable bodyParser. default to `3mb`/content-type.
-     * @deprecated
-     * Use bodyParser instead.
-     * @example
-     * const app = nhttp({
-     *   bodyParser: {
-     *      // disable json body
-     *      json: false,
-     *      // custom limit for urlencoded
-     *      urlencoded: "1mb"
-     *   }
-     * })
-     */
-    bodyLimit?: TBodyParser;
-    /**
      * bodyParser.
      * @example
      * const app = nhttp({ bodyParser: true });
@@ -102,11 +87,8 @@ export type TApp = {
      */
     env?: string;
     /**
-     * flash server for `Deno.serve`. default to false.
-     * @example
-     * const app = nhttp({
-     *   flash: true
-     * })
+     * @deprecated
+     * Flash server now stable.
      */
     flash?: boolean;
     /**
