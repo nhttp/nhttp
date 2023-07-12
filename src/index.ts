@@ -4,7 +4,6 @@ export { bodyParser } from "./body.ts";
 export {
   decoder,
   decURIComponent,
-  expressMiddleware,
   findFns,
   parseQuery,
   toBytes,

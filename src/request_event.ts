@@ -306,17 +306,6 @@ export class RequestEvent<O extends TObject = TObject> {
     this[s_cookies] = val;
   }
   /**
-   * get cookies from request
-   * @deprecated
-   * Use `rev.cookies` instead. `rev.cookies` auto decode if cookie is encode.
-   * @example
-   * const object = rev.getCookies();
-   * const objectWithDecode = rev.getCookies(true);
-   */
-  getCookies(decode?: boolean) {
-    return getReqCookies(this.headers, decode);
-  }
-  /**
    * invoke self RequestEvent
    */
   requestEvent = (): RequestEvent => this;

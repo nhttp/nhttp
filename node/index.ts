@@ -15,7 +15,7 @@ export function mutateResponse() {
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
   let resWeb: TRet = await handler(
     new NodeRequest(
-      `http://${req.headers.host}${req.url}`,
+      req.url[0] === "/" ? `http://${req.headers.host}${req.url}` : req.url,
       void 0,
       { req, res },
     ) as unknown as Request,

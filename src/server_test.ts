@@ -1,6 +1,5 @@
 import { assertEquals } from "./deps_test.ts";
 import { nhttp } from "./nhttp.ts";
-import { HttpServer } from "./nhttp_util.ts";
 
 Deno.test({
   name: "listen",
@@ -51,36 +50,11 @@ Deno.test({
   },
 });
 Deno.test({
-  name: "server",
-  async fn(t) {
-    await t.step("run server", async () => {
-      const ac = new AbortController();
-      const app = nhttp();
-      app.get("/", () => "home");
-      const p = app.listen({ port: 8080, signal: ac.signal });
-      const res = await fetch("http://localhost:8080/");
-      assertEquals(res.ok, true);
-      await res.body?.cancel();
-      ac.abort();
-      try {
-        const server = new HttpServer(app.server, app.handle);
-        server.close();
-        server["alive"] = false;
-        server.close();
-      } catch (error) {
-        assertEquals(error.message, "Server Closed");
-      }
-      await p;
-    });
-  },
-});
-
-Deno.test({
   name: "server flash",
   async fn(t) {
     await t.step("run server flash", async () => {
       const ac = new AbortController();
-      const app = nhttp({ flash: true });
+      const app = nhttp();
       app.get("/", () => "home");
       app.listen({ port: 8081, signal: ac.signal });
       const res = await fetch("http://localhost:8081/");
@@ -96,7 +70,7 @@ Deno.test({
   async fn(t) {
     await t.step("run server flash", async () => {
       const ac = new AbortController();
-      const app = nhttp({ flash: true });
+      const app = nhttp();
       app.get("/", () => "home");
       app.listen({ port: 8082, signal: ac.signal }, () => {
         console.log("run");

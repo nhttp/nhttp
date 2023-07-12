@@ -357,9 +357,6 @@ function concatRegexp(prefix, path) {
   flags = Array.from(new Set(flags.split(""))).join();
   return new RegExp(prefix.source + path.source, flags);
 }
-function expressMiddleware(...middlewares) {
-  return findFns(middlewares);
-}
 function middAssets(str) {
   return [
     (rev, next) => {
@@ -968,6 +965,7 @@ function resInspect(res) {
     attachment: res.attachment,
     render: res.render,
     send: res.send,
+    html: res.html,
     sendStatus: res.sendStatus,
     setHeader: res.setHeader,
     status: res.status,
@@ -1239,9 +1237,6 @@ var RequestEvent = class {
   set cookies(val) {
     this[s_cookies] = val;
   }
-  getCookies(decode) {
-    return getReqCookies(this.headers, decode);
-  }
   get newRequest() {
     if (this[s_new_req] !== void 0)
       return this[s_new_req];
@@ -1308,73 +1303,18 @@ var awaiter = (rev) => {
   })(0, 100);
 };
 function buildListenOptions(opts) {
-  let isSecure = false;
   let handler = this.handleRequest;
   if (typeof opts === "number") {
     opts = { port: opts };
   } else if (typeof opts === "object") {
-    isSecure = opts.certFile !== void 0 || opts.cert !== void 0 || opts.alpnProtocols !== void 0;
     handler = opts.handler ?? opts.fetch ?? (opts.showInfo ? this.handle : this.handleRequest);
     if (opts.handler)
       delete opts.handler;
     if (opts.fetch)
       delete opts.fetch;
   }
-  return { opts, isSecure, handler };
+  return { opts, handler };
 }
-var HttpServer = class {
-  constructor(listener, handle) {
-    this.listener = listener;
-    this.handle = handle;
-    this.alive = true;
-    this.track = /* @__PURE__ */ new Set();
-  }
-  async acceptConn() {
-    while (this.alive) {
-      let conn;
-      try {
-        conn = await this.listener.accept();
-      } catch {
-        break;
-      }
-      let httpConn;
-      try {
-        httpConn = Deno.serveHttp(conn);
-      } catch {
-        continue;
-      }
-      this.track.add(httpConn);
-      this.handleHttp(httpConn, conn);
-    }
-  }
-  close() {
-    try {
-      if (this.alive === false) {
-        throw new Error("Server Closed");
-      }
-      this.alive = false;
-      this.listener.close();
-      for (const t of this.track)
-        t.close();
-      this.track.clear();
-    } catch {
-    }
-  }
-  async handleHttp(httpConn, conn) {
-    for (; ; ) {
-      try {
-        const rev = await httpConn.nextRequest();
-        if (rev) {
-          await rev.respondWith(this.handle(rev.request, conn));
-        } else {
-          break;
-        }
-      } catch {
-        break;
-      }
-    }
-  }
-};
 
 // npm/src/src/nhttp.ts
 var NHttp = class extends Router {
@@ -1441,7 +1381,7 @@ var NHttp = class extends Router {
       return createRequest(this.handle, url, init);
     };
     this.listen = (options, callback) => {
-      const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
+      const { opts, handler } = buildListenOptions.bind(this)(options);
       const runCallback = (err) => {
         if (callback) {
           callback(err, {
@@ -1453,26 +1393,10 @@ var NHttp = class extends Router {
         return;
       };
       try {
-        if (this.flash) {
-          if ("serve" in Deno) {
-            if (runCallback())
-              opts.onListen = () => {
-              };
-            return this.server = Deno.serve(opts, handler);
-          }
-          console.error("requires --unstable flags");
-          return;
-        }
-        runCallback();
-        this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-        const http = new HttpServer(this.server, handler);
-        if (opts.signal) {
-          opts.signal.addEventListener("abort", () => http.close(), {
-            once: true
-          });
-        }
-        http.acceptConn().catch(runCallback);
-        return this.server;
+        if (runCallback())
+          opts.onListen = () => {
+          };
+        return this.server = Deno.serve(opts, handler);
       } catch (error) {
         runCallback(error);
       }
@@ -1927,7 +1851,7 @@ function mutateResponse() {
   }
 }
 async function handleNode(handler, req, res) {
-  let resWeb = await handler(new NodeRequest(`http://${req.headers.host}${req.url}`, void 0, { req, res }));
+  let resWeb = await handler(new NodeRequest(req.url[0] === "/" ? `http://${req.headers.host}${req.url}` : req.url, void 0, { req, res }));
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {
@@ -2107,7 +2031,6 @@ export {
   decURIComponent,
   decoder,
   src_default as default,
-  expressMiddleware,
   findFns,
   getError,
   multipart2 as multipart,

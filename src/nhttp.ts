@@ -27,7 +27,7 @@ import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
-import { awaiter, buildListenOptions, HttpServer } from "./nhttp_util.ts";
+import { awaiter, buildListenOptions } from "./nhttp_util.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -361,8 +361,8 @@ export class NHttp<
    * app.listen({ port: 8000, hostname: 'localhost' });
    * app.listen({
    *    port: 443,
-   *    certFile: "./path/to/my.crt",
-   *    keyFile: "./path/to/my.key",
+   *    cert: "./path/to/my.crt",
+   *    key: "./path/to/my.key",
    *    alpnProtocols: ["h2", "http/1.1"]
    * }, callback);
    */
@@ -373,7 +373,7 @@ export class NHttp<
       opts: ListenOptions,
     ) => void | Promise<void>,
   ) => {
-    const { opts, isSecure, handler } = buildListenOptions.bind(this)(options);
+    const { opts, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {
         callback(err, {
@@ -385,24 +385,8 @@ export class NHttp<
       return;
     };
     try {
-      if (this.flash) {
-        if ("serve" in Deno) {
-          if (runCallback()) opts.onListen = () => {};
-          return this.server = (<TObject> Deno).serve(opts, handler);
-        }
-        console.error("requires --unstable flags");
-        return;
-      }
-      runCallback();
-      this.server = (isSecure ? Deno.listenTls : Deno.listen)(opts);
-      const http = new HttpServer(this.server, handler);
-      if (opts.signal) {
-        opts.signal.addEventListener("abort", () => http.close(), {
-          once: true,
-        });
-      }
-      http.acceptConn().catch(runCallback);
-      return this.server;
+      if (runCallback()) opts.onListen = () => {};
+      return this.server = Deno.serve(opts, handler);
     } catch (error) {
       runCallback(error);
     }

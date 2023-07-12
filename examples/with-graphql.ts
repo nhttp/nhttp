@@ -16,14 +16,8 @@ const yoga = createYoga({
   }),
 });
 
-const yogaHandler: Handler = async ({ request, method, headers, body }) => {
-  const resp = await yoga.fetch(request.url, {
-    method,
-    headers,
-    body: ["POST", "PUT", "PATCH"].includes(method)
-      ? JSON.stringify(body)
-      : void 0,
-  });
+const yogaHandler: Handler = async (rev) => {
+  const resp = await yoga(rev.newRequest);
   return resp;
   // for nodejs
   // return new Response(resp.body, resp);

@@ -221,24 +221,6 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
   return new RegExp(prefix.source + path.source, flags);
 }
 
-/**
- * Wrapper middleware for framework express like (req, res, next)
- * @deprecated
- * auto added to `NHttp.use`
- * @example
- * ...
- * import cors from "https://esm.sh/cors?no-check";
- * import helmet from "https://esm.sh/helmet?no-check";
- * ...
- * app.use(expressMiddleware([
- *    cors(),
- *    helmet(),
- * ]));
- */
-export function expressMiddleware(...middlewares: TRet): TRet {
-  return findFns(middlewares);
-}
-
 export function middAssets(str: string) {
   return [
     ((rev, next) => {

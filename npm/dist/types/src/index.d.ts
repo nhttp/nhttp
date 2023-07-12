@@ -1,7 +1,7 @@
 export { MIME_LIST } from "./constant";
 export type { TMultipartUpload } from "./multipart";
 export { bodyParser } from "./body";
-export { decoder, decURIComponent, expressMiddleware, findFns, parseQuery, toBytes, } from "./utils";
+export { decoder, decURIComponent, findFns, parseQuery, toBytes, } from "./utils";
 export { RequestEvent } from "./request_event";
 export { HttpResponse, JsonResponse } from "./http_response";
 export { default as Router } from "./router";
