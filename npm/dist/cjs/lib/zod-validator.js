@@ -33,7 +33,11 @@ var import_deps = require("./deps");
 function validate(schema, target = "body") {
   return (rev, next) => {
     try {
-      schema.parse(rev[target]);
+      const tgt = rev[target];
+      const res = schema.parse(tgt);
+      if (typeof res === "object") {
+        rev[target] = res;
+      }
       return next();
     } catch (e) {
       throw new import_deps.HttpError(422, e.errors);

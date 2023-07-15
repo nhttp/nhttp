@@ -11,7 +11,11 @@ export function validate<
 ): Handler<{ [k in S]: T }> {
   return (rev, next) => {
     try {
-      schema.parse(rev[target]);
+      const tgt = rev[target];
+      const res = schema.parse(tgt);
+      if (typeof res === "object") {
+        (<TRet> rev)[target] = res;
+      }
       return next();
     } catch (e) {
       throw new HttpError(422, e.errors);

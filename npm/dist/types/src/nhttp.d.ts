@@ -82,18 +82,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
         json: () => Promise<any>;
         ok: () => Promise<boolean>;
         status: () => Promise<number>;
-        res: () => Response | Promise<Response>; /**
-         * listen the server
-         * @example
-         * app.listen(8000);
-         * app.listen({ port: 8000, hostname: 'localhost' });
-         * app.listen({
-         *    port: 443,
-         *    cert: "./path/to/my.crt",
-         *    key: "./path/to/my.key",
-         *    alpnProtocols: ["h2", "http/1.1"]
-         * }, callback);
-         */
+        res: () => Response | Promise<Response>;
     };
     /**
      * listen the server

@@ -8,6 +8,7 @@ import {
   s_init,
   s_method,
   s_new_req,
+  s_ori_url,
   s_params,
   s_path,
   s_query,
@@ -214,7 +215,10 @@ export class RequestEvent<O extends TObject = TObject> {
    * // => /hello?name=john
    */
   get originalUrl() {
-    return getUrl(this.request.url);
+    return this[s_ori_url] ??= getUrl(this.request.url);
+  }
+  set originalUrl(val: string) {
+    this[s_ori_url] = val;
   }
   /**
    * lookup path

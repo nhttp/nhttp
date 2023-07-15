@@ -884,6 +884,7 @@ var s_response = Symbol("res");
 var s_init = Symbol("res_init");
 var s_method = Symbol("method");
 var s_new_req = Symbol("new_req");
+var s_ori_url = Symbol("ori_url");
 
 // npm/src/src/cookie.ts
 function serializeCookie(name, value, cookie = {}) {
@@ -1245,7 +1246,10 @@ var RequestEvent = class {
     this[s_url] = val;
   }
   get originalUrl() {
-    return getUrl(this.request.url);
+    return this[s_ori_url] ??= getUrl(this.request.url);
+  }
+  set originalUrl(val) {
+    this[s_ori_url] = val;
   }
   get path() {
     return this[s_path] ??= this.url;

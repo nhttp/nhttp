@@ -234,7 +234,7 @@ export type TSchemaObject = {
     [k: string]: TRet;
 };
 type TReferenceObject = {
-    $ref: string;
+    $ref?: string;
     [k: string]: TRet;
 };
 export {};

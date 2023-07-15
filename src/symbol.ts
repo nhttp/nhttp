@@ -13,3 +13,4 @@ export const s_response = Symbol("res");
 export const s_init = Symbol("res_init");
 export const s_method = Symbol("method");
 export const s_new_req = Symbol("new_req");
+export const s_ori_url = Symbol("ori_url");

@@ -72,6 +72,9 @@ Deno.test("RequestEvent", async (t) => {
   assertEquals(rev.url, "/hello");
 
   assertEquals(rev.originalUrl, "/");
+  rev.originalUrl = "/hello";
+  assertEquals(rev.originalUrl, "/hello");
+
   assertEquals(rev.headers instanceof Headers, true);
   rev.headers = new Headers();
   assertEquals(rev[s_headers] instanceof Headers, true);

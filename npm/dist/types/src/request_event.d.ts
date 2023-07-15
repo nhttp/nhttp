@@ -113,6 +113,7 @@ export declare class RequestEvent<O extends TObject = TObject> {
      * // => /hello?name=john
      */
     get originalUrl(): string;
+    set originalUrl(val: string);
     /**
      * lookup path
      * @example
