@@ -78,7 +78,7 @@ function is304(
 
 async function getFile(path: string, readFile?: (...args: TRet) => TRet) {
   const file = await readFile?.(path);
-  if (!file) {
+  if (file === void 0) {
     throw new Error("File error. please add options readFile");
   }
   return file;
@@ -91,16 +91,17 @@ export async function sendFile(
 ) {
   try {
     opts.etag ??= true;
-    const weak = opts.weak !== false;
-    const { response, request } = rev;
+    const response = rev.response;
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
     opts.setHeaders?.(rev, pathFile, stat);
-    const cType = response.header("content-type") ?? getContentType(path);
+    const cType = response.getHeader("content-type") ?? getContentType(path);
     if (stat === void 0) {
       const file = await getFile(path, opts.readFile);
-      response.type(cType);
+      response.setHeader("content-type", cType);
       return file;
     }
+    const request = rev.request;
+    const weak = opts.weak !== false;
     if (request.headers.get("range") && stat.size) {
       const file = await getFile(path, opts.readFile);
       const start = 0;
@@ -116,7 +117,7 @@ export async function sendFile(
         "Content-Length": (end - start + 1).toString(),
         "Accept-Ranges": response.header("Accept-Ranges") ?? "bytes",
       });
-      response.type(cType);
+      response.setHeader("content-type", cType);
       return file;
     }
     const nonMatch = request.headers.get("if-none-match");
@@ -125,7 +126,7 @@ export async function sendFile(
       return response.status(304).send();
     }
     const file = await getFile(path, opts.readFile);
-    response.type(cType);
+    response.setHeader("content-type", cType);
     return file;
   } catch (error) {
     throw error;
@@ -176,11 +177,11 @@ export const etag = (
   };
 };
 async function getIo() {
-  if (s_glob) return s_glob;
+  if (s_glob !== void 0) return s_glob;
   s_glob = {};
   if (typeof Deno !== "undefined") {
-    s_glob.readFile = Deno.readFile;
-    s_glob.stat = Deno.stat;
+    s_glob.readFile = Deno.readFileSync;
+    s_glob.stat = Deno.statSync;
     return s_glob;
   }
   try {

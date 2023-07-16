@@ -101,6 +101,44 @@ deno run --allow-net app.ts
 
 more docs => https://nhttp.deno.dev
 
+## 3rd-party libs
+
+Like `std-libs` for NHttp.
+
+### Usage
+
+```ts
+// Deno
+import {...} from "https://deno.land/x/nhttp/lib/my-libs.ts";
+
+// Deno NPM
+import {...} from "npm:nhttp-land/my-libs";
+
+// Node or Bun
+import {...} from "nhttp-land/my-libs";
+```
+
+### ServeStatic
+
+```ts
+import nhttp from "https://deno.land/x/nhttp/mod.ts";
+import serveStatic from "https://deno.land/x/nhttp/lib/serve-static.ts";
+
+const app = nhttp();
+
+app.use(serveStatic("./my_folder"));
+
+// with prefix
+app.use(serveStatic("./my_folder", { prefix: "/assets" }));
+// or
+// app.use("/assets", serveStatic("./my_folder"));
+
+// with URL
+app.use(serveStatic(new URL("./my_folder", import.meta.url)));
+```
+
+more libs => https://nhttp.deno.dev/docs/3rd-party-lib
+
 ## License
 
 [MIT](LICENSE)
