@@ -11,7 +11,11 @@ type TOptions = {
   maxAge?: number;
   preflight?: boolean;
 };
-
+/**
+ * Cors middleware.
+ * @example
+ * app.use(cors());
+ */
 export const cors = (opts: TOptions = {}): Handler => (rev, next) => {
   if (opts.origin !== false) {
     if (opts.origin === true) opts.origin = "*";

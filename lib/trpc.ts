@@ -7,7 +7,12 @@ import { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
 type TAnyRouter = TRet;
 interface TOpts<TRouter extends AnyRouter> {
+  /**
+   * @deprecated
+   * Use `endpoint` instead.
+   */
   prefix?: string;
+  endpoint?: string;
   router: TAnyRouter;
   createContext?: (
     rev: RequestEvent,
@@ -19,13 +24,19 @@ interface TOpts<TRouter extends AnyRouter> {
   responseMeta?: TRet;
   onError?: TRet;
 }
+
+/**
+ * tRPC middleware.
+ * @example
+ * app.use(trpc({ router: appRouter, endpoint: "/trpc" }));
+ */
 export const trpc = <TRouter extends AnyRouter>(
   opts: TOpts<TRouter>,
 ): Handler => {
   return async (rev, next) => {
     try {
       const ctx = opts.createContext?.(rev, next) ?? rev;
-      const endpoint = opts.prefix ?? rev.__prefix ??
+      const endpoint = opts.endpoint ?? opts.prefix ?? rev.__prefix ??
         rev.path.substring(0, rev.path.lastIndexOf("/")) ??
         "";
       return await fetchRequestHandler({

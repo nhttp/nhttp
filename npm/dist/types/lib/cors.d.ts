@@ -10,5 +10,10 @@ type TOptions = {
     maxAge?: number;
     preflight?: boolean;
 };
+/**
+ * Cors middleware.
+ * @example
+ * app.use(cors());
+ */
 export declare const cors: (opts?: TOptions) => Handler;
 export default cors;

@@ -1,5 +1,10 @@
 import { TRet } from "../deps.ts";
 
+/**
+ * isValidElement.
+ * @example
+ * const bool = isValidElement(<App />);
+ */
 export const isValidElement = (elem: TRet) => {
   if (typeof elem === "string" && elem[0] === "<") return true;
   if (typeof elem === "object") {
