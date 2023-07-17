@@ -2,6 +2,11 @@ import { z, ZodSchema } from "https://esm.sh/zod@3.21.4";
 import { joinHandlers, TDecorator } from "./controller.ts";
 import { Handler, HttpError, TRet } from "./deps.ts";
 
+/**
+ * validate using `zod`.
+ * @example
+ * app.post("/save", validate(ZodSchema), ...handlers);
+ */
 export function validate<
   S extends string = "body",
   T extends unknown = unknown,
@@ -22,6 +27,9 @@ export function validate<
     }
   };
 }
+/**
+ * validate using `zod` for decorators.
+ */
 export function Validate(
   schema: ZodSchema,
   target = "body",

@@ -30,7 +30,7 @@ const trpc = (opts) => {
   return async (rev, next) => {
     try {
       const ctx = opts.createContext?.(rev, next) ?? rev;
-      const endpoint = opts.prefix ?? rev.__prefix ?? rev.path.substring(0, rev.path.lastIndexOf("/")) ?? "";
+      const endpoint = opts.endpoint ?? opts.prefix ?? rev.__prefix ?? rev.path.substring(0, rev.path.lastIndexOf("/")) ?? "";
       return await (0, import_fetch.fetchRequestHandler)({
         endpoint,
         req: rev.newRequest,

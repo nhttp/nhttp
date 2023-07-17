@@ -4,10 +4,32 @@ import { n } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 type TOptionsRender = {
+  /**
+   * Attach on render element.
+   * @example
+   * options.onRenderElement = (elem, rev) => {
+   *   Helmet.render = renderToString;
+   *   const str = Helmet.render(elem);
+   *   return str;
+   * }
+   */
   onRenderElement: (elem: TRet, rev: RequestEvent) => string | Promise<string>;
+  /**
+   * Attach on render html.
+   * @example
+   * options.onRenderHtml = (html, rev) => {
+   *   // code here
+   *   return html;
+   * }
+   */
   onRenderHtml: (html: string, rev: RequestEvent) => string | Promise<string>;
 };
 
+/**
+ * renderToString.
+ * @example
+ * const str = renderToString(<App />);
+ */
 export const renderToString = (elem: JSX.Element): string => <TRet> elem;
 export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
@@ -32,6 +54,14 @@ const toHtml = (
     n("body", attr.body.toJSON(), [body, footer]),
   ]);
 };
+
+/**
+ * render to html in `app.engine`.
+ * @example
+ * const app = nhttp();
+ *
+ * app.engine(renderToHtml);
+ */
 export const renderToHtml: RenderHTML = (elem, rev) => {
   const body = options.onRenderElement(elem, rev);
   const render = (str: string) => {

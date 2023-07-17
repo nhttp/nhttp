@@ -132,6 +132,11 @@ export async function sendFile(
     throw error;
   }
 }
+/**
+ * Etag middleware.
+ * @example
+ * app.use(etag());
+ */
 export const etag = (
   opts: { weak?: boolean } = {},
 ): Handler => {

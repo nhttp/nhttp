@@ -15,6 +15,11 @@ type TOptions = {
     onExpired?: (err: UnauthorizedError, rev: RequestEvent, next: NextFunction) => TRet;
     onAuth?: Handler;
 };
+/**
+ * jwt middleware.
+ * @example
+ * app.get("/admin", jwt({ secret: "my_secret" }), ...handlers);
+ */
 export declare const jwt: {
     (secretOrOptions: string | TOptions): Handler | Handler[];
     encode: typeof jwts.encode;

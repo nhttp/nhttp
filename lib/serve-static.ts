@@ -1,4 +1,4 @@
-import { decURIComponent, NextFunction, RequestEvent } from "./deps.ts";
+import { decURIComponent, NextFunction, RequestEvent, TRet } from "./deps.ts";
 import { sendFile as sendFileEtag, TOptsSendFile } from "./etag.ts";
 
 interface StaticOptions extends TOptsSendFile {
@@ -6,8 +6,19 @@ interface StaticOptions extends TOptsSendFile {
   redirect?: boolean;
   prefix?: string;
   spa?: boolean;
+  readFile?: (...args: TRet) => TRet;
 }
 export const sendFile = sendFileEtag;
+/**
+ * serve-static middleware.
+ * @example
+ * app.use(serveStatic("./my_dir", options));
+ *
+ * // prefix
+ * app.use(serveStatic("./my_dir", { prefix: "/assets" }));
+ * // or
+ * // app.use("/assets", serveStatic("./my_dir"));
+ */
 export function serveStatic(dir: string | URL, opts: StaticOptions = {}) {
   opts.index ??= "index.html";
   opts.redirect ??= true;
@@ -30,6 +41,7 @@ export function serveStatic(dir: string | URL, opts: StaticOptions = {}) {
         if (hasPrefix) {
           if (path.startsWith(prefix) === false) return next();
           path = path.substring(prefix.length);
+          if (path !== "" && path[0] !== "/") return next();
         }
         let pathFile = dir + path;
         if (opts.redirect) {
@@ -42,7 +54,13 @@ export function serveStatic(dir: string | URL, opts: StaticOptions = {}) {
         return await sendFile(rev, decURIComponent(pathFile), opts);
       } catch {
         if (opts.spa && opts.redirect) {
-          return await sendFile(rev, decURIComponent(dir + "/" + index), opts);
+          try {
+            return await sendFile(
+              rev,
+              decURIComponent(dir + "/" + index),
+              opts,
+            );
+          } catch { /* noop */ }
         }
       }
     }

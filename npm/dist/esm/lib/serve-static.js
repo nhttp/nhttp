@@ -29,6 +29,8 @@ function serveStatic(dir, opts = {}) {
           if (path.startsWith(prefix) === false)
             return next();
           path = path.substring(prefix.length);
+          if (path !== "" && path[0] !== "/")
+            return next();
         }
         let pathFile = dir + path;
         if (opts.redirect) {
@@ -43,7 +45,10 @@ function serveStatic(dir, opts = {}) {
         return await sendFile(rev, decURIComponent(pathFile), opts);
       } catch {
         if (opts.spa && opts.redirect) {
-          return await sendFile(rev, decURIComponent(dir + "/" + index), opts);
+          try {
+            return await sendFile(rev, decURIComponent(dir + "/" + index), opts);
+          } catch {
+          }
         }
       }
     }

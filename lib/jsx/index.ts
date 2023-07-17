@@ -16,6 +16,14 @@ declare global {
 type JsxProps = {
   children?: TRet;
 };
+
+/**
+ * Function Component (FC).
+ * @example
+ * const Home: FC<{ title: string; }> = (props) => {
+ *   return <h1>{props.title}</h1>
+ * }
+ */
 export type FC<T extends unknown = unknown> = (
   props: JsxProps & T,
 ) => JSX.Element;
@@ -104,6 +112,13 @@ export function n(
 export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
   return n(type, props, ...args);
 }
+/**
+ * Fragment.
+ * @example
+ * const Home: FC<{ title: string; }> = (props) => {
+ *   return <Fragment><h1>{props.title}</h1></Fragment>
+ * }
+ */
 export const Fragment: FC = ({ children }) => children;
 n.Fragment = Fragment;
 h.Fragment = Fragment;

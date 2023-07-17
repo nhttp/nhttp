@@ -23,6 +23,12 @@ type TOptions = {
   ) => TRet;
   onAuth?: Handler;
 };
+
+/**
+ * jwt middleware.
+ * @example
+ * app.get("/admin", jwt({ secret: "my_secret" }), ...handlers);
+ */
 export const jwt = (
   secretOrOptions: string | TOptions,
 ): Handler | Handler[] => {

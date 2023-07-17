@@ -9,6 +9,11 @@ import presetAutoprefix from "https://esm.sh/@twind/preset-autoprefix@1.0.7";
 import presetTailwind from "https://esm.sh/@twind/preset-tailwind@1.1.4";
 import { options } from "./render.ts";
 
+/**
+ * Core install twind.
+ * @example
+ * install(config);
+ */
 export const install = (
   config: TwindConfig | TwindUserConfig = {},
   isProduction?: boolean,
@@ -19,6 +24,16 @@ export const install = (
   } as TwindUserConfig, isProduction);
 };
 install();
+
+/**
+ * useTwind.
+ * @example
+ * useTwind();
+ *
+ * const app = nhttp();
+ *
+ * app.engine(renderToHtml);
+ */
 export const useTwind = (
   opts?: InlineOptions,
 ) => {
