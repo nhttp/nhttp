@@ -27,6 +27,7 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 var render_exports = {};
 __export(render_exports, {
+  isValidElement: () => import_is_valid_element.isValidElement,
   options: () => options,
   renderToHtml: () => renderToHtml,
   renderToString: () => renderToString
@@ -65,6 +66,7 @@ renderToHtml.check = import_is_valid_element.isValidElement;
 module.exports = __toCommonJS(render_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  isValidElement,
   options,
   renderToHtml,
   renderToString

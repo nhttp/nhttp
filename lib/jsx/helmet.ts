@@ -1,4 +1,4 @@
-import { FC } from "./index.ts";
+import type { FC } from "./index.ts";
 
 class Attr extends Map {
   toString() {
@@ -61,9 +61,9 @@ function toHelmet(olds: string[], childs: string[]) {
     return item;
   }) as string[];
   const arr = latest.concat(olds);
-  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) =>
-    el[1] !== "/"
-  );
+  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) => {
+    return el !== "</html>" && el !== "</body>";
+  });
   return res;
 }
 

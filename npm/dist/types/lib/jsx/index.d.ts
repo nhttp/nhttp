@@ -1,4 +1,5 @@
-import { isValidElement } from "./is-valid-element";
+export * from "./render";
+export * from "./helmet";
 type TRet = any;
 declare global {
     namespace JSX {
@@ -19,7 +20,6 @@ type JsxProps = {
  * }
  */
 export type FC<T extends unknown = unknown> = (props: JsxProps & T) => JSX.Element;
-export { isValidElement };
 export declare function n(type: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
 export declare namespace n {
     var Fragment: FC<unknown>;
@@ -36,3 +36,21 @@ export declare namespace h {
  * }
  */
 export declare const Fragment: FC;
+/**
+ * Client interactive.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <Client src="/assets/js/home.js">
+ *       <h1 id="text">hey</h1>
+ *     </Client>
+ *   )
+ * }
+ * ```
+ */
+export declare const Client: FC<{
+    src: string;
+    id?: string;
+    type?: string;
+}>;

@@ -1,4 +1,6 @@
-import { type RequestEvent, TRet } from "../deps";
+import type { RequestEvent, TRet } from "../deps";
+import { isValidElement } from "./is-valid-element";
+export { isValidElement };
 type TOptionsRender = {
     /**
      * Attach on render element.
@@ -38,4 +40,3 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
  * app.engine(renderToHtml);
  */
 export declare const renderToHtml: RenderHTML;
-export {};

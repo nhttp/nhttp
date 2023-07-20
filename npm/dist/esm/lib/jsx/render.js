@@ -30,6 +30,7 @@ const renderToHtml = (elem, rev) => {
 };
 renderToHtml.check = isValidElement;
 export {
+  isValidElement,
   options,
   renderToHtml,
   renderToString

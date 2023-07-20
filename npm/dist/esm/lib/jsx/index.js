@@ -1,4 +1,6 @@
-import { isValidElement } from "./is-valid-element.js";
+export * from "./render";
+export * from "./helmet";
+import Helmet from "./helmet.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const isValue = (val) => val != null;
 function escapeHtml(unsafe) {
@@ -55,9 +57,15 @@ function h(type, props, ...args) {
 const Fragment = ({ children }) => children;
 n.Fragment = Fragment;
 h.Fragment = Fragment;
+const Client = (props) => {
+  return n(Fragment, {}, [
+    n(Helmet, { footer: true }, n("script", { src: props.src })),
+    n(props.type ?? "div", { id: props.id }, props.children)
+  ]);
+};
 export {
+  Client,
   Fragment,
   h,
-  isValidElement,
   n
 };

@@ -1,7 +1,9 @@
-import { type RequestEvent, TRet } from "../deps.ts";
-import Helmet, { HelmetRewind } from "./helmet.ts";
+import type { RequestEvent, TRet } from "../deps.ts";
+import Helmet, { type HelmetRewind } from "./helmet.ts";
 import { n } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
+
+export { isValidElement };
 
 type TOptionsRender = {
   /**

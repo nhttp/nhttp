@@ -1,4 +1,4 @@
-import { FC } from "./index";
+import type { FC } from "./index";
 declare class Attr extends Map {
     toString(): string;
     toJSON(): any;

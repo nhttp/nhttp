@@ -1,6 +1,8 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
@@ -15,6 +17,9 @@ var __reExport = (target, module2, copyDefault, desc) => {
   }
   return target;
 };
+var __toESM = (module2, isNodeMode) => {
+  return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", !isNodeMode && module2 && module2.__esModule ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
+};
 var __toCommonJS = /* @__PURE__ */ ((cache) => {
   return (module2, temp) => {
     return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
@@ -22,12 +27,14 @@ var __toCommonJS = /* @__PURE__ */ ((cache) => {
 })(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
 var jsx_exports = {};
 __export(jsx_exports, {
+  Client: () => Client,
   Fragment: () => Fragment,
   h: () => h,
-  isValidElement: () => import_is_valid_element.isValidElement,
   n: () => n
 });
-var import_is_valid_element = require("./is-valid-element");
+__reExport(jsx_exports, require("./render"));
+__reExport(jsx_exports, require("./helmet"));
+var import_helmet = __toESM(require("./helmet"), 1);
 const dangerHTML = "dangerouslySetInnerHTML";
 const isValue = (val) => val != null;
 function escapeHtml(unsafe) {
@@ -84,11 +91,17 @@ function h(type, props, ...args) {
 const Fragment = ({ children }) => children;
 n.Fragment = Fragment;
 h.Fragment = Fragment;
+const Client = (props) => {
+  return n(Fragment, {}, [
+    n(import_helmet.default, { footer: true }, n("script", { src: props.src })),
+    n(props.type ?? "div", { id: props.id }, props.children)
+  ]);
+};
 module.exports = __toCommonJS(jsx_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  Client,
   Fragment,
   h,
-  isValidElement,
   n
 });

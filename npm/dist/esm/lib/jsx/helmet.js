@@ -16,7 +16,9 @@ function toHelmet(olds, childs) {
     return item;
   });
   const arr = latest.concat(olds);
-  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) => el[1] !== "/");
+  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) => {
+    return el !== "</html>" && el !== "</body>";
+  });
   return res;
 }
 function toAttr(regex, child) {

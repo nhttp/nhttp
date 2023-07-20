@@ -1,5 +1,6 @@
-import { isValidElement } from "./is-valid-element.ts";
-
+export * from "./render.ts";
+export * from "./helmet.ts";
+import Helmet from "./helmet.ts";
 // deno-lint-ignore no-explicit-any
 type TRet = any;
 const dangerHTML = "dangerouslySetInnerHTML";
@@ -28,7 +29,6 @@ export type FC<T extends unknown = unknown> = (
   props: JsxProps & T,
 ) => JSX.Element;
 
-export { isValidElement };
 const isValue = <T>(val: T) => val != null;
 function escapeHtml(unsafe: string) {
   return unsafe
@@ -122,3 +122,32 @@ export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
 export const Fragment: FC = ({ children }) => children;
 n.Fragment = Fragment;
 h.Fragment = Fragment;
+
+/**
+ * Client interactive.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <Client src="/assets/js/home.js">
+ *       <h1 id="text">hey</h1>
+ *     </Client>
+ *   )
+ * }
+ * ```
+ */
+export const Client: FC<{ src: string; id?: string; type?: string }> = (
+  props,
+) => {
+  return n(Fragment, {}, [
+    n(
+      Helmet,
+      { footer: true },
+      n(
+        "script",
+        { src: props.src },
+      ),
+    ),
+    n(props.type ?? "div", { id: props.id }, props.children),
+  ]);
+};
