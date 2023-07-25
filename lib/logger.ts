@@ -12,9 +12,9 @@ type Log = {
 const print = (log: Log, pretty = true) => {
   const json = pretty ? log : JSON.stringify(log);
   if (log.status >= 500) {
-    console.log("%cERROR =>", "color: red", json, "\n");
+    console.log("%cERROR =>", "color: red", json);
   } else {
-    console.log("%cINFO =>", "color: green", json, "\n");
+    console.log("%cINFO =>", "color: green", json);
   }
 };
 
