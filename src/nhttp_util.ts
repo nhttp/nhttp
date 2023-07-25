@@ -3,14 +3,24 @@ import { s_response } from "./symbol.ts";
 import { FetchHandler, ListenOptions, TRet } from "./types.ts";
 
 export const awaiter = (rev: RequestEvent) => {
-  return (async (t, d) => {
+  let t: undefined | number;
+  const sleep = (ms: number) => {
+    return new Promise<void>((ok) => {
+      clearTimeout(t);
+      t = setTimeout(ok, ms);
+    });
+  };
+  return (async (a, b, c) => {
     while (rev[s_response] === void 0) {
-      await new Promise((ok) => setTimeout(ok, t));
-      if (t === d) break;
-      t++;
+      await sleep(a * c);
+      if (a === b) {
+        clearTimeout(t);
+        break;
+      }
+      a++;
     }
-    return rev[s_response];
-  })(0, 100);
+    return rev[s_response] ?? new Response(null, { status: 408 });
+  })(0, 10, 200);
 };
 
 export function buildListenOptions(this: TRet, opts: number | ListenOptions) {

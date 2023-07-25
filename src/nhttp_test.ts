@@ -100,7 +100,7 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.get("/", (_rev) => {});
     const noop = await app.handle(myReq());
-    assertEquals(noop, undefined);
+    assertEquals(noop.status, 408);
   });
   await t.step("engine", async () => {
     const app = nhttp();
