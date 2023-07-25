@@ -1348,15 +1348,24 @@ function createRequest(handle, url, init = {}) {
 
 // npm/src/src/nhttp_util.ts
 var awaiter = (rev) => {
-  return (async (t, d) => {
+  let t;
+  const sleep = (ms) => {
+    return new Promise((ok) => {
+      clearTimeout(t);
+      t = setTimeout(ok, ms);
+    });
+  };
+  return (async (a, b, c) => {
     while (rev[s_response] === void 0) {
-      await new Promise((ok) => setTimeout(ok, t));
-      if (t === d)
+      await sleep(a * c);
+      if (a === b) {
+        clearTimeout(t);
         break;
-      t++;
+      }
+      a++;
     }
-    return rev[s_response];
-  })(0, 100);
+    return rev[s_response] ?? new Response(null, { status: 408 });
+  })(0, 10, 200);
 };
 function buildListenOptions(opts) {
   let handler = this.handleRequest;

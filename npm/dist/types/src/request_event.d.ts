@@ -184,6 +184,10 @@ export declare class RequestEvent<O extends TObject = TObject> {
      * const request = rev.newRequest;
      */
     get newRequest(): Request;
+    /**
+     * send data to log. `requires logger middlewares`
+     */
+    log: (data: TRet) => void;
     [deno_inspect](inspect: TRet, opts: TRet): string;
     [node_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;

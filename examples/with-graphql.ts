@@ -1,4 +1,5 @@
-import nhttp, { Handler } from "../mod.ts";
+import yogaHandler from "../lib/yoga.ts";
+import nhttp from "../mod.ts";
 import { createSchema, createYoga } from "npm:graphql-yoga@4.0.3";
 
 const yoga = createYoga({
@@ -16,16 +17,9 @@ const yoga = createYoga({
   }),
 });
 
-const yogaHandler: Handler = async (rev) => {
-  const resp = await yoga(rev.newRequest);
-  return resp;
-  // for nodejs
-  // return new Response(resp.body, resp);
-};
-
 const app = nhttp();
 
-app.any("/graphql", yogaHandler);
+app.any("/graphql", yogaHandler(yoga));
 
 app.listen(8000, (_err, info) => {
   console.log(`Running on port ${info.port}`);
