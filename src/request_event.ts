@@ -333,7 +333,10 @@ export class RequestEvent<O extends TObject = TObject> {
     });
     return this[s_new_req] = new Request(this.request.url, init);
   }
-
+  /**
+   * send data to log. `requires logger middlewares`
+   */
+  log!: (data: TRet) => void;
   [deno_inspect](inspect: TRet, opts: TRet) {
     const ret = revInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;

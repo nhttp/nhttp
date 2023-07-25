@@ -28,9 +28,9 @@ __export(logger_exports, {
 const print = (log, pretty = true) => {
   const json = pretty ? log : JSON.stringify(log);
   if (log.status >= 500) {
-    console.log("%cERROR =>", "color: red", json);
+    console.log("%cERROR =>", "color: red; font-weight: bold", json);
   } else {
-    console.log("%cINFO =>", "color: green", json);
+    console.log("%cINFO =>", "color: green; font-weight: bold", json);
   }
 };
 const logger = (handler) => async (rev, next) => {
