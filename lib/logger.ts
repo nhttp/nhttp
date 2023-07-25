@@ -2,7 +2,7 @@ import type { Handler, TRet } from "./deps.ts";
 
 type Log = {
   timing: string;
-  route: string;
+  route: string | RegExp;
   method: string;
   path: string;
   status: number;
