@@ -199,6 +199,7 @@ export function parseQuery(query: undefined | null | string | FormData) {
     const data: TRet = {};
     const invoke = (key: string) => {
       const el = key.split(/=/);
+      if (el.length > 2) el[1] = el.slice(1).join("=");
       if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]])) data[el[0]] = [data[el[0]]];
         data[el[0]].push(duc(el[1]));
@@ -212,7 +213,6 @@ export function parseQuery(query: undefined | null | string | FormData) {
   }
   return (!query) ? {} : myParse(Array.from(query.entries()));
 }
-
 export function concatRegexp(prefix: string | RegExp, path: RegExp) {
   if (prefix === "") return path;
   prefix = new RegExp(prefix);

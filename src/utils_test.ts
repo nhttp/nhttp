@@ -57,6 +57,10 @@ Deno.test("utils", async (t) => {
     const bytes = toBytes("123");
     assertEquals(bytes, 123);
   });
+  await t.step("parseQuery is url", () => {
+    const obj = parseQuery("url=http://lolcahost/?name=john");
+    assertEquals(obj, { url: "http://lolcahost/?name=john" });
+  });
   await t.step("parseQuery is null", () => {
     const obj = parseQuery(null);
     assertEquals(obj, {});

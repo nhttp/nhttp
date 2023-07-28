@@ -333,6 +333,8 @@ function parseQuery(query) {
     const data = {};
     const invoke = (key) => {
       const el = key.split(/=/);
+      if (el.length > 2)
+        el[1] = el.slice(1).join("=");
       if (data[el[0]] !== void 0) {
         if (!Array.isArray(data[el[0]]))
           data[el[0]] = [data[el[0]]];
