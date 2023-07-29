@@ -61,6 +61,10 @@ Deno.test("utils", async (t) => {
     const obj = parseQuery("url=http://lolcahost/?name=john");
     assertEquals(obj, { url: "http://lolcahost/?name=john" });
   });
+  await t.step("parseQuery is url array", () => {
+    const obj = parseQuery("urls[]=http://lolcahost/?name=john");
+    assertEquals(obj, { urls: ["http://lolcahost/?name=john"] });
+  });
   await t.step("parseQuery is null", () => {
     const obj = parseQuery(null);
     assertEquals(obj, {});

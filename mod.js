@@ -320,6 +320,8 @@ function parseQueryArray(query) {
   const data = [];
   query.split(/&/).forEach((key) => {
     const el = key.split(/=/);
+    if (el.length > 2)
+      el[1] = el.slice(1).join("=");
     data.push([el[0], duc(el[1])]);
   });
   return myParse(data);
