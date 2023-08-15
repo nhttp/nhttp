@@ -7,6 +7,9 @@ const cors = (opts = {}) => {
     let isCheck = false;
     if (typeof origin === "function") {
       origin = await origin(rev);
+      if (origin !== false) {
+        rev.response.setHeader("vary", "Origin");
+      }
       isCheck = true;
     }
     if (origin !== false) {
