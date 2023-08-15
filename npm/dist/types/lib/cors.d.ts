@@ -1,6 +1,6 @@
-import { Handler } from "./deps";
+import type { Handler, RequestEvent } from "./deps";
 type TOptions = {
-    origin?: string | string[] | boolean;
+    origin?: string | string[] | boolean | ((rev: RequestEvent) => Promise<boolean | string> | boolean | string);
     credentials?: boolean;
     allowHeaders?: string | string[];
     allowMethods?: string | string[];
@@ -8,7 +8,11 @@ type TOptions = {
     customHeaders?: Record<string, string>;
     optionsStatus?: number;
     maxAge?: number;
+    /**
+     * @deprecated use `preflightNext` instead
+     */
     preflight?: boolean;
+    preflightNext?: boolean;
 };
 /**
  * Cors middleware.
