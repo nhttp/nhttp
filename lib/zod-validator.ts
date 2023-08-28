@@ -1,6 +1,6 @@
 import { z, ZodSchema } from "https://esm.sh/zod@3.21.4";
 import { joinHandlers, TDecorator } from "./controller.ts";
-import { Handler, HttpError, TRet } from "./deps.ts";
+import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
 
 /**
  * validate using `zod`.
@@ -13,6 +13,7 @@ export function validate<
 >(
   schema: ZodSchema<T>,
   target = <S> "body",
+  onError?: (err: TRet, rev: RequestEvent) => TRet,
 ): Handler<{ [k in S]: T }> {
   return (rev, next) => {
     try {
@@ -23,6 +24,9 @@ export function validate<
       }
       return next();
     } catch (e) {
+      if (onError) {
+        return onError(e, rev as RequestEvent);
+      }
       throw new HttpError(422, e.errors);
     }
   };
@@ -33,9 +37,12 @@ export function validate<
 export function Validate(
   schema: ZodSchema,
   target = "body",
+  onError?: (err: TRet, rev: RequestEvent) => TRet,
 ): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
-    joinHandlers(tgt.constructor.name, prop, [validate(schema, target)]);
+    joinHandlers(tgt.constructor.name, prop, [
+      validate(schema, target, onError),
+    ]);
     return des;
   };
 }

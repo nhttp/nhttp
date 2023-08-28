@@ -7,7 +7,7 @@ let s_glob;
 const def = '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
 const encoder = new TextEncoder();
 const JSON_TYPE = "application/json";
-const build_date = new Date();
+const build_date = /* @__PURE__ */ new Date();
 function cHash(entity) {
   let hash = 0, i = entity.length - 1;
   while (i !== 0)
@@ -86,7 +86,10 @@ async function sendFile(rev, pathFile, opts = {}) {
       const start = 0;
       const end = stat.size - 1;
       if (start >= stat.size || end >= stat.size) {
-        return response.status(416).header("Content-Range", `bytes */${stat.size}`).send();
+        return response.status(416).header(
+          "Content-Range",
+          `bytes */${stat.size}`
+        ).send();
       }
       response.status(206).header({
         "Content-Range": `bytes ${start}-${end}/${stat.size}`,
@@ -126,7 +129,10 @@ const etag = (opts = {}) => {
             if (!type)
               response.type(JSON_TYPE);
           }
-          const hash = entityTag(body instanceof Uint8Array ? body : encoder.encode(body?.toString()), type ? "" + cHash(encoder.encode(type)) : "");
+          const hash = entityTag(
+            body instanceof Uint8Array ? body : encoder.encode(body?.toString()),
+            type ? "" + cHash(encoder.encode(type)) : ""
+          );
           const _etag = weak ? `W/${hash}` : hash;
           response.header("etag", _etag);
           if (nonMatch && nonMatch === _etag) {

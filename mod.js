@@ -130,6 +130,7 @@ var revMimeList = (name) => {
 
 // npm/src/src/error.ts
 var HttpError = class extends Error {
+  status;
   constructor(status, message, name) {
     super(message);
     this.status = status ?? 500;
@@ -307,7 +308,10 @@ function myParse(arr) {
       const prefix = arr2[1] ?? field;
       let keys = arr2[2];
       if (keys) {
-        keys = Array.from(keys.matchAll(/\[([^\]]*)\]/g), (m) => m[1]);
+        keys = Array.from(
+          keys.matchAll(/\[([^\]]*)\]/g),
+          (m) => m[1]
+        );
         value = needPatch(red[prefix], keys, value);
       }
       red[prefix] = value;
@@ -422,7 +426,9 @@ function findParams(el, url) {
     const ret = { ...params, wild: wild.filter((el2) => el2 !== "") };
     if (path === "*" || path.indexOf("/*") !== -1)
       return ret;
-    let wn = path.split("/").find((el2) => el2.startsWith(":") && el2.endsWith("*"));
+    let wn = path.split("/").find(
+      (el2) => el2.startsWith(":") && el2.endsWith("*")
+    );
     if (!wn)
       return ret;
     wn = wn.slice(1, -1);
@@ -463,15 +469,22 @@ var ANY_METHODS = [
   "HEAD"
 ];
 var Router = class {
+  route = {};
+  c_routes = [];
+  midds = [];
+  pmidds;
+  base = "";
   constructor({ base = "" } = {}) {
-    this.route = {};
-    this.c_routes = [];
-    this.midds = [];
-    this.base = "";
     this.base = base;
     if (this.base == "/")
       this.base = "";
   }
+  /**
+   * add middlware or router.
+   * @example
+   * app.use(...middlewares);
+   * app.use('/api/v1', routers);
+   */
   use(prefix, ...routerOrMiddleware) {
     let args = routerOrMiddleware, str = "";
     if (typeof prefix === "function" && !args.length) {
@@ -504,6 +517,11 @@ var Router = class {
     this.midds = this.midds.concat(findFns(args));
     return this;
   }
+  /**
+   * build handlers (app or router)
+   * @example
+   * app.on("GET", "/", ...handlers);
+   */
   on(method, path, ...handlers) {
     if (path instanceof RegExp)
       path = concatRegexp(this.base, path);
@@ -517,33 +535,83 @@ var Router = class {
     this.c_routes.push({ method, path, fns, pmidds: this.pmidds });
     return this;
   }
+  /**
+   * method GET (app or router)
+   * @example
+   * app.get("/", ...handlers);
+   */
   get(path, ...handlers) {
     return this.on("GET", path, ...handlers);
   }
+  /**
+   * method POST (app or router)
+   * @example
+   * app.post("/", ...handlers);
+   */
   post(path, ...handlers) {
     return this.on("POST", path, ...handlers);
   }
+  /**
+   * method PUT (app or router)
+   * @example
+   * app.put("/", ...handlers);
+   */
   put(path, ...handlers) {
     return this.on("PUT", path, ...handlers);
   }
+  /**
+   * method PATCH (app or router)
+   * @example
+   * app.patch("/", ...handlers);
+   */
   patch(path, ...handlers) {
     return this.on("PATCH", path, ...handlers);
   }
+  /**
+   * method DELETE (app or router)
+   * @example
+   * app.delete("/", ...handlers);
+   */
   delete(path, ...handlers) {
     return this.on("DELETE", path, ...handlers);
   }
+  /**
+   * method ANY (allow all method directly) (app or router)
+   * @example
+   * app.any("/", ...handlers);
+   */
   any(path, ...handlers) {
     return this.on("ANY", path, ...handlers);
   }
+  /**
+   * method HEAD (app or router)
+   * @example
+   * app.head("/", ...handlers);
+   */
   head(path, ...handlers) {
     return this.on("HEAD", path, ...handlers);
   }
+  /**
+   * method OPTIONS (app or router)
+   * @example
+   * app.options("/", ...handlers);
+   */
   options(path, ...handlers) {
     return this.on("OPTIONS", path, ...handlers);
   }
+  /**
+   * method TRACE (app or router)
+   * @example
+   * app.trace("/", ...handlers);
+   */
   trace(path, ...handlers) {
     return this.on("TRACE", path, ...handlers);
   }
+  /**
+   * method CONNECT (app or router)
+   * @example
+   * app.connect("/", ...handlers);
+   */
   connect(path, ...handlers) {
     return this.on("CONNECT", path, ...handlers);
   }
@@ -602,7 +670,11 @@ var Multipart = class {
     const len = files.length;
     if (opts?.maxCount) {
       if (len > opts.maxCount) {
-        throw new HttpError(400, `${opts.name} no more than ${opts.maxCount} file`, "BadRequestError");
+        throw new HttpError(
+          400,
+          `${opts.name} no more than ${opts.maxCount} file`,
+          "BadRequestError"
+        );
       }
     }
     while (j < len) {
@@ -610,12 +682,20 @@ var Multipart = class {
       if (opts?.accept) {
         const type = revMimeList(file.type);
         if (!opts.accept.includes(type)) {
-          throw new HttpError(400, `${opts.name} only accept ${opts.accept.toString()}`, "BadRequestError");
+          throw new HttpError(
+            400,
+            `${opts.name} only accept ${opts.accept.toString()}`,
+            "BadRequestError"
+          );
         }
       }
       if (opts?.maxSize) {
         if (file.size > toBytes(opts.maxSize)) {
-          throw new HttpError(400, `${opts.name} to large, maxSize = ${opts.maxSize}`, "BadRequestError");
+          throw new HttpError(
+            400,
+            `${opts.name} to large, maxSize = ${opts.maxSize}`,
+            "BadRequestError"
+          );
         }
       }
       j++;
@@ -665,7 +745,11 @@ var Multipart = class {
     while (j < len) {
       const obj = opts[j];
       if (obj.required && rev.body[obj.name] === void 0) {
-        throw new HttpError(400, `Field ${obj.name} is required`, "BadRequestError");
+        throw new HttpError(
+          400,
+          `Field ${obj.name} is required`,
+          "BadRequestError"
+        );
       }
       if (rev.body[obj.name]) {
         rev.file[obj.name] = rev.body[obj.name];
@@ -690,7 +774,11 @@ var Multipart = class {
   }
   async handleSingleUpload(rev, obj) {
     if (obj.required && rev.body[obj.name] === void 0) {
-      throw new HttpError(400, `Field ${obj.name} is required`, "BadRequestError");
+      throw new HttpError(
+        400,
+        `Field ${obj.name} is required`,
+        "BadRequestError"
+      );
     }
     if (rev.body[obj.name]) {
       rev.file[obj.name] = rev.body[obj.name];
@@ -702,6 +790,17 @@ var Multipart = class {
     }
     this.cleanUp(rev.body);
   }
+  /**
+   * upload handler multipart/form-data.
+   * @example
+   * const upload = multipart.upload({ name: "image" });
+   *
+   * app.post("/save", upload, (rev) => {
+   *    console.log("file", rev.file.image);
+   *    console.log(rev.body);
+   *    return "success upload";
+   * });
+   */
   upload(options) {
     return async (rev, next) => {
       if (rev.request.body !== null) {
@@ -732,7 +831,10 @@ function verify(rev, limit, len) {
   }
   if (limit && len > toBytes(limit)) {
     rev.body = {};
-    throw new HttpError(400, `Body is too large. max limit ${limit}`);
+    throw new HttpError(
+      400,
+      `Body is too large. max limit ${limit}`
+    );
   }
 }
 async function verifyBody(rev, limit) {
@@ -987,10 +1089,20 @@ var HttpResponse = class {
     this.send = send;
     this.init = init;
   }
+  /**
+   * setHeader
+   * @example
+   * response.setHeader("key", "value");
+   */
   setHeader(key, value) {
     (this.init.headers ??= {})[key.toLowerCase()] = value;
     return this;
   }
+  /**
+   * getHeader
+   * @example
+   * const str = response.getHeader("key");
+   */
   getHeader(key) {
     return this.init.headers?.[key.toLowerCase()];
   }
@@ -1025,6 +1137,11 @@ var HttpResponse = class {
     }
     return this.init.status ?? 200;
   }
+  /**
+   * sendStatus
+   * @example
+   * response.sendStatus(204);
+   */
   sendStatus(code) {
     if (code > 511)
       code = 500;
@@ -1034,34 +1151,96 @@ var HttpResponse = class {
       this.status(code).send(null);
     }
   }
+  /**
+   * attachment. create header content-disposition
+   * @example
+   * response.attachment("my_file.txt");
+   * // or
+   * response.attachment();
+   */
   attachment(filename) {
     const c_dis = filename ? `attachment; filename=${filename}` : "attachment;";
     return this.header("content-disposition", c_dis);
   }
+  /**
+   * set/get statusCode
+   * @example
+   * // set status
+   * response.statusCode = 200;
+   *
+   * // get status
+   * const status = response.statusCode;
+   */
   get statusCode() {
     return this.status();
   }
   set statusCode(val) {
     this.status(val);
   }
+  /**
+   * params as json object for `response.render`.
+   * @example
+   * app.get("/", async ({ response } ) => {
+   *   response.params = { title: "Home" };
+   *   await response.render("index");
+   * });
+   */
   get params() {
     return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
   }
+  /**
+   * shorthand for content-type headers
+   * @example
+   * response.type("html").send("<h1>hello, world</h1>");
+   */
   type(contentType) {
     return this.header("content-type", MIME_LIST[contentType] ?? contentType);
   }
+  /**
+   * render `requires app.engine configs`
+   * @example
+   * await response.render("index", {
+   *   key: "value"
+   * });
+   * await response.render(<h1>Hello Jsx</h1>);
+   */
+  render;
+  /**
+   * shorthand for send html body
+   * @example
+   * response.html("<h1>Hello World</h1>");
+   */
   html(html) {
     this.type(HTML_TYPE).send(html);
   }
+  /**
+   * shorthand for send json body
+   * @example
+   * response.json({ name: "john" });
+   */
   json(body) {
     this.send(body);
   }
+  /**
+   * redirect url
+   * @example
+   * response.redirect("/home");
+   * response.redirect("/home", 301);
+   * response.redirect("http://google.com");
+   */
   redirect(url, status) {
     this.header("Location", url).status(status ?? 302).send();
   }
+  /**
+   * cookie
+   * @example
+   * response.cookie("key", "value" , {
+   *    httpOnly: true
+   * });
+   */
   cookie(name, value, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
     opts.path = opts.path || "/";
@@ -1070,12 +1249,23 @@ var HttpResponse = class {
       opts.maxAge /= 1e3;
     }
     value = typeof value === "object" ? "j:" + JSON.stringify(value) : String(value);
-    this.header().append("Set-Cookie", serializeCookie(name, value, opts));
+    this.header().append(
+      "Set-Cookie",
+      serializeCookie(name, value, opts)
+    );
     return this;
   }
+  /**
+   * clear cookie
+   * @example
+   * response.clearCookie("name");
+   */
   clearCookie(name, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append("Set-Cookie", serializeCookie(name, "", { ...opts, expires: new Date(0) }));
+    this.header().append(
+      "Set-Cookie",
+      serializeCookie(name, "", { ...opts, expires: /* @__PURE__ */ new Date(0) })
+    );
   }
   [deno_inspect](inspect2, opts) {
     const ret = resInspect(this);
@@ -1104,7 +1294,10 @@ var JsonResponse = class extends Response {
         init.headers[TYPE] = JSON_TYPE;
     } else
       init.headers = { [TYPE]: JSON_TYPE };
-    super(JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v), init);
+    super(
+      JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v),
+      init
+    );
   }
 };
 
@@ -1112,26 +1305,19 @@ var JsonResponse = class extends Response {
 var RequestEvent = class {
   constructor(request) {
     this.request = request;
-    this.waitUntil = (promise) => {
-      if (promise instanceof Promise) {
-        const ctx = this.request._info?.ctx;
-        if (typeof ctx?.waitUntil === "function") {
-          ctx.waitUntil(promise);
-          return;
-        }
-        promise.catch(console.error);
-        return;
-      }
-      throw new HttpError(500, `${promise} is not a Promise.`);
-    };
-    this.respondWith = (r) => {
-      this[s_response] = r;
-    };
-    this.requestEvent = () => this;
   }
+  /**
+   * response as HttpResponse
+   */
   get response() {
-    return this[s_res] ??= new HttpResponse(this.send.bind(this), this[s_init] = {});
+    return this[s_res] ??= new HttpResponse(
+      this.send.bind(this),
+      this[s_init] = {}
+    );
   }
+  /**
+   * lookup self route
+   */
   get route() {
     if (this[s_route])
       return this[s_route];
@@ -1139,7 +1325,9 @@ var RequestEvent = class {
     if (path !== "/" && path[path.length - 1] === "/") {
       path = path.slice(0, -1);
     }
-    const ret = ROUTE[this.method]?.find((o) => o.pattern?.test(path) || o.path === path);
+    const ret = ROUTE[this.method]?.find(
+      (o) => o.pattern?.test(path) || o.path === path
+    );
     if (ret) {
       if (!ret.pattern) {
         Object.assign(ret, toPathx(ret.path, true));
@@ -1151,6 +1339,19 @@ var RequestEvent = class {
     }
     return this[s_route] ??= ret ?? {};
   }
+  /**
+   * lookup Object info like `conn / env / context`.
+   * requires `showInfo` flags.
+   * @example
+   * ```ts
+   * app.get("/", (rev) => {
+   *   console.log(rev.info);
+   *   return "foo";
+   * });
+   *
+   * app.listen({ port: 8000, showInfo: true });
+   * ```
+   */
   get info() {
     const info = this.request._info;
     return {
@@ -1159,6 +1360,51 @@ var RequestEvent = class {
       context: info?.ctx ?? {}
     };
   }
+  /**
+   * This method tells the event dispatcher that work is ongoing.
+   * It can also be used to detect whether that work was successful.
+   * @example
+   * const cache = await caches.open("my-cache");
+   * app.get("/", async (rev) => {
+   *   let resp = await cache.match(rev.request);
+   *   if (!resp) {
+   *     const init = rev.responseInit;
+   *     resp = new Response("Hello, World", init);
+   *     resp.headers.set("Cache-Control", "max-age=86400, public");
+   *     rev.waitUntil(cache.put(rev.request, resp.clone()));
+   *   }
+   *   rev.respondWith(resp);
+   * });
+   */
+  waitUntil = (promise) => {
+    if (promise instanceof Promise) {
+      const ctx = this.request._info?.ctx;
+      if (typeof ctx?.waitUntil === "function") {
+        ctx.waitUntil(promise);
+        return;
+      }
+      promise.catch(console.error);
+      return;
+    }
+    throw new HttpError(500, `${promise} is not a Promise.`);
+  };
+  /**
+   * The method to be used to respond to the event. The response needs to
+   * either be an instance of {@linkcode Response} or a promise that resolves
+   * with an instance of `Response`.
+   */
+  respondWith = (r) => {
+    this[s_response] = r;
+  };
+  /**
+   * send body
+   * @example
+   * rev.send("hello");
+   * rev.send({ name: "john" });
+   * // or
+   * rev.response.send("hello");
+   * rev.response.send({ name: "john" });
+   */
   send(body, lose) {
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
@@ -1176,75 +1422,162 @@ var RequestEvent = class {
       this[s_response] ??= new Response(body, this[s_init]);
     }
   }
+  /**
+   * Lookup responseInit.
+   */
   get responseInit() {
     return this[s_init] ?? {};
   }
+  /**
+   * search.
+   * @example
+   * const search = rev.search;
+   * console.log(search);
+   */
   get search() {
     return this[s_search] ??= null;
   }
   set search(val) {
     this[s_search] = val;
   }
+  /**
+   * params as json object.
+   * @example
+   * // get "/hello/john/john"
+   * const params = rev.params;
+   * console.log(params);
+   */
   get params() {
     return this[s_params] ??= {};
   }
   set params(val) {
     this[s_params] = val;
   }
+  /**
+   * url
+   * @example
+   * // get "/hello?name=john" in browser.
+   * const url = rev.url;
+   * console.log(url);
+   * // => /hello?name=john
+   */
   get url() {
     return this[s_url] ??= this.originalUrl;
   }
   set url(val) {
     this[s_url] = val;
   }
+  /**
+   * originalUrl
+   * @example
+   * // get "/hello?name=john" in browser.
+   * const url = rev.originalUrl;
+   * console.log(url);
+   * // => /hello?name=john
+   */
   get originalUrl() {
     return this[s_ori_url] ??= getUrl(this.request.url);
   }
   set originalUrl(val) {
     this[s_ori_url] = val;
   }
+  /**
+   * lookup path
+   * @example
+   * // get "/hello" in browser.
+   * const path = rev.path;
+   * console.log(path);
+   * // => /hello
+   */
   get path() {
     return this[s_path] ??= this.url;
   }
   set path(val) {
     this[s_path] = val;
   }
+  /**
+   * lookup query parameter
+   * @example
+   * // get "/hello?name=john" in browser.
+   * const query = rev.query;
+   * console.log(query);
+   * // => { name: "john" }
+   */
   get query() {
     return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ?? {};
   }
   set query(val) {
     this[s_query] = val;
   }
+  /**
+   * body as json object.
+   * @example
+   * const body = rev.body;
+   * console.log(body);
+   */
   get body() {
     return this[s_body] ??= {};
   }
   set body(val) {
     this[s_body] = val;
   }
+  /**
+   * headers.
+   * @example
+   * const type = rev.headers.get("content-type");
+   * console.log(type);
+   */
   get headers() {
     return this[s_headers] ??= this.request.headers;
   }
   set headers(val) {
     this[s_headers] = val;
   }
+  /**
+   * Http request method.
+   * @example
+   * const method = rev.method;
+   * console.log(method);
+   */
   get method() {
     return this[s_method] ??= this.request.method;
   }
   set method(val) {
     this[s_method] = val;
   }
+  /**
+   * file.
+   * @example
+   * const file = rev.file;
+   * console.log(file);
+   */
   get file() {
     return this[s_file] ??= {};
   }
   set file(val) {
     this[s_file] = val;
   }
+  /**
+   * get cookies from request.
+   * @example
+   * const cookie = rev.cookies;
+   * console.log(cookie);
+   */
   get cookies() {
     return this[s_cookies] ??= getReqCookies(this.request.headers, true);
   }
   set cookies(val) {
     this[s_cookies] = val;
   }
+  /**
+   * invoke self RequestEvent
+   */
+  requestEvent = () => this;
+  /**
+   * clone new Request.
+   * @example
+   * const request = rev.newRequest;
+   */
   get newRequest() {
     if (this[s_new_req] !== void 0)
       return this[s_new_req];
@@ -1261,6 +1594,10 @@ var RequestEvent = class {
     });
     return this[s_new_req] = new Request(this.request.url, init);
   }
+  /**
+   * send data to log. `requires logger middlewares`
+   */
+  log;
   [deno_inspect](inspect2, opts) {
     const ret = revInspect(this);
     return `${this.constructor.name} ${inspect2(ret, opts)}`;
@@ -1287,7 +1624,12 @@ function toRes(body) {
 }
 function createRequest(handle, url, init = {}) {
   const res = () => {
-    return handle(new Request(url[0] === "/" ? "http://127.0.0.1:8787" + url : url, init));
+    return handle(
+      new Request(
+        url[0] === "/" ? "http://127.0.0.1:8787" + url : url,
+        init
+      )
+    );
   };
   return {
     text: async () => await (await res()).text(),
@@ -1335,89 +1677,14 @@ function buildListenOptions(opts) {
 
 // npm/src/src/nhttp.ts
 var NHttp = class extends Router {
+  parseQuery;
+  env;
+  flash;
+  stackError;
+  bodyParser;
+  server;
   constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
     super();
-    this.matchFns = (rev, method, url) => {
-      const iof = url.indexOf("?");
-      if (iof !== -1) {
-        rev.path = url.substring(0, iof);
-        rev.__parseQuery = this.parseQuery;
-        rev.search = url.substring(iof);
-        url = rev.path;
-      }
-      return this.find(method, url, (obj) => rev.params = obj, this._on404);
-    };
-    this.handleRequest = async (req) => {
-      const method = req.method, url = getUrl(req.url);
-      let fns = this.route[method + url], noop;
-      if (typeof fns === "function") {
-        try {
-          return toRes(await fns());
-        } catch (err) {
-          noop = err;
-        }
-      }
-      let i = 0;
-      const rev = new RequestEvent(req);
-      fns ??= this.matchFns(rev, method, url);
-      const next = async (err) => {
-        try {
-          rev.send(await (err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next)), 1);
-        } catch (e) {
-          return next(e);
-        }
-        return rev[s_response] ?? awaiter(rev);
-      };
-      if (noop)
-        return next(noop);
-      try {
-        if (method !== "GET") {
-          const opts = this.bodyParser;
-          if (opts === void 0 || opts !== false) {
-            const type = getType(req);
-            if (isTypeBody(type, "application/json") && opts?.json === void 0) {
-              rev.body = JSON.parse(await req.text() || "{}");
-            } else if (type) {
-              await writeBody(rev, type, opts, this.parseQuery);
-            }
-          }
-        }
-        rev.send(await fns[i++](rev, next), 1);
-      } catch (e) {
-        return next(e);
-      }
-      return rev[s_response] ?? awaiter(rev);
-    };
-    this.handle = (req, conn, ctx) => {
-      if (conn)
-        req._info = { conn, ctx };
-      return this.handleRequest(req);
-    };
-    this.handleEvent = (evt) => this.handle(evt.request);
-    this.req = (url, init = {}) => {
-      return createRequest(this.handle, url, init);
-    };
-    this.listen = (options, callback) => {
-      const { opts, handler } = buildListenOptions.bind(this)(options);
-      const runCallback = (err) => {
-        if (callback) {
-          callback(err, {
-            ...opts,
-            hostname: opts.hostname ?? "localhost"
-          });
-          return 1;
-        }
-        return;
-      };
-      try {
-        if (runCallback())
-          opts.onListen = () => {
-          };
-        return this.server = Deno.serve(opts, handler);
-      } catch (error) {
-        runCallback(error);
-      }
-    };
     oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
     this.stackError = stackError !== false;
@@ -1430,6 +1697,13 @@ var NHttp = class extends Router {
       bodyParser2 = void 0;
     this.bodyParser = bodyParser2;
   }
+  /**
+   * global error handling.
+   * @example
+   * app.onError((err, rev) => {
+   *    return err.message;
+   * })
+   */
   onError(fn) {
     this._onError = (err, rev) => {
       try {
@@ -1437,29 +1711,43 @@ var NHttp = class extends Router {
         if (typeof status !== "number")
           status = 500;
         rev.response.status(status);
-        return fn(err, rev, (e) => {
-          if (e) {
-            return rev.response.status(e.status ?? 500).send(String(e));
+        return fn(
+          err,
+          rev,
+          (e) => {
+            if (e) {
+              return rev.response.status(e.status ?? 500).send(String(e));
+            }
+            return this._on404(rev);
           }
-          return this._on404(rev);
-        });
+        );
       } catch (err2) {
         return defError(err2, rev, this.stackError);
       }
     };
     return this;
   }
+  /**
+   * global not found error handling.
+   * @example
+   * app.on404((rev) => {
+   *    return `route ${rev.url} not found`;
+   * })
+   */
   on404(fn) {
     const def = this._on404.bind(this);
     this._on404 = (rev) => {
       try {
         rev.response.status(404);
-        return fn(rev, (e) => {
-          if (e) {
-            return this._onError(e, rev);
+        return fn(
+          rev,
+          (e) => {
+            if (e) {
+              return this._onError(e, rev);
+            }
+            return def(rev);
           }
-          return def(rev);
-        });
+        );
       } catch (err) {
         return defError(err, rev, this.stackError);
       }
@@ -1491,7 +1779,9 @@ var NHttp = class extends Router {
     const { path: oriPath, pattern, wild } = toPathx(path);
     const invoke = (m) => {
       if (pattern) {
-        const idx = (this.route[m] ??= []).findIndex(({ path: path2 }) => path2 === oriPath);
+        const idx = (this.route[m] ??= []).findIndex(
+          ({ path: path2 }) => path2 === oriPath
+        );
         if (idx != -1) {
           this.route[m][idx].fns = this.route[m][idx].fns.concat(fns);
         } else {
@@ -1521,6 +1811,15 @@ var NHttp = class extends Router {
       invoke(method);
     return this;
   }
+  /**
+   * engine - add template engine.
+   * @example
+   * app.engine(ejs.renderFile, { base: "public", ext: "ejs" });
+   *
+   * app.get("/", async ({ response }) => {
+   *   await response.render("index", { title: "hello ejs" });
+   * });
+   */
   engine(render, opts = {}) {
     const check = render.check;
     return this.use((rev, next) => {
@@ -1575,11 +1874,153 @@ var NHttp = class extends Router {
       return next();
     });
   }
+  matchFns = (rev, method, url) => {
+    const iof = url.indexOf("?");
+    if (iof !== -1) {
+      rev.path = url.substring(0, iof);
+      rev.__parseQuery = this.parseQuery;
+      rev.search = url.substring(iof);
+      url = rev.path;
+    }
+    return this.find(
+      method,
+      url,
+      (obj) => rev.params = obj,
+      this._on404
+    );
+  };
+  /**
+   * handleRequest
+   * @example
+   * Deno.serve(app.handleRequest);
+   * // or
+   * Bun.serve({ fetch: app.handleRequest });
+   */
+  handleRequest = async (req) => {
+    const method = req.method, url = getUrl(req.url);
+    let fns = this.route[method + url], noop;
+    if (typeof fns === "function") {
+      try {
+        return toRes(await fns());
+      } catch (err) {
+        noop = err;
+      }
+    }
+    let i = 0;
+    const rev = new RequestEvent(req);
+    fns ??= this.matchFns(rev, method, url);
+    const next = async (err) => {
+      try {
+        rev.send(
+          await (err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next)),
+          1
+        );
+      } catch (e) {
+        return next(e);
+      }
+      return rev[s_response] ?? awaiter(rev);
+    };
+    if (noop)
+      return next(noop);
+    try {
+      if (method !== "GET") {
+        const opts = this.bodyParser;
+        if (opts === void 0 || opts !== false) {
+          const type = getType(req);
+          if (isTypeBody(type, "application/json") && opts?.json === void 0) {
+            rev.body = JSON.parse(await req.text() || "{}");
+          } else if (type) {
+            await writeBody(rev, type, opts, this.parseQuery);
+          }
+        }
+      }
+      rev.send(await fns[i++](rev, next), 1);
+    } catch (e) {
+      return next(e);
+    }
+    return rev[s_response] ?? awaiter(rev);
+  };
+  /**
+   * handle
+   * @example
+   * Deno.serve(app.handle);
+   * // or
+   * Bun.serve({ fetch: app.handle });
+   */
+  handle = (req, conn, ctx) => {
+    if (conn)
+      req._info = { conn, ctx };
+    return this.handleRequest(req);
+  };
+  /**
+   * handleEvent
+   * @example
+   * addEventListener("fetch", (event) => {
+   *   event.respondWith(app.handleEvent(event))
+   * });
+   */
+  handleEvent = (evt) => this.handle(evt.request);
+  /**
+   * Mock request.
+   * @example
+   * app.get("/", () => "hello");
+   * app.post("/", () => "hello, post");
+   *
+   * // mock request
+   * const hello = await app.req("/").text();
+   * assertEquals(hello, "hello");
+   *
+   * // mock request POST
+   * const hello_post = await app.req("/", { method: "POST" }).text();
+   * assertEquals(hello_post, "hello, post");
+   */
+  req = (url, init = {}) => {
+    return createRequest(this.handle, url, init);
+  };
+  /**
+   * listen the server
+   * @example
+   * app.listen(8000);
+   * app.listen({ port: 8000, hostname: 'localhost' });
+   * app.listen({
+   *    port: 443,
+   *    cert: "./path/to/my.crt",
+   *    key: "./path/to/my.key",
+   *    alpnProtocols: ["h2", "http/1.1"]
+   * }, callback);
+   */
+  listen = (options, callback) => {
+    const { opts, handler } = buildListenOptions.bind(this)(options);
+    const runCallback = (err) => {
+      if (callback) {
+        callback(err, {
+          ...opts,
+          hostname: opts.hostname ?? "localhost"
+        });
+        return 1;
+      }
+      return;
+    };
+    try {
+      if (runCallback())
+        opts.onListen = () => {
+        };
+      return this.server = Deno.serve(opts, handler);
+    } catch (error) {
+      runCallback(error);
+    }
+  };
   _onError(err, rev) {
     return defError(err, rev, this.stackError);
   }
   _on404(rev) {
-    const obj = getError(new HttpError(404, `Route ${rev.method}${rev.originalUrl} not found`, "NotFoundError"));
+    const obj = getError(
+      new HttpError(
+        404,
+        `Route ${rev.method}${rev.originalUrl} not found`,
+        "NotFoundError"
+      )
+    );
     rev.response.status(obj.status);
     return obj;
   }
@@ -1612,7 +2053,7 @@ function reqBody(url, body, raw) {
     body: notBody(raw) ? void 0 : body
   });
 }
-var NodeRequest = class {
+var NodeRequest = class _NodeRequest {
   constructor(input, init, raw) {
     this.raw = raw;
     this[s_body2] = input;
@@ -1632,7 +2073,10 @@ var NodeRequest = class {
     });
   }
   get req() {
-    return this[s_def] ??= new globalThis.NativeRequest(this[s_body2], this[s_init2]);
+    return this[s_def] ??= new globalThis.NativeRequest(
+      this[s_body2],
+      this[s_init2]
+    );
   }
   get cache() {
     return this.req.cache;
@@ -1677,7 +2121,11 @@ var NodeRequest = class {
     return this.req.url;
   }
   clone() {
-    const req = new NodeRequest(this[s_body2], this[s_init2], this.raw);
+    const req = new _NodeRequest(
+      this[s_body2],
+      this[s_init2],
+      this.raw
+    );
     return req;
   }
   get body() {
@@ -1718,7 +2166,11 @@ var NodeRequest = class {
   blob() {
     return (async () => {
       if (this.raw) {
-        const req = reqBody(this[s_body2], await this.rawBody, this.raw.req);
+        const req = reqBody(
+          this[s_body2],
+          await this.rawBody,
+          this.raw.req
+        );
         return await req.blob();
       }
       return await this.req.blob();
@@ -1727,7 +2179,11 @@ var NodeRequest = class {
   formData() {
     return (async () => {
       if (this.raw) {
-        const req = reqBody(this[s_body2], await this.rawBody, this.raw.req);
+        const req = reqBody(
+          this[s_body2],
+          await this.rawBody,
+          this.raw.req
+        );
         return await req.formData();
       }
       return await this.req.formData();
@@ -1768,7 +2224,7 @@ var NodeRequest = class {
 // npm/src/node/response.ts
 var C_TYPE2 = "Content-Type";
 var JSON_TYPE2 = "application/json";
-var NodeResponse = class {
+var NodeResponse = class _NodeResponse {
   constructor(body, init) {
     this[s_body2] = body;
     this[s_init2] = init;
@@ -1782,17 +2238,23 @@ var NodeResponse = class {
   static json(data, init = {}) {
     if (init.headers) {
       if (init.headers.get && typeof init.headers.get === "function") {
-        init.headers.set(C_TYPE2, init.headers.get(C_TYPE2) ?? JSON_TYPE2);
+        init.headers.set(
+          C_TYPE2,
+          init.headers.get(C_TYPE2) ?? JSON_TYPE2
+        );
       } else {
         init.headers[C_TYPE2] ??= JSON_TYPE2;
       }
     } else {
       init.headers = { [C_TYPE2]: JSON_TYPE2 };
     }
-    return new NodeResponse(JSON.stringify(data), init);
+    return new _NodeResponse(JSON.stringify(data), init);
   }
   get res() {
-    return this[s_def] ??= new globalThis.NativeResponse(this[s_body2], this[s_init2]);
+    return this[s_def] ??= new globalThis.NativeResponse(
+      this[s_body2],
+      this[s_init2]
+    );
   }
   get headers() {
     return this[s_headers2] ??= new Headers(this[s_init2]?.headers);
@@ -1822,7 +2284,7 @@ var NodeResponse = class {
     return this.res.bodyUsed;
   }
   clone() {
-    return new NodeResponse(this[s_body2], this[s_init2]);
+    return new _NodeResponse(this[s_body2], this[s_init2]);
   }
   arrayBuffer() {
     return this.res.arrayBuffer();
@@ -1868,7 +2330,13 @@ function mutateResponse() {
   }
 }
 async function handleNode(handler, req, res) {
-  let resWeb = await handler(new NodeRequest(req.url[0] === "/" ? `http://${req.headers.host}${req.url}` : req.url, void 0, { req, res }));
+  let resWeb = await handler(
+    new NodeRequest(
+      req.url[0] === "/" ? `http://${req.headers.host}${req.url}` : req.url,
+      void 0,
+      { req, res }
+    )
+  );
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {
@@ -1926,9 +2394,12 @@ async function serveNode(handler, opts = {
       server = await import("node:http");
     createServer = server.createServer;
   }
-  return createServer(opts, (req, res) => {
-    setImmediate(() => handleNode(handler, req, res));
-  }).listen(port);
+  return createServer(
+    opts,
+    (req, res) => {
+      setImmediate(() => handleNode(handler, req, res));
+    }
+  ).listen(port);
 }
 
 // npm/src/index.ts
@@ -2008,6 +2479,17 @@ var writeFile = async (...args) => {
 };
 var multipart2 = {
   createBody: multipart.createBody,
+  /**
+   * upload handler multipart/form-data.
+   * @example
+   * const upload = multipart.upload({ name: "image" });
+   *
+   * app.post("/save", upload, (rev) => {
+   *    console.log("file", rev.file.image);
+   *    console.log(rev.body);
+   *    return "success upload";
+   * });
+   */
   upload: (opts) => {
     if (typeof Deno !== "undefined")
       return multipart.upload(opts);

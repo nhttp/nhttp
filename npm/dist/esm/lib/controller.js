@@ -84,7 +84,9 @@ function Wares(...middlewares) {
 function Status(status) {
   return (target, prop, des) => {
     const statusFn = (rev, next) => {
-      rev.response.status(typeof status === "function" ? status(rev, next) : status);
+      rev.response.status(
+        typeof status === "function" ? status(rev, next) : status
+      );
       return next();
     };
     const className = target.constructor.name;
@@ -107,7 +109,9 @@ function Type(name) {
 function Header(header) {
   return (target, prop, des) => {
     const headerFn = (rev, next) => {
-      rev.response.header(typeof header === "function" ? header(rev, next) : header);
+      rev.response.header(
+        typeof header === "function" ? header(rev, next) : header
+      );
       return next();
     };
     const className = target.constructor.name;
@@ -167,13 +171,17 @@ function Controller(path, ...middlewares) {
       }
     }
     const ori = target;
-    const fn = Object.defineProperty(function(...args) {
-      const t = new ori(...args);
-      Object.assign(t, target.prototype);
-      Object.assign(ori.prototype, t);
-      t.c_routes = cRoutes;
-      return t;
-    }, "name", { value: className });
+    const fn = Object.defineProperty(
+      function(...args) {
+        const t = new ori(...args);
+        Object.assign(t, target.prototype);
+        Object.assign(ori.prototype, t);
+        t.c_routes = cRoutes;
+        return t;
+      },
+      "name",
+      { value: className }
+    );
     return fn;
   };
 }

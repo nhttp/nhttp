@@ -2,24 +2,19 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __reExport = (target, module2, copyDefault, desc) => {
-  if (module2 && typeof module2 === "object" || typeof module2 === "function") {
-    for (let key of __getOwnPropNames(module2))
-      if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
-        __defProp(target, key, { get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable });
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
   }
-  return target;
+  return to;
 };
-var __toCommonJS = /* @__PURE__ */ ((cache) => {
-  return (module2, temp) => {
-    return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
-  };
-})(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var controller_exports = {};
 __export(controller_exports, {
   Any: () => Any,
@@ -45,6 +40,7 @@ __export(controller_exports, {
   addRoute: () => addRoute,
   joinHandlers: () => joinHandlers
 });
+module.exports = __toCommonJS(controller_exports);
 var import_deps = require("./deps");
 function concatRegexp(prefix, path) {
   if (prefix === "")
@@ -128,7 +124,9 @@ function Wares(...middlewares) {
 function Status(status) {
   return (target, prop, des) => {
     const statusFn = (rev, next) => {
-      rev.response.status(typeof status === "function" ? status(rev, next) : status);
+      rev.response.status(
+        typeof status === "function" ? status(rev, next) : status
+      );
       return next();
     };
     const className = target.constructor.name;
@@ -151,7 +149,9 @@ function Type(name) {
 function Header(header) {
   return (target, prop, des) => {
     const headerFn = (rev, next) => {
-      rev.response.header(typeof header === "function" ? header(rev, next) : header);
+      rev.response.header(
+        typeof header === "function" ? header(rev, next) : header
+      );
       return next();
     };
     const className = target.constructor.name;
@@ -211,17 +211,20 @@ function Controller(path, ...middlewares) {
       }
     }
     const ori = target;
-    const fn = Object.defineProperty(function(...args) {
-      const t = new ori(...args);
-      Object.assign(t, target.prototype);
-      Object.assign(ori.prototype, t);
-      t.c_routes = cRoutes;
-      return t;
-    }, "name", { value: className });
+    const fn = Object.defineProperty(
+      function(...args) {
+        const t = new ori(...args);
+        Object.assign(t, target.prototype);
+        Object.assign(ori.prototype, t);
+        t.c_routes = cRoutes;
+        return t;
+      },
+      "name",
+      { value: className }
+    );
     return fn;
   };
 }
-module.exports = __toCommonJS(controller_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Any,

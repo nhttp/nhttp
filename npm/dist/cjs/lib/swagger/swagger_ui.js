@@ -2,28 +2,24 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __reExport = (target, module2, copyDefault, desc) => {
-  if (module2 && typeof module2 === "object" || typeof module2 === "function") {
-    for (let key of __getOwnPropNames(module2))
-      if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
-        __defProp(target, key, { get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable });
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
   }
-  return target;
+  return to;
 };
-var __toCommonJS = /* @__PURE__ */ ((cache) => {
-  return (module2, temp) => {
-    return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
-  };
-})(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var swagger_ui_exports = {};
 __export(swagger_ui_exports, {
   swaggerUi: () => swaggerUi
 });
+module.exports = __toCommonJS(swagger_ui_exports);
 const base_lib_swagger = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.51.1";
 const favIconHtml = '<link rel="icon" type="image/png" href="<% url_lib_swagger %>/favicon-32x32.png" sizes="32x32" /><link rel="icon" type="image/png" href="<% url_lib_swagger %>/favicon-16x16.png" sizes="16x16" />';
 let swaggerInit = "";
@@ -96,9 +92,9 @@ const htmlTplString = `
 
 <div id="swagger-ui"></div>
 
-<script src="<% url_lib_swagger %>/swagger-ui-bundle.js"> <\/script>
-<script src="<% url_lib_swagger %>/swagger-ui-standalone-preset.js"> <\/script>
-<script src="<% base %>/swagger-ui-init.js"> <\/script>
+<script src="<% url_lib_swagger %>/swagger-ui-bundle.js"> </script>
+<script src="<% url_lib_swagger %>/swagger-ui-standalone-preset.js"> </script>
+<script src="<% base %>/swagger-ui-init.js"> </script>
 <% customCssUrl %>
 <style>
   <% customCss %>
@@ -169,9 +165,18 @@ const generateHTML = (swaggerDoc, opts = {}) => {
   const _jsTplString = opts.jsTplString || jsTplString;
   const favIconString = customfavIcon ? '<link rel="icon" href="' + customfavIcon + '" />' : favIconHtml;
   const htmlWithCustomCss = _htmlTplString.toString().replace("<% customCss %>", customCss);
-  const htmlWithFavIcon = htmlWithCustomCss.replace("<% favIconString %>", favIconString);
-  const htmlWithCustomJs = htmlWithFavIcon.replace("<% customJs %>", customJs ? `<script src="${customJs}"><\/script>` : "");
-  const htmlWithCustomCssUrl = htmlWithCustomJs.replace("<% customCssUrl %>", customCssUrl ? `<link href="${customCssUrl}" rel="stylesheet">` : "");
+  const htmlWithFavIcon = htmlWithCustomCss.replace(
+    "<% favIconString %>",
+    favIconString
+  );
+  const htmlWithCustomJs = htmlWithFavIcon.replace(
+    "<% customJs %>",
+    customJs ? `<script src="${customJs}"></script>` : ""
+  );
+  const htmlWithCustomCssUrl = htmlWithCustomJs.replace(
+    "<% customCssUrl %>",
+    customCssUrl ? `<link href="${customCssUrl}" rel="stylesheet">` : ""
+  );
   const initOptions = {
     swaggerDoc: swaggerDoc || void 0,
     customOptions: options,
@@ -183,9 +188,15 @@ const generateHTML = (swaggerDoc, opts = {}) => {
 };
 const setup = (swaggerDoc, opts = {}) => {
   let html = generateHTML(swaggerDoc, opts);
-  html = html.replaceAll("<% url_lib_swagger %>", opts.baseUrlLibSwagger ? opts.baseUrlLibSwagger : base_lib_swagger);
+  html = html.replaceAll(
+    "<% url_lib_swagger %>",
+    opts.baseUrlLibSwagger ? opts.baseUrlLibSwagger : base_lib_swagger
+  );
   return ({ response, path }) => {
-    html = html.replaceAll("<% base %>", path);
+    html = html.replaceAll(
+      "<% base %>",
+      path
+    );
     response.type("html");
     return html;
   };
@@ -199,20 +210,23 @@ const serveInitAssets = () => {
 const stringify = (obj) => {
   const placeholder = "____FUNCTIONPLACEHOLDER____";
   const fns = [];
-  let json = JSON.stringify(obj, function(_, value) {
-    if (typeof value === "function") {
-      fns.push(value);
-      return placeholder;
-    }
-    return value;
-  }, 2);
+  let json = JSON.stringify(
+    obj,
+    function(_, value) {
+      if (typeof value === "function") {
+        fns.push(value);
+        return placeholder;
+      }
+      return value;
+    },
+    2
+  );
   json = json.replace(new RegExp('"' + placeholder + '"', "g"), function(_) {
     return fns.shift();
   });
   return "var options = " + json + ";";
 };
 const swaggerUi = { setup, serveInitAssets };
-module.exports = __toCommonJS(swagger_ui_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   swaggerUi

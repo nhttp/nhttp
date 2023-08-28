@@ -46,7 +46,11 @@ function serveStatic(dir, opts = {}) {
       } catch {
         if (opts.spa && opts.redirect) {
           try {
-            return await sendFile(rev, decURIComponent(dir + "/" + index), opts);
+            return await sendFile(
+              rev,
+              decURIComponent(dir + "/" + index),
+              opts
+            );
           } catch {
           }
         }
