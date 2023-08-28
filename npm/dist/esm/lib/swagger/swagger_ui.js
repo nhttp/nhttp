@@ -70,9 +70,9 @@ const htmlTplString = `
 
 <div id="swagger-ui"></div>
 
-<script src="<% url_lib_swagger %>/swagger-ui-bundle.js"> <\/script>
-<script src="<% url_lib_swagger %>/swagger-ui-standalone-preset.js"> <\/script>
-<script src="<% base %>/swagger-ui-init.js"> <\/script>
+<script src="<% url_lib_swagger %>/swagger-ui-bundle.js"> </script>
+<script src="<% url_lib_swagger %>/swagger-ui-standalone-preset.js"> </script>
+<script src="<% base %>/swagger-ui-init.js"> </script>
 <% customCssUrl %>
 <style>
   <% customCss %>
@@ -143,9 +143,18 @@ const generateHTML = (swaggerDoc, opts = {}) => {
   const _jsTplString = opts.jsTplString || jsTplString;
   const favIconString = customfavIcon ? '<link rel="icon" href="' + customfavIcon + '" />' : favIconHtml;
   const htmlWithCustomCss = _htmlTplString.toString().replace("<% customCss %>", customCss);
-  const htmlWithFavIcon = htmlWithCustomCss.replace("<% favIconString %>", favIconString);
-  const htmlWithCustomJs = htmlWithFavIcon.replace("<% customJs %>", customJs ? `<script src="${customJs}"><\/script>` : "");
-  const htmlWithCustomCssUrl = htmlWithCustomJs.replace("<% customCssUrl %>", customCssUrl ? `<link href="${customCssUrl}" rel="stylesheet">` : "");
+  const htmlWithFavIcon = htmlWithCustomCss.replace(
+    "<% favIconString %>",
+    favIconString
+  );
+  const htmlWithCustomJs = htmlWithFavIcon.replace(
+    "<% customJs %>",
+    customJs ? `<script src="${customJs}"></script>` : ""
+  );
+  const htmlWithCustomCssUrl = htmlWithCustomJs.replace(
+    "<% customCssUrl %>",
+    customCssUrl ? `<link href="${customCssUrl}" rel="stylesheet">` : ""
+  );
   const initOptions = {
     swaggerDoc: swaggerDoc || void 0,
     customOptions: options,
@@ -157,9 +166,15 @@ const generateHTML = (swaggerDoc, opts = {}) => {
 };
 const setup = (swaggerDoc, opts = {}) => {
   let html = generateHTML(swaggerDoc, opts);
-  html = html.replaceAll("<% url_lib_swagger %>", opts.baseUrlLibSwagger ? opts.baseUrlLibSwagger : base_lib_swagger);
+  html = html.replaceAll(
+    "<% url_lib_swagger %>",
+    opts.baseUrlLibSwagger ? opts.baseUrlLibSwagger : base_lib_swagger
+  );
   return ({ response, path }) => {
-    html = html.replaceAll("<% base %>", path);
+    html = html.replaceAll(
+      "<% base %>",
+      path
+    );
     response.type("html");
     return html;
   };
@@ -173,13 +188,17 @@ const serveInitAssets = () => {
 const stringify = (obj) => {
   const placeholder = "____FUNCTIONPLACEHOLDER____";
   const fns = [];
-  let json = JSON.stringify(obj, function(_, value) {
-    if (typeof value === "function") {
-      fns.push(value);
-      return placeholder;
-    }
-    return value;
-  }, 2);
+  let json = JSON.stringify(
+    obj,
+    function(_, value) {
+      if (typeof value === "function") {
+        fns.push(value);
+        return placeholder;
+      }
+      return value;
+    },
+    2
+  );
   json = json.replace(new RegExp('"' + placeholder + '"', "g"), function(_) {
     return fns.shift();
   });

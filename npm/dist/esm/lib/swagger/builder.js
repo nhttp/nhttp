@@ -1,21 +1,19 @@
 class DocumentBuilder {
-  constructor() {
-    this._doc = {
-      openapi: "3.0.0",
-      info: {
-        title: "",
-        description: "",
-        version: "1.0.0",
-        contact: {}
-      },
-      tags: [],
-      servers: [],
-      components: {
-        schemas: {}
-      },
-      definitions: {}
-    };
-  }
+  _doc = {
+    openapi: "3.0.0",
+    info: {
+      title: "",
+      description: "",
+      version: "1.0.0",
+      contact: {}
+    },
+    tags: [],
+    servers: [],
+    components: {
+      schemas: {}
+    },
+    definitions: {}
+  };
   setHost(str) {
     this._doc.host = str;
     return this;

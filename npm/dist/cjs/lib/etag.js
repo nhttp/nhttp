@@ -4,27 +4,27 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __reExport = (target, module2, copyDefault, desc) => {
-  if (module2 && typeof module2 === "object" || typeof module2 === "function") {
-    for (let key of __getOwnPropNames(module2))
-      if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
-        __defProp(target, key, { get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable });
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
   }
-  return target;
+  return to;
 };
-var __toESM = (module2, isNodeMode) => {
-  return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", !isNodeMode && module2 && module2.__esModule ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
-};
-var __toCommonJS = /* @__PURE__ */ ((cache) => {
-  return (module2, temp) => {
-    return cache && cache.get(module2) || (temp = __reExport(__markAsModule({}), module2, 1), cache && cache.set(module2, temp), temp);
-  };
-})(typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : 0);
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var etag_exports = {};
 __export(etag_exports, {
   default: () => etag_default,
@@ -32,13 +32,14 @@ __export(etag_exports, {
   getContentType: () => getContentType,
   sendFile: () => sendFile
 });
+module.exports = __toCommonJS(etag_exports);
 var import_deps = require("./deps");
 let fs_glob;
 let s_glob;
 const def = '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
 const encoder = new TextEncoder();
 const JSON_TYPE = "application/json";
-const build_date = new Date();
+const build_date = /* @__PURE__ */ new Date();
 function cHash(entity) {
   let hash = 0, i = entity.length - 1;
   while (i !== 0)
@@ -117,7 +118,10 @@ async function sendFile(rev, pathFile, opts = {}) {
       const start = 0;
       const end = stat.size - 1;
       if (start >= stat.size || end >= stat.size) {
-        return response.status(416).header("Content-Range", `bytes */${stat.size}`).send();
+        return response.status(416).header(
+          "Content-Range",
+          `bytes */${stat.size}`
+        ).send();
       }
       response.status(206).header({
         "Content-Range": `bytes ${start}-${end}/${stat.size}`,
@@ -157,7 +161,10 @@ const etag = (opts = {}) => {
             if (!type)
               response.type(JSON_TYPE);
           }
-          const hash = entityTag(body instanceof Uint8Array ? body : encoder.encode(body?.toString()), type ? "" + cHash(encoder.encode(type)) : "");
+          const hash = entityTag(
+            body instanceof Uint8Array ? body : encoder.encode(body?.toString()),
+            type ? "" + cHash(encoder.encode(type)) : ""
+          );
           const _etag = weak ? `W/${hash}` : hash;
           response.header("etag", _etag);
           if (nonMatch && nonMatch === _etag) {
@@ -190,7 +197,6 @@ async function getIo() {
   return s_glob = {};
 }
 var etag_default = etag;
-module.exports = __toCommonJS(etag_exports);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   etag,

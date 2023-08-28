@@ -1,5 +1,5 @@
-export * from "./render";
-export * from "./helmet";
+export * from "./render.js";
+export * from "./helmet.js";
 import Helmet from "./helmet.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const isValue = (val) => val != null;
@@ -7,7 +7,10 @@ function escapeHtml(unsafe) {
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 const toStyle = (val) => {
-  return Object.keys(val).reduce((a, b) => a + b.split(/(?=[A-Z])/).join("-").toLowerCase() + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";", "");
+  return Object.keys(val).reduce(
+    (a, b) => a + b.split(/(?=[A-Z])/).join("-").toLowerCase() + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
+    ""
+  );
 };
 function n(type, props, ...args) {
   props ??= {};
@@ -59,7 +62,14 @@ n.Fragment = Fragment;
 h.Fragment = Fragment;
 const Client = (props) => {
   return n(Fragment, {}, [
-    n(Helmet, { footer: true }, n("script", { src: props.src })),
+    n(
+      Helmet,
+      { footer: true },
+      n(
+        "script",
+        { src: props.src }
+      )
+    ),
     n(props.type ?? "div", { id: props.id }, props.children)
   ]);
 };

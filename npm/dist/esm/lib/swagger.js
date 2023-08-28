@@ -188,7 +188,9 @@ function ApiDocument(objOrArr) {
       }
     }
     metadata["doc_paths"] = (metadata["doc_paths"] || []).concat(doc_paths);
-    metadata["doc_tags"] = (metadata["doc_tags"] || []).concat(tags);
+    metadata["doc_tags"] = (metadata["doc_tags"] || []).concat(
+      tags
+    );
   };
 }
 import { DocumentBuilder } from "./swagger/builder.js";

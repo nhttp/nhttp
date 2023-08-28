@@ -33,7 +33,9 @@ const jwt = (secretOrOptions) => {
           token = credentials;
         } else {
           if (opts.credentials) {
-            throw new UnauthorizedError("Format is Authorization: Bearer [token]");
+            throw new UnauthorizedError(
+              "Format is Authorization: Bearer [token]"
+            );
           } else {
             return next();
           }

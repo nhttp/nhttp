@@ -25,7 +25,10 @@ const cors = (opts = {}) => {
         }
       }
       if (origin.length) {
-        rev.response.setHeader("access-control-allow-origin", origin.toString());
+        rev.response.setHeader(
+          "access-control-allow-origin",
+          origin.toString()
+        );
       }
     }
   };
@@ -36,21 +39,35 @@ const cors = (opts = {}) => {
       response.setHeader("access-control-allow-credentials", "true");
     }
     if (opts.exposeHeaders !== void 0) {
-      response.setHeader("access-control-expose-headers", opts.exposeHeaders.toString());
+      response.setHeader(
+        "access-control-expose-headers",
+        opts.exposeHeaders.toString()
+      );
     }
     if (opts.customHeaders)
       response.header(opts.customHeaders);
     if (request.method === "OPTIONS") {
-      const allowHeaders = opts.allowHeaders ?? request.headers.get("access-control-request-headers") ?? "";
+      const allowHeaders = opts.allowHeaders ?? request.headers.get(
+        "access-control-request-headers"
+      ) ?? "";
       if (allowHeaders.length) {
-        response.setHeader("access-control-allow-headers", allowHeaders.toString());
+        response.setHeader(
+          "access-control-allow-headers",
+          allowHeaders.toString()
+        );
         response.header().append("vary", "Access-Control-Request-Headers");
       }
       if (opts.allowMethods?.length) {
-        response.setHeader("access-control-allow-methods", opts.allowMethods.toString());
+        response.setHeader(
+          "access-control-allow-methods",
+          opts.allowMethods.toString()
+        );
       }
       if (opts.maxAge !== void 0) {
-        response.setHeader("access-control-max-age", opts.maxAge.toString());
+        response.setHeader(
+          "access-control-max-age",
+          opts.maxAge.toString()
+        );
       }
       if (opts.preflightNext)
         return next();

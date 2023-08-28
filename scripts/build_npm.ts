@@ -1,5 +1,5 @@
 import { emptyDir } from "https://deno.land/std@0.167.0/fs/empty_dir.ts";
-import * as esbuild from "https://deno.land/x/esbuild@v0.14.25/mod.js";
+import * as esbuild from "https://deno.land/x/esbuild@v0.19.2/mod.js";
 import { getNames, replaceTs } from "./convert.ts";
 
 await emptyDir("./npm");
@@ -73,8 +73,14 @@ function writeEsbuildFalse(dirFile: string, file: string, text: string) {
   try {
     Deno.writeTextFileSync(
       file,
-      text.replaceAll(/(import[{}\sa-z,A-Z0-9,_]+from "\.\/[^"]+)"/gm, '$1.js"')
-        .replaceAll(/(export[{}\sa-z,A-Z0-9,_]+from "\.\/[^"]+)"/gm, '$1.js"'),
+      text.replaceAll(
+        /(import[{}\sa-z,A-Z0-9,_,*]+from "\.\/[^"]+)"/gm,
+        '$1.js"',
+      )
+        .replaceAll(
+          /(export[{}\sa-z,A-Z0-9,_,*]+from "\.\/[^"]+)"/gm,
+          '$1.js"',
+        ),
     );
   } catch (_e) {
     Deno.mkdir(dirFile, { recursive: true });
@@ -123,7 +129,7 @@ const pkg = {
   "name": "nhttp-land",
   "description": "An Simple web-framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./dist/types/index.d.ts",

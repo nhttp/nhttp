@@ -17,6 +17,9 @@ function validate(cls, opts = {}, target = "body") {
       }
       await validateOrReject(obj, opts);
     } catch (error) {
+      if (opts.onError) {
+        return opts.onError(error, rev);
+      }
       throw new HttpError(422, error);
     }
     return next();

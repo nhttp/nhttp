@@ -1,5 +1,5 @@
 import { ValidatorOptions } from "class-validator";
-import { Handler, TRet } from "./deps";
+import { Handler, RequestEvent, TRet } from "./deps";
 import { TDecorator } from "./controller";
 export * from "class-validator";
 type Class = {
@@ -7,6 +7,7 @@ type Class = {
 };
 type TOptions = ValidatorOptions & {
     plainToClass?: (...args: TRet) => TRet;
+    onError?: (err: TRet, rev: RequestEvent) => TRet;
 };
 /**
  * validate using `class-validator`.
