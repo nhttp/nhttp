@@ -1,7 +1,7 @@
 import { RequestEvent } from "./request_event.ts";
 import { s_response } from "./symbol.ts";
-import { FetchHandler, ListenOptions, TRet } from "./types.ts";
-
+import { FetchHandler, ListenOptions, NextFunction, TRet } from "./types.ts";
+type HandleRes = (res: TRet, rev: RequestEvent) => TRet;
 export const awaiter = (rev: RequestEvent) => {
   let t: undefined | number;
   const sleep = (ms: number) => {
@@ -22,6 +22,19 @@ export const awaiter = (rev: RequestEvent) => {
     return rev[s_response] ?? new Response(null, { status: 408 });
   })(0, 10, 200);
 };
+
+const onRes: HandleRes = (ret, rev) => {
+  rev.send(ret, 1);
+  return rev[s_response] ?? awaiter(rev);
+};
+
+const onAsyncRes: HandleRes = async (ret, rev) => onRes(await ret, rev);
+
+export const onNext = (
+  ret: TRet,
+  rev: RequestEvent,
+  next: NextFunction,
+) => ret?.then ? onAsyncRes(ret, rev).catch(next) : onRes(ret, rev);
 
 export function buildListenOptions(this: TRet, opts: number | ListenOptions) {
   let handler: FetchHandler = this.handleRequest;

@@ -1,6 +1,6 @@
+import { Helmet } from "./helmet.js";
 export * from "./render.js";
 export * from "./helmet.js";
-import Helmet from "./helmet.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const isValue = (val) => val != null;
 function escapeHtml(unsafe) {

@@ -1,4 +1,4 @@
-import Helmet from "./helmet.js";
+import { Helmet } from "./helmet.js";
 import { n } from "./index.js";
 import { isValidElement } from "./is-valid-element.js";
 const renderToString = (elem) => elem;

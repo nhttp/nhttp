@@ -22,8 +22,8 @@ type TOptions = {
  */
 export declare const jwt: {
     (secretOrOptions: string | TOptions): Handler | Handler[];
-    encode: typeof jwts.encode;
-    decode: typeof jwts.decode;
+    encode: any;
+    decode: any;
 };
 export declare function Jwt(secretOrOptions: string | TOptions): TDecorator;
 export default jwt;

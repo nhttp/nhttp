@@ -18,23 +18,24 @@ async function readDir(dir: string) {
   await getFiles(dir);
   return files;
 }
-
+const REG_SLUG = /\[\.\.\./gi;
+const REG_PARAM = /\[/gi;
+const REG_PATH = /\//gi;
 function mutatePath(el: string) {
   let path = el.substring(0, el.lastIndexOf("."));
   if (path.endsWith("/index")) {
     path = path.substring(0, path.lastIndexOf("/index"));
   }
   if (path === "") path = "/";
-  path = "/" + path.split("/").reduce((curr, val) => {
-    if (val.startsWith("[...") && val.endsWith("]")) {
-      return curr + "/:" + val.slice(4, val.length - 1) + "*";
+  return path.split(REG_PATH).map((el) => {
+    if (REG_SLUG.test(el)) {
+      return el.replace(REG_SLUG, ":").replace(/]/g, "*");
     }
-    if (val.startsWith("[") && val.endsWith("]")) {
-      return curr + "/:" + val.slice(1, val.length - 1);
+    if (REG_PARAM.test(el)) {
+      return el.replace(REG_PARAM, ":").replace(/]/g, "");
     }
-    return val;
-  }, "");
-  return path;
+    return el;
+  }).join("/");
 }
 /**
  * getRouteFromDir. Lookup route from dir.

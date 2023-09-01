@@ -1,5 +1,5 @@
 import type { RequestEvent, TRet } from "../deps.ts";
-import Helmet, { type HelmetRewind } from "./helmet.ts";
+import { Helmet, type HelmetRewind } from "./helmet.ts";
 import { n } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 

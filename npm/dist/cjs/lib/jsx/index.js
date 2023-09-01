@@ -1,8 +1,6 @@
-var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -17,14 +15,6 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __reExport = (target, mod, secondTarget) => (__copyProps(target, mod, "default"), secondTarget && __copyProps(secondTarget, mod, "default"));
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var jsx_exports = {};
 __export(jsx_exports, {
@@ -34,9 +24,9 @@ __export(jsx_exports, {
   n: () => n
 });
 module.exports = __toCommonJS(jsx_exports);
+var import_helmet = require("./helmet");
 __reExport(jsx_exports, require("./render"), module.exports);
 __reExport(jsx_exports, require("./helmet"), module.exports);
-var import_helmet = __toESM(require("./helmet"), 1);
 const dangerHTML = "dangerouslySetInnerHTML";
 const isValue = (val) => val != null;
 function escapeHtml(unsafe) {
@@ -99,7 +89,7 @@ h.Fragment = Fragment;
 const Client = (props) => {
   return n(Fragment, {}, [
     n(
-      import_helmet.default,
+      import_helmet.Helmet,
       { footer: true },
       n(
         "script",

@@ -1,6 +1,6 @@
+import { Helmet } from "./helmet.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
-import Helmet from "./helmet.ts";
 // deno-lint-ignore no-explicit-any
 type TRet = any;
 const dangerHTML = "dangerouslySetInnerHTML";
