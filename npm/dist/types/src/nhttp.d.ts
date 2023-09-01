@@ -39,6 +39,7 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
         check?: (elem: TRet) => boolean;
     }, opts?: EngineOptions): this;
     matchFns: (rev: RequestEvent, method: string, url: string) => import("./types").Handler<Rev>[];
+    private onErr;
     /**
      * handleRequest
      * @example
@@ -78,18 +79,6 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * assertEquals(hello_post, "hello, post");
      */
     req: (url: string, init?: RequestInit) => {
-        /**
-         * listen the server
-         * @example
-         * app.listen(8000);
-         * app.listen({ port: 8000, hostname: 'localhost' });
-         * app.listen({
-         *    port: 443,
-         *    cert: "./path/to/my.crt",
-         *    key: "./path/to/my.key",
-         *    alpnProtocols: ["h2", "http/1.1"]
-         * }, callback);
-         */
         text: () => Promise<string>;
         json: () => Promise<any>;
         ok: () => Promise<boolean>;

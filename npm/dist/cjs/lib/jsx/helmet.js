@@ -17,8 +17,7 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var helmet_exports = {};
 __export(helmet_exports, {
-  Helmet: () => Helmet,
-  default: () => helmet_default
+  Helmet: () => Helmet
 });
 module.exports = __toCommonJS(helmet_exports);
 class Attr extends Map {
@@ -103,7 +102,6 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-var helmet_default = Helmet;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Helmet

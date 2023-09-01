@@ -133,5 +133,3 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-
-export default Helmet;

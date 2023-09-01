@@ -38,6 +38,9 @@ async function readDir(dir) {
   await getFiles(dir);
   return files;
 }
+const REG_SLUG = /\[\.\.\./gi;
+const REG_PARAM = /\[/gi;
+const REG_PATH = /\//gi;
 function mutatePath(el) {
   let path = el.substring(0, el.lastIndexOf("."));
   if (path.endsWith("/index")) {
@@ -45,16 +48,15 @@ function mutatePath(el) {
   }
   if (path === "")
     path = "/";
-  path = "/" + path.split("/").reduce((curr, val) => {
-    if (val.startsWith("[...") && val.endsWith("]")) {
-      return curr + "/:" + val.slice(4, val.length - 1) + "*";
+  return path.split(REG_PATH).map((el2) => {
+    if (REG_SLUG.test(el2)) {
+      return el2.replace(REG_SLUG, ":").replace(/]/g, "*");
     }
-    if (val.startsWith("[") && val.endsWith("]")) {
-      return curr + "/:" + val.slice(1, val.length - 1);
+    if (REG_PARAM.test(el2)) {
+      return el2.replace(REG_PARAM, ":").replace(/]/g, "");
     }
-    return val;
-  }, "");
-  return path;
+    return el2;
+  }).join("/");
 }
 async function getRouteFromDir(dir) {
   const dirs = await readDir(dir);

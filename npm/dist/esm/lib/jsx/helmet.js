@@ -80,8 +80,6 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-var helmet_default = Helmet;
 export {
-  Helmet,
-  helmet_default as default
+  Helmet
 };

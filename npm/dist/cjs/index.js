@@ -1714,6 +1714,12 @@ var awaiter = (rev) => {
     return rev[s_response] ?? new Response(null, { status: 408 });
   })(0, 10, 200);
 };
+var onRes = (ret, rev) => {
+  rev.send(ret, 1);
+  return rev[s_response] ?? awaiter(rev);
+};
+var onAsyncRes = async (ret, rev) => onRes(await ret, rev);
+var onNext = (ret, rev, next) => ret?.then ? onAsyncRes(ret, rev).catch(next) : onRes(ret, rev);
 function buildListenOptions(opts) {
   let handler = this.handleRequest;
   if (typeof opts === "number") {
@@ -1942,6 +1948,11 @@ var NHttp = class extends Router {
       this._on404
     );
   };
+  onErr = async (err, req) => {
+    const rev = new RequestEvent(req);
+    rev.send(await this._onError(err, rev), 1);
+    return rev[s_response] ?? awaiter(rev);
+  };
   /**
    * handleRequest
    * @example
@@ -1949,35 +1960,50 @@ var NHttp = class extends Router {
    * // or
    * Bun.serve({ fetch: app.handleRequest });
    */
-  handleRequest = async (req) => {
+  handleRequest = (req) => {
     const method = req.method, url = getUrl(req.url);
-    let fns = this.route[method + url], noop;
+    let fns = this.route[method + url];
     if (typeof fns === "function") {
       try {
-        return toRes(await fns());
+        const ret = fns();
+        if (ret?.then) {
+          return (async () => {
+            try {
+              return toRes(await ret);
+            } catch (err) {
+              return this.onErr(err, req);
+            }
+          })();
+        }
+        return toRes(ret);
       } catch (err) {
-        noop = err;
+        return this.onErr(err, req);
       }
     }
     let i = 0;
     const rev = new RequestEvent(req);
     fns ??= this.matchFns(rev, method, url);
-    const next = async (err) => {
+    const next = (err) => {
       try {
-        rev.send(
-          await (err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next)),
-          1
+        return onNext(
+          err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next),
+          rev,
+          next
         );
       } catch (e) {
         return next(e);
       }
-      return rev[s_response] ?? awaiter(rev);
     };
-    if (noop)
-      return next(noop);
-    try {
-      if (method !== "GET") {
-        const opts = this.bodyParser;
+    if (method === "GET" || method === "HEAD") {
+      try {
+        return onNext(fns[i++](rev, next), rev, next);
+      } catch (e) {
+        return next(e);
+      }
+    }
+    const opts = this.bodyParser;
+    return (async () => {
+      try {
         if (opts === void 0 || opts !== false) {
           const type = getType(req);
           if (isTypeBody(type, "application/json") && opts?.json === void 0) {
@@ -1986,12 +2012,12 @@ var NHttp = class extends Router {
             await writeBody(rev, type, opts, this.parseQuery);
           }
         }
+        rev.send(await fns[i++](rev, next), 1);
+      } catch (e) {
+        return next(e);
       }
-      rev.send(await fns[i++](rev, next), 1);
-    } catch (e) {
-      return next(e);
-    }
-    return rev[s_response] ?? awaiter(rev);
+      return rev[s_response] ?? awaiter(rev);
+    })();
   };
   /**
    * handle
@@ -2382,14 +2408,24 @@ function mutateResponse() {
     globalThis.Request = NodeRequest;
   }
 }
-async function handleNode(handler, req, res) {
-  let resWeb = await handler(
-    new NodeRequest(
-      req.url[0] === "/" ? `http://${req.headers.host}${req.url}` : req.url,
-      void 0,
-      { req, res }
-    )
-  );
+async function sendStream(resWeb, res) {
+  if (resWeb[s_body2] instanceof ReadableStream) {
+    for await (const chunk of resWeb[s_body2])
+      res.write(chunk);
+    res.end();
+    return;
+  }
+  const chunks = [];
+  for await (const chunk of resWeb.body)
+    chunks.push(chunk);
+  const data = Buffer.concat(chunks);
+  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+    const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
+    res.setHeader("Content-Type", type);
+  }
+  res.end(data);
+}
+function handleResWeb(resWeb, res) {
   if (res.writableEnded)
     return;
   if (resWeb[s_init2]) {
@@ -2415,22 +2451,24 @@ async function handleNode(handler, req, res) {
   if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
     res.end(resWeb[s_body2]);
   } else {
-    if (resWeb[s_body2] instanceof ReadableStream) {
-      for await (const chunk of resWeb[s_body2])
-        res.write(chunk);
-      res.end();
-      return;
-    }
-    const chunks = [];
-    for await (const chunk of resWeb.body)
-      chunks.push(chunk);
-    const data = Buffer.concat(chunks);
-    if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
-      const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-      res.setHeader("Content-Type", type);
-    }
-    res.end(data);
+    sendStream(resWeb, res);
   }
+}
+async function asyncHandleResWeb(resWeb, res) {
+  handleResWeb(await resWeb, res);
+}
+async function handleNode(handler, req, res) {
+  const resWeb = handler(
+    new NodeRequest(
+      `http://${req.headers.host}${req.url}`,
+      void 0,
+      { req, res }
+    )
+  );
+  if (resWeb?.then)
+    asyncHandleResWeb(resWeb, res);
+  else
+    handleResWeb(resWeb, res);
 }
 async function serveNode(handler, opts = {
   port: 3e3

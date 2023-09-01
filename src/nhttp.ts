@@ -27,7 +27,7 @@ import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
-import { awaiter, buildListenOptions } from "./nhttp_util.ts";
+import { awaiter, buildListenOptions, onNext } from "./nhttp_util.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -261,6 +261,11 @@ export class NHttp<
       this._on404,
     );
   };
+  private onErr = async (err: Error, req: Request) => {
+    const rev = <Rev> new RequestEvent(req);
+    rev.send(await this._onError(err, rev) as TRet, 1);
+    return rev[s_response] ?? awaiter(rev);
+  };
   /**
    * handleRequest
    * @example
@@ -268,37 +273,53 @@ export class NHttp<
    * // or
    * Bun.serve({ fetch: app.handleRequest });
    */
-  handleRequest: FetchHandler = async (req) => {
+  handleRequest: FetchHandler = (req) => {
     const method = req.method, url = getUrl(req.url);
-    let fns = this.route[method + url], noop: Error | undefined;
+    let fns = this.route[method + url];
     // just skip no middleware
     if (typeof fns === "function") {
       try {
-        return toRes(await fns());
+        const ret = fns();
+        if (ret?.then) {
+          return (async () => {
+            try {
+              return toRes(await ret);
+            } catch (err) {
+              return this.onErr(err, req);
+            }
+          })();
+        }
+        return toRes(ret);
       } catch (err) {
-        noop = err;
+        return this.onErr(err, req);
       }
     }
     let i = 0;
     const rev = <Rev> new RequestEvent(req);
     fns ??= this.matchFns(rev, method, url);
-    const next: NextFunction = async (err) => {
+    const next: NextFunction = (err) => {
       try {
-        rev.send(
-          await (err
-            ? this._onError(err, rev)
-            : (fns[i++] ?? this._on404)(rev, next)),
-          1,
+        return onNext(
+          err ? this._onError(err, rev) : (fns[i++] ?? this._on404)(rev, next),
+          rev,
+          next,
         );
       } catch (e) {
         return next(e);
       }
-      return rev[s_response] ?? awaiter(rev);
     };
-    if (noop) return next(noop);
-    try {
-      if (method !== "GET") {
-        const opts = this.bodyParser;
+    // GET/HEAD cannot have body
+    if (method === "GET" || method === "HEAD") {
+      try {
+        return onNext(fns[i++](rev, next), rev, next);
+      } catch (e) {
+        return next(e);
+      }
+    }
+    const opts = this.bodyParser;
+    // send body with verify.
+    return (async () => {
+      try {
         if (opts === undefined || opts !== false) {
           const type = getType(req);
           if (
@@ -310,12 +331,12 @@ export class NHttp<
             await writeBody(rev, type, opts, this.parseQuery);
           }
         }
+        rev.send(await fns[i++](rev, next), 1);
+      } catch (e) {
+        return next(e);
       }
-      rev.send(await fns[i++](rev, next), 1);
-    } catch (e) {
-      return next(e);
-    }
-    return rev[s_response] ?? awaiter(rev);
+      return rev[s_response] ?? awaiter(rev);
+    })();
   };
   /**
    * handle

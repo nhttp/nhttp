@@ -63,4 +63,4 @@ type FCHelmet = FC<{
  * }
  */
 export declare const Helmet: FCHelmet;
-export default Helmet;
+export {};
