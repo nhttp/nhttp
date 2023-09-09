@@ -38,7 +38,21 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
 
 > v1.3.0 requires Deno 1.35 or higher.
 
-## Installation
+## CLI
+
+### Deno
+
+```bash
+deno run -A npm:create-nhttp@latest
+```
+
+### Npm
+
+```bash
+npm create nhttp@latest
+```
+
+## Manual Installation
 
 ### deno.land
 
@@ -70,9 +84,9 @@ import nhttp from "nhttp-land";
 const nhttp = require("nhttp-land").default;
 ```
 
-## Usage
+## Simple Usage
 
-Create file `app.ts` and copy-paste code.
+Create file `app.ts` and copy-paste this code.
 
 ```ts
 import nhttp from "https://deno.land/x/nhttp/mod.ts";
@@ -96,7 +110,7 @@ app.listen(8000, (err, info) => {
 ## Run
 
 ```bash
-deno run --allow-net app.ts
+deno run -A app.ts
 ```
 
 more docs => https://nhttp.deno.dev
