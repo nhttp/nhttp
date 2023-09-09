@@ -43,7 +43,7 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
 ### Deno
 
 ```bash
-deno run -A npm:create-nhttp@latest
+deno run -Ar npm:create-nhttp
 ```
 
 ### Npm
