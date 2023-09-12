@@ -1,8 +1,8 @@
-import { fetchRequestHandler } from "https://esm.sh/@trpc/server@10.25.0/adapters/fetch";
+import { fetchRequestHandler } from "https://esm.sh/v132/@trpc/server@10.25.0/adapters/fetch";
 import {
   AnyRouter,
   inferRouterContext,
-} from "https://esm.sh/@trpc/server@10.25.0";
+} from "https://esm.sh/v132/@trpc/server@10.25.0";
 import { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
 type TAnyRouter = TRet;

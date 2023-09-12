@@ -2,7 +2,7 @@ import {
   FunctionComponent as FC,
   h,
   render,
-} from "https://esm.sh/preact@10.15.0";
+} from "https://esm.sh/stable/preact@10.15.0";
 
 declare global {
   interface Window {

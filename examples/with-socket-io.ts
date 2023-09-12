@@ -18,7 +18,7 @@ const html = `
             <button type="submit">SEND</button>
         </form>
         <script type="module" async>
-            import io from "https://esm.sh/socket.io-client@4.6.2";
+            import io from "https://esm.sh/v132/socket.io-client@4.6.2";
             const socket = io();
             window.onload = () => {
               const chat = document.getElementById("my_chat");
