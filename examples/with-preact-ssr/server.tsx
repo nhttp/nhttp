@@ -1,5 +1,5 @@
 /* @jsx h */
-import { h } from "https://esm.sh/preact@10.15.0";
+import { h } from "https://esm.sh/stable/preact@10.15.0";
 import nhttp from "../../mod.ts";
 import Counter from "./pages/counter.tsx";
 import useRenderSSR from "./helpers/render-ssr.ts";

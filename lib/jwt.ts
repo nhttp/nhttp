@@ -1,4 +1,4 @@
-import jwts from "https://esm.sh/jwt-simple@0.5.6";
+import jwts from "https://esm.sh/v132/jwt-simple@0.5.6";
 import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
 import { NextFunction } from "../mod.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";

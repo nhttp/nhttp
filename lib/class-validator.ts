@@ -1,10 +1,10 @@
 import {
   validateOrReject,
   ValidatorOptions,
-} from "https://esm.sh/class-validator@0.14.0";
+} from "https://esm.sh/v132/class-validator@0.14.0";
 import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
 import { joinHandlers, TDecorator } from "./controller.ts";
-export * from "https://esm.sh/class-validator@0.14.0";
+export * from "https://esm.sh/v132/class-validator@0.14.0";
 
 type Class = { new (...args: TRet[]): TRet };
 

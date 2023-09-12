@@ -1,4 +1,4 @@
-import { renderToString } from "https://esm.sh/preact-render-to-string@6.0.3?deps=preact@10.15.0";
+import { renderToString } from "https://esm.sh/stable/preact-render-to-string@6.0.3?deps=preact@10.15.0";
 import Helmet from "../../../lib/jsx/helmet.ts";
 import bundle from "./bundle.ts";
 import { NHttp } from "../../../mod.ts";

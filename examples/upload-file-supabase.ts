@@ -1,5 +1,5 @@
 import nhttp, { multipart, NFile } from "../mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { createClient } from "https://esm.sh/v132/@supabase/supabase-js@2.21.0";
 
 const url = "https://yoururl.supabase.co";
 const api_key = "supabase_api_key";

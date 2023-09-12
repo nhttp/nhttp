@@ -4,8 +4,8 @@ import {
   Fragment,
   FunctionComponent as FC,
   h,
-} from "https://esm.sh/preact@10.15.0";
-import { useEffect, useState } from "https://esm.sh/preact@10.15.0/hooks";
+} from "https://esm.sh/stable/preact@10.15.0";
+import { useEffect, useState } from "https://esm.sh/stable/preact@10.15.0/hooks";
 import withClient from "../helpers/client.ts";
 import Helmet from "../../../lib/jsx/helmet.ts";
 

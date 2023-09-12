@@ -1,7 +1,7 @@
-import React from "https://esm.sh/react@18.2.0";
+import React from "https://esm.sh/stable/react@18.2.0";
 import nhttp from "../mod.ts";
 import { FC } from "../lib/jsx.ts";
-import { renderToString } from "https://esm.sh/react-dom@18.2.0/server";
+import { renderToString } from "https://esm.sh/stable/react-dom@18.2.0/server";
 import { options, renderToHtml } from "../lib/jsx/render.ts";
 import Helmet from "../lib/jsx/helmet.ts";
 
