@@ -3,7 +3,7 @@ import nhttp from "../mod.ts";
 import { FC } from "../lib/jsx.ts";
 import { renderToString } from "https://esm.sh/stable/react-dom@18.2.0/server";
 import { options, renderToHtml } from "../lib/jsx/render.ts";
-import Helmet from "../lib/jsx/helmet.ts";
+import { Helmet } from "../lib/jsx.ts";
 
 options.onRenderElement = (elem) => {
   Helmet.render = renderToString;

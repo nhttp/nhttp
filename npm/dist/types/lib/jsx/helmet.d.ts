@@ -24,7 +24,7 @@ type FCHelmet = FC<{
     /**
      * Custom render.
      */
-    render?: (elem: JSX.Element) => JSX.Element;
+    render: (elem: JSX.Element) => JSX.Element;
     /**
      * Write head tags.
      * @example

@@ -59,7 +59,7 @@ function toAttr(regex, child) {
   return map;
 }
 const Helmet = ({ children, footer }) => {
-  children = Helmet.render?.(children) ?? children;
+  children = Helmet.render(children) ?? children;
   if (typeof children !== "string")
     return null;
   const arr = children.replace(/></g, ">#$n$#<").split("#$n$#");
@@ -102,6 +102,7 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
+Helmet.render = (val) => val;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Helmet

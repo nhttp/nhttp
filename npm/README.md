@@ -12,7 +12,7 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
    <a href="https://codecov.io/gh/nhttp/nhttp"><img src="https://codecov.io/gh/nhttp/nhttp/branch/master/graph/badge.svg?token=SJ2NZQ0ZJG" alt="coverage" /></a>
    <a href="https://www.codefactor.io/repository/github/nhttp/nhttp/overview/master"><img src="https://www.codefactor.io/repository/github/nhttp/nhttp/badge/master" alt="codefactor" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp@1.2.23%2Fmod.ts" alt="denoland" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp@1.3.9%2Fmod.ts" alt="deps" /></a>
+   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp@1.3.10%2Fmod.ts" alt="deps" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/minzip/nhttp-land" alt="size" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/min/nhttp-land" alt="size" /></a>
    <a href="http://badges.mit-license.org"><img src="https://img.shields.io/:license-mit-blue.svg" alt="licence" /></a>
@@ -38,7 +38,21 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
 
 > v1.3.0 requires Deno 1.35 or higher.
 
-## Installation
+## CLI
+
+### Deno
+
+```bash
+deno run -Ar npm:create-nhttp
+```
+
+### Npm
+
+```bash
+npm create nhttp@latest
+```
+
+## Manual Installation
 
 ### deno.land
 
@@ -70,9 +84,9 @@ import nhttp from "nhttp-land";
 const nhttp = require("nhttp-land").default;
 ```
 
-## Usage
+## Simple Usage
 
-Create file `app.ts` and copy-paste code.
+Create file `app.ts` and copy-paste this code.
 
 ```ts
 import nhttp from "https://deno.land/x/nhttp/mod.ts";
@@ -96,7 +110,7 @@ app.listen(8000, (err, info) => {
 ## Run
 
 ```bash
-deno run --allow-net app.ts
+deno run -A app.ts
 ```
 
 more docs => https://nhttp.deno.dev

@@ -1,5 +1,5 @@
 const flag = "https://esm.sh/";
-const reg = /https:\/\/esm\.sh\/|@([0-9\.]+)/g;
+const reg = /https:\/\/esm\.sh\/v132\/|@([0-9\.]+)/g;
 
 function urlToNpm(source: string) {
   const arr = source.split("\n");

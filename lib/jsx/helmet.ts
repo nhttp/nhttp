@@ -29,7 +29,7 @@ type FCHelmet = FC<{ footer?: boolean }> & {
   /**
    * Custom render.
    */
-  render?: (elem: JSX.Element) => JSX.Element;
+  render: (elem: JSX.Element) => JSX.Element;
   /**
    * Write head tags.
    * @example
@@ -97,7 +97,7 @@ function toAttr(regex: RegExp, child: string) {
  * }
  */
 export const Helmet: FCHelmet = ({ children, footer }) => {
-  children = Helmet.render?.(children) ?? children;
+  children = Helmet.render(children) ?? children;
   if (typeof children !== "string") return null;
   const arr = children.replace(/></g, ">#$n$#<").split("#$n$#");
   const heads = Helmet.writeHeadTag ? Helmet.writeHeadTag() : [];
@@ -133,3 +133,5 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
+
+Helmet.render = (val) => val;
