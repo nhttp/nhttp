@@ -1,5 +1,6 @@
 // deno-lint-ignore-file
 import { TRet } from "../index.ts";
+import { NodeHeaders } from "./headers.ts";
 import { s_body, s_body_used, s_def, s_init, s_inspect } from "./symbol.ts";
 
 const typeError = (m: string) => Promise.reject(new TypeError(m));
@@ -181,7 +182,7 @@ export class NodeRequest {
     opts.depth = depth;
     const ret = {
       bodyUsed: this.bodyUsed,
-      headers: this.headers,
+      headers: new NodeHeaders(this.headers),
       method: this.method,
       redirect: this.redirect,
       url: this.url,

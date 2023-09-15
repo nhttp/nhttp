@@ -1,4 +1,5 @@
 import { TRet } from "../index.ts";
+import { NodeHeaders } from "./headers.ts";
 import { s_body, s_def, s_headers, s_init, s_inspect } from "./symbol.ts";
 
 const C_TYPE = "Content-Type";
@@ -99,7 +100,7 @@ export class NodeResponse {
     const ret = {
       body: this.body,
       bodyUsed: this.bodyUsed,
-      headers: this.headers,
+      headers: new NodeHeaders(this.headers),
       status: this.status,
       statusText: this.statusText,
       redirected: this.redirected,
