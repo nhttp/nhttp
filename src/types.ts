@@ -13,7 +13,7 @@ declare global {
   interface BigInt {
     toJSON: () => string;
   }
-  /* eslint-disable-line no-var */
+  /* eslint no-var: 0 */
   // deno-lint-ignore no-var
   var NativeResponse: TRet;
 }
