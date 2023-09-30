@@ -6,6 +6,7 @@ const C_TYPE = "Content-Type";
 const JSON_TYPE = "application/json";
 
 export class NodeResponse {
+  _nres = 1;
   constructor(body?: BodyInit | null, init?: ResponseInit) {
     this[s_body] = body;
     this[s_init] = init;

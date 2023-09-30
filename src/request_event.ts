@@ -140,7 +140,9 @@ export class RequestEvent<O extends TObject = TObject> {
   send(body?: TSendBody, lose?: number): void {
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
-    } else if (body instanceof Response) {
+    } else if (
+      body instanceof Response || body?.constructor?.name === "Response"
+    ) {
       this[s_response] = body;
     } else if (typeof body === "object") {
       if (
@@ -356,7 +358,9 @@ export class RequestEvent<O extends TObject = TObject> {
 }
 export function toRes(body?: TSendBody): TRet {
   if (typeof body === "string") return new Response(body);
-  if (body instanceof Response) return body;
+  if (
+    body instanceof Response || body?.constructor?.name === "Response"
+  ) return body;
   if (typeof body === "object") {
     if (
       body === null ||

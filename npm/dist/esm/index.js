@@ -403,7 +403,7 @@ function pushRoutes(str, wares, last, base) {
     });
   });
 }
-var getUrl = (s) => s.substring(s.indexOf("/", 8));
+var getUrl = (s) => s.slice(s.indexOf("/", 8));
 var defError = (err, rev, stack) => {
   const obj = getError(err, stack);
   rev.response.status(obj.status);
@@ -617,7 +617,7 @@ var Router = class {
   }
   find(method, path, setParam, notFound) {
     const fns = this.route[method + path];
-    if (fns)
+    if (fns !== void 0)
       return fns.pop ? fns : [fns];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r !== void 0) {
@@ -1408,7 +1408,7 @@ var RequestEvent = class {
   send(body, lose) {
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
-    } else if (body instanceof Response) {
+    } else if (body instanceof Response || body?.constructor?.name === "Response") {
       this[s_response] = body;
     } else if (typeof body === "object") {
       if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob) {
@@ -1611,7 +1611,7 @@ var RequestEvent = class {
 function toRes(body) {
   if (typeof body === "string")
     return new Response(body);
-  if (body instanceof Response)
+  if (body instanceof Response || body?.constructor?.name === "Response")
     return body;
   if (typeof body === "object") {
     if (body === null || body instanceof Uint8Array || body instanceof ReadableStream || body instanceof Blob)
@@ -1679,6 +1679,103 @@ function buildListenOptions(opts) {
       delete opts.fetch;
   }
   return { opts, handler };
+}
+
+// npm/src/src/response.ts
+var n_res = globalThis.Reflect?.ownKeys(new Response()).find((s) => {
+  return String(s) === "Symbol(response)";
+});
+var NHttpResponse = class {
+  constructor(body, init = {}) {
+    if (init.headers === void 0 && typeof body === "string") {
+      this[n_res] = {
+        body: { streamOrStatic: { body } },
+        status: init.status ?? 200,
+        headerList: []
+      };
+    } else {
+      this[s_res] = new NativeResponse(body, init);
+      this[n_res] = this[s_res][n_res];
+    }
+  }
+  static json(body, init) {
+    return NativeResponse.json(body, init);
+  }
+  static error() {
+    return NativeResponse.error();
+  }
+  static redirect(url, status) {
+    return NativeResponse.redirect(url, status);
+  }
+  get res() {
+    return this[s_res] ??= new NativeResponse(
+      this[n_res]["body"]["streamOrStatic"]["body"]
+    );
+  }
+  get headers() {
+    return this[s_headers] ??= this.res.headers;
+  }
+  get ok() {
+    return this.res.ok;
+  }
+  get redirected() {
+    return this.res.redirected;
+  }
+  get status() {
+    return this.res.status;
+  }
+  get statusText() {
+    return this.res.statusText;
+  }
+  get type() {
+    return this.res.type;
+  }
+  get url() {
+    return this.res.url;
+  }
+  get body() {
+    return this.res.body;
+  }
+  get bodyUsed() {
+    return this.res.bodyUsed;
+  }
+  clone() {
+    return this.res.clone();
+  }
+  arrayBuffer() {
+    return this.res.arrayBuffer();
+  }
+  blob() {
+    return this.res.blob();
+  }
+  formData() {
+    return this.res.formData();
+  }
+  json() {
+    return this.res.json();
+  }
+  text() {
+    return this.res.text();
+  }
+  [deno_inspect](inspect2, opts) {
+    const ret = {
+      body: this.body,
+      bodyUsed: this.bodyUsed,
+      headers: this.headers,
+      ok: this.ok,
+      redirected: this.redirected,
+      status: this.status,
+      statusText: this.statusText,
+      url: this.url
+    };
+    return `Response ${inspect2(ret, opts)}`;
+  }
+};
+function initMyRes() {
+  if (n_res !== void 0) {
+    globalThis.NativeResponse = Response;
+    globalThis.Response = NHttpResponse;
+  }
 }
 
 // npm/src/src/nhttp.ts
@@ -2016,6 +2113,8 @@ var NHttp = class extends Router {
    * }, callback);
    */
   listen = (options, callback) => {
+    if (this.flash)
+      initMyRes();
     const { opts, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err) => {
       if (callback) {
@@ -2065,6 +2164,21 @@ var s_def = Symbol("default");
 var s_body_used = Symbol("req_body_used");
 var s_headers2 = Symbol("s_headers");
 var s_inspect = Symbol.for("nodejs.util.inspect.custom");
+
+// npm/src/node/headers.ts
+var NodeHeaders = class {
+  constructor(headers) {
+    this.headers = headers;
+  }
+  [s_inspect](depth, opts, inspect2) {
+    opts.depth = depth;
+    const headers = {};
+    this.headers.forEach((v, k) => {
+      headers[k] = v;
+    });
+    return `Headers ${inspect2(headers, opts)}`;
+  }
+};
 
 // npm/src/node/request.ts
 var typeError = (m) => Promise.reject(new TypeError(m));
@@ -2238,7 +2352,7 @@ var NodeRequest = class _NodeRequest {
     opts.depth = depth;
     const ret = {
       bodyUsed: this.bodyUsed,
-      headers: this.headers,
+      headers: new NodeHeaders(this.headers),
       method: this.method,
       redirect: this.redirect,
       url: this.url
@@ -2251,6 +2365,7 @@ var NodeRequest = class _NodeRequest {
 var C_TYPE2 = "Content-Type";
 var JSON_TYPE2 = "application/json";
 var NodeResponse = class _NodeResponse {
+  _nres = 1;
   constructor(body, init) {
     this[s_body2] = body;
     this[s_init2] = init;
@@ -2335,7 +2450,7 @@ var NodeResponse = class _NodeResponse {
     const ret = {
       body: this.body,
       bodyUsed: this.bodyUsed,
-      headers: this.headers,
+      headers: new NodeHeaders(this.headers),
       status: this.status,
       statusText: this.statusText,
       redirected: this.redirected,
@@ -2355,10 +2470,39 @@ function mutateResponse() {
     globalThis.Request = NodeRequest;
   }
 }
-async function sendStream(resWeb, res) {
+var R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
+var R_ENC = /(c|C)ontent-(e|E)ncoding/;
+async function sendStream(resWeb, res, ori = false) {
+  if (ori) {
+    resWeb = resWeb.clone();
+    const headers = {};
+    resWeb.headers.forEach((val, key) => {
+      if (!R_ENC.test(key))
+        headers[key] = val;
+    });
+    const code = resWeb.status ?? 200;
+    if (R_NO_STREAM.test(headers["content-type"] ?? "")) {
+      const body = await resWeb.text();
+      headers["content-length"] = Buffer.byteLength(body);
+      res.writeHead(code, headers);
+      res.end(body);
+    } else {
+      res.writeHead(code, headers);
+      if (resWeb.body != null) {
+        for await (const chunk of resWeb.body)
+          res.write(chunk);
+      }
+      res.end();
+    }
+    return;
+  }
   if (resWeb[s_body2] instanceof ReadableStream) {
     for await (const chunk of resWeb[s_body2])
       res.write(chunk);
+    res.end();
+    return;
+  }
+  if (resWeb.body == null) {
     res.end();
     return;
   }
@@ -2375,6 +2519,10 @@ async function sendStream(resWeb, res) {
 function handleResWeb(resWeb, res) {
   if (res.writableEnded)
     return;
+  if (resWeb._nres === void 0) {
+    sendStream(resWeb, res, true);
+    return;
+  }
   if (resWeb[s_init2]) {
     if (resWeb[s_init2].headers) {
       if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {

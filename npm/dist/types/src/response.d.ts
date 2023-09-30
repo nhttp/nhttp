@@ -1,16 +1,15 @@
-import { TRet } from "../index";
-import { s_inspect } from "./symbol";
-export declare class NodeResponse {
-    _nres: number;
-    constructor(body?: BodyInit | null, init?: ResponseInit);
-    static error(): Response;
+import { deno_inspect } from "./inspect";
+import { TRet } from "./types";
+export declare class NHttpResponse {
+    constructor(body?: TRet | null, init?: TRet);
+    static json(body?: TRet | null, init?: TRet): any;
+    static error(): any;
     static redirect(url: string | URL, status?: number): Response;
-    static json(data: unknown, init?: ResponseInit): Response;
     private get res();
     get headers(): any;
     get ok(): boolean;
     get redirected(): boolean;
-    get status(): any;
+    get status(): number;
     get statusText(): string;
     get type(): ResponseType;
     get url(): string;
@@ -22,7 +21,7 @@ export declare class NodeResponse {
     formData(): Promise<FormData>;
     json(): Promise<any>;
     text(): Promise<string>;
-    get [Symbol.hasInstance](): string;
-    [s_inspect](depth: number, opts: TRet, inspect: TRet): string;
+    [deno_inspect](inspect: TRet, opts: TRet): string;
     [k: string | symbol]: TRet;
 }
+export declare function initMyRes(): void;

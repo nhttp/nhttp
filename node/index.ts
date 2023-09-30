@@ -12,9 +12,38 @@ export function mutateResponse() {
     (<TRet> globalThis).Request = NodeRequest;
   }
 }
-async function sendStream(resWeb: TRet, res: TRet) {
+const R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
+const R_ENC = /(c|C)ontent-(e|E)ncoding/;
+async function sendStream(resWeb: TRet, res: TRet, ori = false) {
+  if (ori) {
+    resWeb = resWeb.clone();
+    const headers = {} as TRet;
+    (<Headers> resWeb.headers).forEach((val, key) => {
+      if (!R_ENC.test(key)) headers[key] = val;
+    });
+    const code = resWeb.status ?? 200;
+    if (R_NO_STREAM.test(headers["content-type"] ?? "")) {
+      const body = await resWeb.text();
+      /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
+      // @ts-ignore: Buffer for nodejs
+      headers["content-length"] = Buffer.byteLength(body);
+      res.writeHead(code, headers);
+      res.end(body);
+    } else {
+      res.writeHead(code, headers);
+      if (resWeb.body != null) {
+        for await (const chunk of resWeb.body) res.write(chunk);
+      }
+      res.end();
+    }
+    return;
+  }
   if (resWeb[s_body] instanceof ReadableStream) {
     for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
+    res.end();
+    return;
+  }
+  if (resWeb.body == null) {
     res.end();
     return;
   }
@@ -35,6 +64,10 @@ async function sendStream(resWeb: TRet, res: TRet) {
 }
 function handleResWeb(resWeb: TRet, res: TRet) {
   if (res.writableEnded) return;
+  if (resWeb._nres === void 0) {
+    sendStream(resWeb, res, true);
+    return;
+  }
   if (resWeb[s_init]) {
     if (resWeb[s_init].headers) {
       if (

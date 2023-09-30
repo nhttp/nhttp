@@ -15,6 +15,7 @@ declare global {
     interface BigInt {
         toJSON: () => string;
     }
+    var NativeResponse: TRet;
 }
 export type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
@@ -87,8 +88,7 @@ export type TApp = {
      */
     env?: string;
     /**
-     * @deprecated
-     * Flash server now stable.
+     * Flash server for `Deno`. default to false.
      */
     flash?: boolean;
     /**
