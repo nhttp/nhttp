@@ -79,7 +79,20 @@ export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Rout
      * assertEquals(hello_post, "hello, post");
      */
     req: (url: string, init?: RequestInit) => {
-        text: () => Promise<string>;
+        text: () => Promise<string>; /**
+         * Mock request.
+         * @example
+         * app.get("/", () => "hello");
+         * app.post("/", () => "hello, post");
+         *
+         * // mock request
+         * const hello = await app.req("/").text();
+         * assertEquals(hello, "hello");
+         *
+         * // mock request POST
+         * const hello_post = await app.req("/", { method: "POST" }).text();
+         * assertEquals(hello_post, "hello, post");
+         */
         json: () => Promise<any>;
         ok: () => Promise<boolean>;
         status: () => Promise<number>;

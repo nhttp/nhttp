@@ -13,6 +13,8 @@ declare global {
   interface BigInt {
     toJSON: () => string;
   }
+  // deno-lint-ignore no-var
+  var NativeResponse: TRet;
 }
 
 export type Merge<A, B> = {
@@ -119,8 +121,7 @@ export type TApp = {
    */
   env?: string;
   /**
-   * @deprecated
-   * Flash server now stable.
+   * Flash server for `Deno`. default to false.
    */
   flash?: boolean;
   /**

@@ -28,6 +28,7 @@ import { s_init, s_response } from "./symbol.ts";
 import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
 import { awaiter, buildListenOptions, onNext } from "./nhttp_util.ts";
+import { initMyRes } from "./response.ts";
 
 export class NHttp<
   Rev extends RequestEvent = RequestEvent,
@@ -394,6 +395,7 @@ export class NHttp<
       opts: ListenOptions,
     ) => void | Promise<void>,
   ) => {
+    if (this.flash) initMyRes();
     const { opts, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {

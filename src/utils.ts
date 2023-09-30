@@ -265,7 +265,7 @@ export function pushRoutes(
   });
 }
 
-export const getUrl = (s: string) => s.substring(s.indexOf("/", 8));
+export const getUrl = (s: string) => s.slice(s.indexOf("/", 8));
 
 export const defError = (
   err: TObject,
