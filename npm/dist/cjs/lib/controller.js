@@ -73,8 +73,8 @@ function addMethod(method, path) {
   path ??= "/";
   return (target, prop, des) => {
     const ori = des.value;
-    des.value = function(...args) {
-      const result = ori.apply(target, args);
+    des.value = function(rev, next) {
+      const result = ori.apply(target, [rev, next]);
       return result;
     };
     const className = target.constructor.name;
