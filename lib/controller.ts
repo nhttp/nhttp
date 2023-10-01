@@ -82,8 +82,8 @@ export function addMethod(method: string, path?: string | RegExp): TDecorator {
   path ??= "/";
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
-    des.value = function (...args: TObject[]) {
-      const result = ori.apply(target, args);
+    des.value = function (rev: RequestEvent, next: NextFunction) {
+      const result = ori.apply(target, [rev, next]);
       return result;
     };
     const className = target.constructor.name;
