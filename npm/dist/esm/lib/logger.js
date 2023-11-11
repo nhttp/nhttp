@@ -1,9 +1,9 @@
 const print = (log, pretty = true) => {
   const json = pretty ? log : JSON.stringify(log);
   if (log.status >= 500) {
-    console.log("%cERROR =>", "color: red; font-weight: bold", json);
+    console.log("\x1B[41m", "ERROR =>", "\x1B[0m", json);
   } else {
-    console.log("%cINFO =>", "color: green; font-weight: bold", json);
+    console.log("\x1B[44m", "INFO =>", "\x1B[0m", json);
   }
 };
 const logger = (handler) => async (rev, next) => {
@@ -13,7 +13,7 @@ const logger = (handler) => async (rev, next) => {
   const ms = Date.now() - start;
   if (resp.status >= 400 && rev.__log === void 0) {
     try {
-      rev.__log = await resp.json();
+      rev.__log = await resp.clone().json();
     } catch {
     }
   }

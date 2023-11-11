@@ -89,6 +89,7 @@ export type TApp = {
     env?: string;
     /**
      * Flash server for `Deno`. default to false.
+     * @deprecated
      */
     flash?: boolean;
     /**
