@@ -1734,112 +1734,14 @@ function buildListenOptions(opts) {
   return { opts, handler };
 }
 
-// npm/src/src/response.ts
-var n_res = globalThis.Reflect?.ownKeys(new Response()).find((s) => {
-  return String(s) === "Symbol(response)";
-});
-var NHttpResponse = class {
-  constructor(body, init = {}) {
-    if (init.headers === void 0 && typeof body === "string") {
-      this[n_res] = {
-        body: { streamOrStatic: { body } },
-        status: init.status ?? 200,
-        headerList: []
-      };
-    } else {
-      this[s_res] = new NativeResponse(body, init);
-      this[n_res] = this[s_res][n_res];
-    }
-  }
-  static json(body, init) {
-    return NativeResponse.json(body, init);
-  }
-  static error() {
-    return NativeResponse.error();
-  }
-  static redirect(url, status) {
-    return NativeResponse.redirect(url, status);
-  }
-  get res() {
-    return this[s_res] ??= new NativeResponse(
-      this[n_res]["body"]["streamOrStatic"]["body"]
-    );
-  }
-  get headers() {
-    return this[s_headers] ??= this.res.headers;
-  }
-  get ok() {
-    return this.res.ok;
-  }
-  get redirected() {
-    return this.res.redirected;
-  }
-  get status() {
-    return this.res.status;
-  }
-  get statusText() {
-    return this.res.statusText;
-  }
-  get type() {
-    return this.res.type;
-  }
-  get url() {
-    return this.res.url;
-  }
-  get body() {
-    return this.res.body;
-  }
-  get bodyUsed() {
-    return this.res.bodyUsed;
-  }
-  clone() {
-    return this.res.clone();
-  }
-  arrayBuffer() {
-    return this.res.arrayBuffer();
-  }
-  blob() {
-    return this.res.blob();
-  }
-  formData() {
-    return this.res.formData();
-  }
-  json() {
-    return this.res.json();
-  }
-  text() {
-    return this.res.text();
-  }
-  [deno_inspect](inspect2, opts) {
-    const ret = {
-      body: this.body,
-      bodyUsed: this.bodyUsed,
-      headers: this.headers,
-      ok: this.ok,
-      redirected: this.redirected,
-      status: this.status,
-      statusText: this.statusText,
-      url: this.url
-    };
-    return `Response ${inspect2(ret, opts)}`;
-  }
-};
-function initMyRes() {
-  if (n_res !== void 0) {
-    globalThis.NativeResponse = Response;
-    globalThis.Response = NHttpResponse;
-  }
-}
-
 // npm/src/src/nhttp.ts
 var NHttp = class extends Router {
   parseQuery;
   env;
-  flash;
   stackError;
   bodyParser;
   server;
-  constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, flash, stackError } = {}) {
+  constructor({ parseQuery: parseQuery2, bodyParser: bodyParser2, env, stackError } = {}) {
     super();
     oldSchool();
     this.parseQuery = parseQuery2 || parseQuery;
@@ -1848,7 +1750,6 @@ var NHttp = class extends Router {
     if (this.env !== "development") {
       this.stackError = false;
     }
-    this.flash = flash;
     if (bodyParser2 === true)
       bodyParser2 = void 0;
     this.bodyParser = bodyParser2;
@@ -2166,8 +2067,6 @@ var NHttp = class extends Router {
    * }, callback);
    */
   listen = (options, callback) => {
-    if (this.flash)
-      initMyRes();
     const { opts, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err) => {
       if (callback) {
