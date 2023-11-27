@@ -1,21 +1,35 @@
 import { Helmet } from "./helmet.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
-// deno-lint-ignore no-explicit-any
-type TRet = any;
-const dangerHTML = "dangerouslySetInnerHTML";
+export type JSXNode =
+  | JSXNode[]
+  | JSXElement
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+export const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
-    // @ts-ignore: elem
-    type Element = TRet;
+    interface Element extends JSXElement {}
     interface IntrinsicElements {
-      // @ts-ignore: just any elem
-      [k: string]: TRet;
+      [k: string]: Attributes & { children?: JSXNode };
+    }
+    interface ElementChildrenAttribute {
+      children: {};
     }
   }
 }
-type JsxProps = {
-  children?: TRet;
+type Fragment = null;
+export type JSXElement<T = {}> = {
+  type: string | FC<T>;
+  props: T | null | undefined;
+};
+export type Attributes = {
+  style?: string | Record<string, string | number>;
+  [dangerHTML]?: { __html: string };
+  [name: string]: unknown;
 };
 
 /**
@@ -25,93 +39,8 @@ type JsxProps = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T extends unknown = unknown> = (
-  props: JsxProps & T,
-) => JSX.Element;
+export type FC<T = {}> = (props: T) => JSXElement | null;
 
-const isValue = <T>(val: T) => val != null;
-function escapeHtml(unsafe: string) {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-const toStyle = (val: Record<string, TRet>) => {
-  return Object.keys(val).reduce(
-    (a, b) =>
-      a +
-      b
-        .split(/(?=[A-Z])/)
-        .join("-")
-        .toLowerCase() +
-      ":" +
-      (typeof val[b] === "number" ? val[b] + "px" : val[b]) +
-      ";",
-    "",
-  );
-};
-export function n(
-  type: TRet,
-  props: TRet | undefined | null,
-  ...args: TRet[]
-) {
-  props ??= {};
-  if (isValue(props.children)) args = args.concat(props.children);
-  const children = args.flat().map((
-    el: TRet,
-  ) => (typeof el === "number" ? String(el) : el)).filter(Boolean);
-  if (typeof type === "function") {
-    if (children.length) {
-      props.children = children.join("");
-    }
-    return type(props);
-  }
-  let elem = `<${type}`;
-  for (const k in props) {
-    let val = props[k];
-    if (
-      isValue(val) &&
-      k !== dangerHTML &&
-      k !== "children" &&
-      typeof val !== "function"
-    ) {
-      val = typeof val === "object"
-        ? toStyle(val)
-        : val === true
-        ? ""
-        : val === false
-        ? null
-        : val;
-      if (isValue(val)) {
-        let key = k.toLowerCase();
-        if (key === "classname") key = "class";
-        elem += ` ${key}${val === "" ? "" : `="${escapeHtml(val)}"`}`;
-      }
-    }
-  }
-  elem += ">";
-  if (
-    /area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr/
-      .test(type)
-  ) return elem;
-  if (props[dangerHTML]) {
-    const val = props[dangerHTML].__html;
-    elem += val;
-  } else {
-    children.forEach((child: TRet) => {
-      if (isValue(child)) {
-        if (typeof child === "string") elem += child;
-        else if (child.pop) elem += child.join("");
-      }
-    });
-  }
-  return (elem += type ? `</${type}>` : "");
-}
-export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
-  return n(type, props, ...args);
-}
 /**
  * Fragment.
  * @example
@@ -119,9 +48,36 @@ export function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]) {
  *   return <Fragment><h1>{props.title}</h1></Fragment>
  * }
  */
-export const Fragment: FC = ({ children }) => children;
+export const Fragment = null;
+
+export function n(
+  type: string,
+  props?: Attributes | null,
+  ...children: JSXNode[]
+): JSXElement;
+export function n<T extends {} = {}>(
+  type: FC<T>,
+  props?: T | null,
+  ...children: JSXNode[]
+): JSXElement | null;
+export function n(
+  type: Fragment,
+  props?: {} | null,
+  ...children: JSXNode[]
+): JSXElement;
+export function n(
+  type: string | FC | null,
+  props?: {} | null,
+  ...children: JSXNode[]
+): JSXNode {
+  if (type === null)
+    return children
+  if (children.length > 0)
+    return { type, props: { ...props, children } };
+  return { type, props };
+}
 n.Fragment = Fragment;
-h.Fragment = Fragment;
+export { n as h };
 
 /**
  * Client interactive.
@@ -136,9 +92,12 @@ h.Fragment = Fragment;
  * }
  * ```
  */
-export const Client: FC<{ src: string; id?: string; type?: string }> = (
-  props,
-) => {
+export const Client: FC<{
+  src: string;
+  id?: string;
+  type?: string;
+  children?: JSXNode;
+}> = (props) => {
   return n(Fragment, {}, [
     n(
       Helmet,
