@@ -1,11 +1,13 @@
 /** @jsx n */
 /** @jsxFrag n.Fragment */
 
+import { JSXNode } from "../../../lib/jsx.ts";
 import { FC, n } from "../deps.ts";
 
 const Link: FC<{
   id: string;
   href: string;
+  children: string;
 }> = ({ href, id, children }) => {
   return (
     <a
@@ -20,7 +22,7 @@ const Link: FC<{
   );
 };
 
-const Layout: FC<{ id: string }> = ({ id, children }) => {
+const Layout: FC<{ id: string; children: JSXNode }> = ({ id, children }) => {
   return (
     <>
       <nav>
@@ -29,6 +31,7 @@ const Layout: FC<{ id: string }> = ({ id, children }) => {
         <Link href="/contact" id={id}>Contact</Link>
       </nav>
       <div>{children}</div>
+      <footer>Made with {"<3"} using nhttp</footer>
     </>
   );
 };

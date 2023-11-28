@@ -1,87 +1,72 @@
-import type { FC } from "./index.ts";
+import { type Attributes, type FC, renderToString } from "./index.ts";
 
-class Attr extends Map {
-  toString() {
-    let str = "";
-    this.forEach((v, k) => (str += ` ${k}="${v}"`));
-    return str.trim();
-  }
-  toJSON() {
-    return Object.fromEntries(this.entries());
-  }
-}
 export type HelmetRewind = {
-  head: string[];
-  footer: string[];
+  head: JSX.Element[];
+  footer: JSX.Element[];
   attr: {
-    body: Attr;
-    html: Attr;
+    body: Attributes;
+    html: Attributes;
   };
-  body?: string;
+  body?: JSX.Element;
 };
-type FCHelmet = FC<{ footer?: boolean }> & {
-  /**
-   * Rewind Helmet.
-   * @example
-   * const { head, footer, body, attr } = Helmet.rewind(<App />);
-   */
-  rewind: (elem?: JSX.Element) => HelmetRewind;
-  /**
-   * Custom render.
-   */
-  render: (elem: JSX.Element) => JSX.Element;
-  /**
-   * Write head tags.
-   * @example
-   * const current = Helmet.writeHeadTag?.() ?? [];
-   * Helmet.writeHeadTag = () => [
-   *   ...current,
-   *   `<script src="/client.js"></script>`
-   * ];
-   */
-  writeHeadTag?: () => string[];
-  /**
-   * Write body tags.
-   * @example
-   * const current = Helmet.writeFooterTag?.() ?? [];
-   * Helmet.writeFooterTag = () => [
-   *   ...current,
-   *   `<script src="/client.js"></script>`
-   * ];
-   */
-  writeFooterTag?: () => string[];
-  writeHtmlAttr?: () => Attr;
-  writeBodyAttr?: () => Attr;
-};
+type FCHelmet =
+  & FC<{
+    footer?: boolean;
+    children?: JSX.Element[] | JSX.Element;
+  }>
+  & {
+    /**
+     * Rewind Helmet.
+     * @example
+     * const { head, footer, body, attr } = Helmet.rewind(<App />);
+     */
+    rewind: (elem?: JSX.Element) => HelmetRewind;
+    /**
+     * Custom render.
+     */
+    render: (elem: JSX.Element) => string;
+    /**
+     * Write head tags.
+     * @example
+     * const current = Helmet.writeHeadTag?.() ?? [];
+     * Helmet.writeHeadTag = () => [
+     *   ...current,
+     *   <script src="/client.js"></script>
+     * ];
+     */
+    writeHeadTag?: () => JSX.Element[];
+    /**
+     * Write body tags.
+     * @example
+     * const current = Helmet.writeFooterTag?.() ?? [];
+     * Helmet.writeFooterTag = () => [
+     *   ...current,
+     *   <script src="/client.js"></script>
+     * ];
+     */
+    writeFooterTag?: () => JSX.Element[];
+    writeHtmlAttr?: () => Attributes;
+    writeBodyAttr?: () => Attributes;
+  };
 
-function toHelmet(olds: string[], childs: string[]) {
-  const idx = olds.findIndex((el) => el.startsWith("<title>"));
-  const latest = childs.map((item: string) => {
-    if (item.startsWith("<title>") && idx !== -1) olds.splice(idx, 1);
-    return item;
-  }) as string[];
-  const arr = latest.concat(olds);
-  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) => {
-    return el !== "</html>" && el !== "</body>";
-  });
-  return res;
-}
-
-function toAttr(regex: RegExp, child: string) {
-  const arr = regex.exec(child) ?? [];
-  const map = new Attr();
-  if (arr[1]) {
-    arr[1].split(/\s+/).forEach((el) => {
-      if (el.includes("=")) {
-        const [k, v] = el.split(/\=/);
-        map.set(k, v.replace(/\"/g, ""));
-      } else {
-        map.set(el, true);
-      }
-    });
+function toHelmet(elems: JSX.Element[]) {
+  const helmet: JSX.Element[] = [];
+  let hasBase = false;
+  let hasTitle = false;
+  for (let i = elems.length - 1; i >= 0; i -= 1) {
+    const elem = elems[i];
+    if (elem.type === "base") {
+      if (hasBase) continue;
+      hasBase = true;
+    } else if (elem.type === "title") {
+      if (hasTitle) continue;
+      hasTitle = true;
+    }
+    helmet.push(elem);
   }
-  return map;
+  return helmet.reverse();
 }
+
 /**
  * Simple SSR Helmet for SEO
  * @example
@@ -97,28 +82,27 @@ function toAttr(regex: RegExp, child: string) {
  * }
  */
 export const Helmet: FCHelmet = ({ children, footer }) => {
-  children = Helmet.render(children) ?? children;
-  if (typeof children !== "string") return null;
-  const arr = children.replace(/></g, ">#$n$#<").split("#$n$#");
+  if (children == null) return null;
+  if (!Array.isArray(children)) children = [children];
   const heads = Helmet.writeHeadTag ? Helmet.writeHeadTag() : [];
   const bodys = Helmet.writeFooterTag ? Helmet.writeFooterTag() : [];
-  const childs: string[] = [];
-  for (let i = 0; i < arr.length; i++) {
-    const child = arr[i];
-    if (child.startsWith("<html")) {
-      Helmet.writeHtmlAttr = () => toAttr(/<html\s([^>]+)>/gm, child);
-    } else if (child.startsWith("<body")) {
-      Helmet.writeBodyAttr = () => toAttr(/<body\s([^>]+)>/gm, child);
-    } else childs.push(child);
+  const elements: JSX.Element[] = [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child.type === "html") {
+      Helmet.writeHtmlAttr = () => (child.props ?? {}) as Attributes;
+    } else if (child.type === "body") {
+      Helmet.writeBodyAttr = () => (child.props ?? {}) as Attributes;
+    } else elements.push(child);
   }
-  if (footer) Helmet.writeFooterTag = () => toHelmet(bodys, childs);
-  else Helmet.writeHeadTag = () => toHelmet(heads, childs);
+  if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
+  else Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
   return null;
 };
 
 Helmet.rewind = (elem) => {
   const data = {
-    attr: { body: new Attr(), html: new Attr() },
+    attr: { body: {}, html: {} },
     head: [],
     footer: [],
     body: elem,
@@ -134,4 +118,4 @@ Helmet.rewind = (elem) => {
   return data;
 };
 
-Helmet.render = (val) => val;
+Helmet.render = (val) => renderToString(val);
