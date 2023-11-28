@@ -90,13 +90,13 @@ export const Helmet: FCHelmet = ({ children, footer }) => {
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     if (child.type === "html") {
-      Helmet.writeHtmlAttr = () => child.props ?? {};
+      Helmet.writeHtmlAttr = () => (child.props ?? {}) as Attributes;
     } else if (child.type === "body") {
-      Helmet.writeBodyAttr = () => child.props ?? {};
+      Helmet.writeBodyAttr = () => (child.props ?? {}) as Attributes;
     } else elements.push(child);
   }
-  if (footer) Helmet.writeFooterTag = () => toHelmet(bodys.concat(elements));
-  else Helmet.writeHeadTag = () => toHelmet(heads.concat(elements));
+  if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
+  else Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
   return null;
 };
 

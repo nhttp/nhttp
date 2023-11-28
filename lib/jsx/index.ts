@@ -22,7 +22,7 @@ declare global {
     }
   }
 }
-type Fragment = null;
+
 export type JSXElement<T = object> = {
   type: string | FC<T>;
   props: T | null | undefined;
@@ -49,7 +49,8 @@ export type FC<T = object> = (props: T) => JSXElement | null;
  *   return <Fragment><h1>{props.title}</h1></Fragment>
  * }
  */
-export const Fragment = null;
+export const Fragment: FC<{ children?: JSXNode }> = ({ children }) =>
+  children as JSXElement;
 
 export function n(
   type: string,
@@ -62,18 +63,10 @@ export function n<T = object>(
   ...children: JSXNode[]
 ): JSXElement | null;
 export function n(
-  type: Fragment,
-  props?: object | null,
-  ...children: JSXNode[]
-): JSXElement;
-export function n(
-  type: string | FC | null,
+  type: string | FC,
   props?: object | null,
   ...children: JSXNode[]
 ): JSXNode {
-  if (type === null) {
-    return children;
-  }
   if (children.length > 0) {
     return { type, props: { ...props, children } };
   }
