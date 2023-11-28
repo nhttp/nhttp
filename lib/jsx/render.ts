@@ -1,6 +1,6 @@
 import type { RequestEvent, TRet } from "../deps.ts";
 import { Helmet, type HelmetRewind } from "./helmet.ts";
-import { JSXNode, dangerHTML, n } from "./index.ts";
+import { dangerHTML, JSXNode, n } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 export { isValidElement };
@@ -32,7 +32,10 @@ type TOptionsRender = {
    *   return str;
    * }
    */
-  onRenderElement: (elem: JSX.Element, rev: RequestEvent) => string | Promise<string>;
+  onRenderElement: (
+    elem: JSX.Element,
+    rev: RequestEvent,
+  ) => string | Promise<string>;
   /**
    * Attach on render html.
    * @example
@@ -65,7 +68,7 @@ const toStyle = (val: Record<string, string | number>) => {
       ":" +
       (typeof val[b] === "number" ? val[b] + "px" : val[b]) +
       ";",
-    ""
+    "",
   );
 };
 
@@ -97,8 +100,9 @@ export const renderToString = (elem: JSXNode): string => {
       k === dangerHTML ||
       k === "children" ||
       typeof val === "function"
-    )
+    ) {
       continue;
+    }
 
     const key = k === "className" ? "class" : kebab(k);
 
@@ -111,12 +115,16 @@ export const renderToString = (elem: JSXNode): string => {
     }
   }
 
-  if (type in voidTags)
+  if (type in voidTags) {
     return `<${type}${attributes}>`;
-  if (props?.[dangerHTML] != null)
+  }
+  if (props?.[dangerHTML] != null) {
     return `<${type}${attributes}>${props[dangerHTML].__html}</${type}>`;
+  }
 
-  return `<${type}${attributes}>${renderToString(props?.["children"])}</${type}>`;
+  return `<${type}${attributes}>${
+    renderToString(props?.["children"])
+  }</${type}>`;
 };
 export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
@@ -143,7 +151,7 @@ const toHtml = (body: string, { head, footer, attr }: HelmetRewind) => {
           ...attr.body,
           dangerouslySetInnerHTML: { __html: bodyWithFooter },
         }),
-      ])
+      ]),
     )
   );
 };

@@ -1,4 +1,4 @@
-import { renderToString, type Attributes, type FC } from "./index.ts";
+import { type Attributes, type FC, renderToString } from "./index.ts";
 
 export type HelmetRewind = {
   head: JSX.Element[];
@@ -9,43 +9,45 @@ export type HelmetRewind = {
   };
   body?: JSX.Element;
 };
-type FCHelmet = FC<{
-  footer?: boolean;
-  children?: JSX.Element[] | JSX.Element;
-}> & {
-  /**
-   * Rewind Helmet.
-   * @example
-   * const { head, footer, body, attr } = Helmet.rewind(<App />);
-   */
-  rewind: (elem?: JSX.Element) => HelmetRewind;
-  /**
-   * Custom render.
-   */
-  render: (elem: JSX.Element) => string;
-  /**
-   * Write head tags.
-   * @example
-   * const current = Helmet.writeHeadTag?.() ?? [];
-   * Helmet.writeHeadTag = () => [
-   *   ...current,
-   *   <script src="/client.js"></script>
-   * ];
-   */
-  writeHeadTag?: () => JSX.Element[];
-  /**
-   * Write body tags.
-   * @example
-   * const current = Helmet.writeFooterTag?.() ?? [];
-   * Helmet.writeFooterTag = () => [
-   *   ...current,
-   *   <script src="/client.js"></script>
-   * ];
-   */
-  writeFooterTag?: () => JSX.Element[];
-  writeHtmlAttr?: () => Attributes;
-  writeBodyAttr?: () => Attributes;
-};
+type FCHelmet =
+  & FC<{
+    footer?: boolean;
+    children?: JSX.Element[] | JSX.Element;
+  }>
+  & {
+    /**
+     * Rewind Helmet.
+     * @example
+     * const { head, footer, body, attr } = Helmet.rewind(<App />);
+     */
+    rewind: (elem?: JSX.Element) => HelmetRewind;
+    /**
+     * Custom render.
+     */
+    render: (elem: JSX.Element) => string;
+    /**
+     * Write head tags.
+     * @example
+     * const current = Helmet.writeHeadTag?.() ?? [];
+     * Helmet.writeHeadTag = () => [
+     *   ...current,
+     *   <script src="/client.js"></script>
+     * ];
+     */
+    writeHeadTag?: () => JSX.Element[];
+    /**
+     * Write body tags.
+     * @example
+     * const current = Helmet.writeFooterTag?.() ?? [];
+     * Helmet.writeFooterTag = () => [
+     *   ...current,
+     *   <script src="/client.js"></script>
+     * ];
+     */
+    writeFooterTag?: () => JSX.Element[];
+    writeHtmlAttr?: () => Attributes;
+    writeBodyAttr?: () => Attributes;
+  };
 
 function toHelmet(elems: JSX.Element[]) {
   const helmet: JSX.Element[] = [];

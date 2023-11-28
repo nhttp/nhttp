@@ -12,17 +12,18 @@ export type JSXNode =
 export const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
-    interface Element extends JSXElement {}
+    type Element = JSXElement;
     interface IntrinsicElements {
       [k: string]: Attributes & { children?: JSXNode };
     }
     interface ElementChildrenAttribute {
+      // deno-lint-ignore ban-types
       children: {};
     }
   }
 }
 type Fragment = null;
-export type JSXElement<T = {}> = {
+export type JSXElement<T = object> = {
   type: string | FC<T>;
   props: T | null | undefined;
 };
@@ -39,7 +40,7 @@ export type Attributes = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = {}> = (props: T) => JSXElement | null;
+export type FC<T = object> = (props: T) => JSXElement | null;
 
 /**
  * Fragment.
@@ -55,25 +56,27 @@ export function n(
   props?: Attributes | null,
   ...children: JSXNode[]
 ): JSXElement;
-export function n<T extends {} = {}>(
+export function n<T = object>(
   type: FC<T>,
   props?: T | null,
   ...children: JSXNode[]
 ): JSXElement | null;
 export function n(
   type: Fragment,
-  props?: {} | null,
+  props?: object | null,
   ...children: JSXNode[]
 ): JSXElement;
 export function n(
   type: string | FC | null,
-  props?: {} | null,
+  props?: object | null,
   ...children: JSXNode[]
 ): JSXNode {
-  if (type === null)
-    return children
-  if (children.length > 0)
+  if (type === null) {
+    return children;
+  }
+  if (children.length > 0) {
     return { type, props: { ...props, children } };
+  }
   return { type, props };
 }
 n.Fragment = Fragment;

@@ -17,7 +17,7 @@ export default function useRenderSSR(app: NHttp) {
         ...current,
         n("script", {
           dangerouslySetInnerHTML: {
-            __html: `window.__INIT_PROPS__=${props}`.replace(/</g, '\\u003c'),
+            __html: `window.__INIT_PROPS__=${props}`.replace(/</g, "\\u003c"),
           },
         }),
         n("script", { type: "module", src: clientPath, async: true }),
