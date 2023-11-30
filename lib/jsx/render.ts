@@ -27,8 +27,7 @@ type TOptionsRender = {
    * Attach on render element.
    * @example
    * options.onRenderElement = (elem, rev) => {
-   *   Helmet.render = renderToString;
-   *   const str = Helmet.render(elem);
+   *   const str = renderToString(elem);
    *   return str;
    * }
    */
@@ -77,23 +76,19 @@ const toStyle = (val: Record<string, string | number>) => {
  * @example
  * const str = renderToString(<App />);
  */
-export const renderToString = (elem: JSXNode): string => {
+// deno-lint-ignore no-explicit-any
+export const renderToString = (elem: JSXNode<any>): string => {
   if (elem == null || typeof elem === "boolean") return "";
   if (typeof elem === "number") return String(elem);
   if (typeof elem === "string") return escapeHtml(elem);
   if (Array.isArray(elem)) return elem.map(renderToString).join("");
-
   const { type, props } = elem;
-
   if (typeof type === "function") {
     return renderToString(type(props ?? {}));
   }
-
   let attributes = "";
-
   for (const k in props) {
     let val = props[k];
-
     if (
       val == null ||
       val === false ||
@@ -103,25 +98,20 @@ export const renderToString = (elem: JSXNode): string => {
     ) {
       continue;
     }
-
     const key = k === "className" ? "class" : kebab(k);
-
     if (val === true) {
       attributes += ` ${key}`;
     } else {
       if (key === "style" && typeof val === "object") val = toStyle(val);
-
       attributes += ` ${key}="${escapeHtml(String(val))}"`;
     }
   }
-
   if (type in voidTags) {
     return `<${type}${attributes}>`;
   }
   if (props?.[dangerHTML] != null) {
     return `<${type}${attributes}>${props[dangerHTML].__html}</${type}>`;
   }
-
   return `<${type}${attributes}>${
     renderToString(props?.["children"])
   }</${type}>`;

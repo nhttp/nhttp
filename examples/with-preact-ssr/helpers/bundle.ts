@@ -5,7 +5,8 @@ import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.t
 const map = new Map();
 const BUILD_ID = Date.now();
 export default (app: NHttp, elem: JSX.Element) => {
-  const url = elem?.type?.meta_url;
+  // deno-lint-ignore no-explicit-any
+  const url = (elem?.type as any)?.meta_url;
   if (!url) return void 0;
   const hash = btoa(url.slice(-32)).replace(/=/g, "");
   const clientPath = `/${hash}.${BUILD_ID}.js`;
