@@ -48,7 +48,6 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       response.status(201);
       assertEquals(response.status(), 201);
-
       response.status(201);
       (response.init as TRet).status = void 0;
       assertEquals(response.status(), 200);
@@ -57,6 +56,14 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       response.type("text/html");
       assertEquals(response.header("content-type") as string, "text/html");
+    });
+    await t.step("type charset", () => {
+      const response = buildRes();
+      response.type("html", "utf-8");
+      assertEquals(
+        response.header("content-type") as string,
+        "text/html; charset=utf-8",
+      );
     });
     await t.step("json", () => {
       const response = buildRes();
