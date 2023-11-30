@@ -3,9 +3,15 @@ export * from "./render.ts";
 export * from "./helmet.ts";
 // deno-lint-ignore ban-types
 type EObject = {};
-export type JSXNode<T = EObject> =
-  | JSXNode<T>[]
-  | JSXElement<T>
+type Merge<A, B> = {
+  [K in keyof (A & B)]: (
+    K extends keyof B ? B[K]
+      : (K extends keyof A ? A[K] : never)
+  );
+};
+export type JSXNode =
+  | JSXNode[]
+  | JSXElement
   | string
   | number
   | boolean
@@ -45,7 +51,9 @@ export type Attributes = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = EObject> = (props: T) => JSXElement | null;
+export type FC<T = EObject> = (
+  props: Merge<{ children?: JSXNode }, T>,
+) => JSXElement | null;
 
 /**
  * Fragment.
@@ -54,8 +62,7 @@ export type FC<T = EObject> = (props: T) => JSXElement | null;
  *   return <Fragment><h1>{props.title}</h1></Fragment>
  * }
  */
-export const Fragment: FC<{ children?: JSXNode }> = ({ children }) =>
-  children as JSXElement;
+export const Fragment: FC = ({ children }) => children as JSXElement;
 
 export function n(
   type: string,
