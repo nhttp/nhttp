@@ -12,6 +12,7 @@ export { RequestEvent } from "./request_event.ts";
 export { HttpResponse, JsonResponse } from "./http_response.ts";
 export { default as Router } from "./router.ts";
 export type {
+  Cookie,
   Handler,
   Handlers,
   NextFunction,
