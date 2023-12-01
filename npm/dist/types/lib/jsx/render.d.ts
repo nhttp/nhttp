@@ -1,4 +1,5 @@
 import type { RequestEvent, TRet } from "../deps";
+import { JSXNode } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
 type TOptionsRender = {
@@ -26,7 +27,7 @@ type TOptionsRender = {
  * @example
  * const str = renderToString(<App />);
  */
-export declare const renderToString: (elem: any) => string;
+export declare const renderToString: (elem: JSXNode<any>) => string;
 export declare const options: TOptionsRender;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;

@@ -4,7 +4,7 @@ type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
 };
-export type JSXNode = JSXNode[] | JSXElement | string | number | boolean | null | undefined;
+export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | string | number | boolean | null | undefined;
 export declare const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
     namespace JSX {
