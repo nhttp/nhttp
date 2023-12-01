@@ -6,8 +6,7 @@ import { options, renderToHtml } from "../lib/jsx/render.ts";
 import { Helmet } from "../lib/jsx.ts";
 
 options.onRenderElement = (elem) => {
-  Helmet.render = renderToString;
-  const body = Helmet.render(elem);
+  const body = renderToString(elem);
   return body;
 };
 

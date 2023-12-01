@@ -4,8 +4,7 @@ const createElement = (type, props) => {
   const children = hasChild ? props.children : [];
   if (hasChild)
     delete props.children;
-  const arr = children.pop ? children : [children];
-  return n(type, props, ...arr);
+  return n(type, props, ...children.pop ? children : [children]);
 };
 export {
   Fragment,

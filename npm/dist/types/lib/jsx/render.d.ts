@@ -1,4 +1,5 @@
 import type { RequestEvent, TRet } from "../deps";
+import { JSXNode } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
 type TOptionsRender = {
@@ -6,12 +7,11 @@ type TOptionsRender = {
      * Attach on render element.
      * @example
      * options.onRenderElement = (elem, rev) => {
-     *   Helmet.render = renderToString;
-     *   const str = Helmet.render(elem);
+     *   const str = renderToString(elem);
      *   return str;
      * }
      */
-    onRenderElement: (elem: TRet, rev: RequestEvent) => string | Promise<string>;
+    onRenderElement: (elem: JSX.Element, rev: RequestEvent) => string | Promise<string>;
     /**
      * Attach on render html.
      * @example
@@ -27,7 +27,7 @@ type TOptionsRender = {
  * @example
  * const str = renderToString(<App />);
  */
-export declare const renderToString: (elem: JSX.Element) => string;
+export declare const renderToString: (elem: JSXNode<any>) => string;
 export declare const options: TOptionsRender;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;

@@ -9,6 +9,7 @@ export {
   s_response,
 } from "./../index.ts";
 export type {
+  Cookie,
   Handler,
   Handlers,
   NextFunction,

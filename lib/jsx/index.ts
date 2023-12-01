@@ -1,9 +1,17 @@
 import { Helmet } from "./helmet.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
-export type JSXNode =
-  | JSXNode[]
-  | JSXElement
+// deno-lint-ignore ban-types
+type EObject = {};
+type Merge<A, B> = {
+  [K in keyof (A & B)]: (
+    K extends keyof B ? B[K]
+      : (K extends keyof A ? A[K] : never)
+  );
+};
+export type JSXNode<T = EObject> =
+  | JSXNode<T>[]
+  | JSXElement<T>
   | string
   | number
   | boolean
@@ -12,20 +20,23 @@ export type JSXNode =
 export const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
+    // @ts-ignore: elem
     type Element = JSXElement;
     interface IntrinsicElements {
+      // @ts-ignore: IntrinsicElements
       [k: string]: Attributes & { children?: JSXNode };
     }
     interface ElementChildrenAttribute {
-      // deno-lint-ignore ban-types
-      children: {};
+      children: EObject;
     }
   }
 }
 
-export type JSXElement<T = object> = {
+export type JSXElement<T = EObject> = {
   type: string | FC<T>;
   props: T | null | undefined;
+  // shim key
+  key: number | string | null;
 };
 export type Attributes = {
   style?: string | Record<string, string | number>;
@@ -40,7 +51,9 @@ export type Attributes = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = object> = (props: T) => JSXElement | null;
+export type FC<T = EObject> = (
+  props: Merge<{ children?: JSXNode }, T>,
+) => JSXElement | null;
 
 /**
  * Fragment.
@@ -49,28 +62,27 @@ export type FC<T = object> = (props: T) => JSXElement | null;
  *   return <Fragment><h1>{props.title}</h1></Fragment>
  * }
  */
-export const Fragment: FC<{ children?: JSXNode }> = ({ children }) =>
-  children as JSXElement;
+export const Fragment: FC = ({ children }) => children as JSXElement;
 
 export function n(
   type: string,
   props?: Attributes | null,
   ...children: JSXNode[]
 ): JSXElement;
-export function n<T = object>(
+export function n<T = EObject>(
   type: FC<T>,
   props?: T | null,
   ...children: JSXNode[]
 ): JSXElement | null;
 export function n(
   type: string | FC,
-  props?: object | null,
+  props?: EObject | null,
   ...children: JSXNode[]
 ): JSXNode {
   if (children.length > 0) {
-    return { type, props: { ...props, children } };
+    return { type, props: { ...props, children }, key: null };
   }
-  return { type, props };
+  return { type, props, key: null };
 }
 n.Fragment = Fragment;
 export { n as h };

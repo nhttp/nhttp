@@ -1,19 +1,16 @@
-import type { FC } from "./index";
-declare class Attr extends Map {
-    toString(): string;
-    toJSON(): any;
-}
+import { type Attributes, type FC } from "./index";
 export type HelmetRewind = {
-    head: string[];
-    footer: string[];
+    head: JSX.Element[];
+    footer: JSX.Element[];
     attr: {
-        body: Attr;
-        html: Attr;
+        body: Attributes;
+        html: Attributes;
     };
-    body?: string;
+    body?: JSX.Element;
 };
 type FCHelmet = FC<{
     footer?: boolean;
+    children?: JSX.Element[] | JSX.Element | any;
 }> & {
     /**
      * Rewind Helmet.
@@ -24,29 +21,29 @@ type FCHelmet = FC<{
     /**
      * Custom render.
      */
-    render: (elem: JSX.Element) => JSX.Element;
+    render: (elem: JSX.Element) => string;
     /**
      * Write head tags.
      * @example
      * const current = Helmet.writeHeadTag?.() ?? [];
      * Helmet.writeHeadTag = () => [
      *   ...current,
-     *   `<script src="/client.js"></script>`
+     *   <script src="/client.js"></script>
      * ];
      */
-    writeHeadTag?: () => string[];
+    writeHeadTag?: () => JSX.Element[];
     /**
      * Write body tags.
      * @example
      * const current = Helmet.writeFooterTag?.() ?? [];
      * Helmet.writeFooterTag = () => [
      *   ...current,
-     *   `<script src="/client.js"></script>`
+     *   <script src="/client.js"></script>
      * ];
      */
-    writeFooterTag?: () => string[];
-    writeHtmlAttr?: () => Attr;
-    writeBodyAttr?: () => Attr;
+    writeFooterTag?: () => JSX.Element[];
+    writeHtmlAttr?: () => Attributes;
+    writeBodyAttr?: () => Attributes;
 };
 /**
  * Simple SSR Helmet for SEO

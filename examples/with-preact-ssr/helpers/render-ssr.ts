@@ -7,8 +7,7 @@ import { options } from "../../../lib/jsx/render.ts";
 export default function useRenderSSR(app: NHttp) {
   options.onRenderElement = (elem) => {
     const clientPath = bundle(app, elem);
-    Helmet.render = renderToString;
-    const body = Helmet.render(elem);
+    const body = renderToString(elem);
     if (!clientPath) return body;
     const props = JSON.stringify(elem.props);
     const current = Helmet.writeFooterTag?.() ?? [];

@@ -41,7 +41,7 @@ export class HttpResponse {
    * @example
    * const str = response.getHeader("key");
    */
-  getHeader(key: string) {
+  getHeader(key: string): string | undefined {
     return this.init.headers?.[key.toLowerCase()];
   }
   /**
@@ -64,13 +64,13 @@ export class HttpResponse {
    * const headers = response.header().toJSON();
    */
   header(key: string, value: string | string[]): this;
-  header(key: string): string;
+  header(key: string): string | undefined;
   header(key: TObject): this;
   header(): RetHeaders;
   header(
     key?: TObject | string,
     value?: string | string[],
-  ): this | string | RetHeaders {
+  ): this | string | RetHeaders | undefined {
     if (typeof key === "string") {
       if (value === void 0) return this.getHeader(key);
       this.setHeader(key, value);
@@ -168,9 +168,16 @@ export class HttpResponse {
    * shorthand for content-type headers
    * @example
    * response.type("html").send("<h1>hello, world</h1>");
+   *
+   * // with charset
+   * response.type("html", "utf-8").send("<h1>hello, world</h1>");
    */
-  type(contentType: string) {
-    return this.header("content-type", MIME_LIST[contentType] ?? contentType);
+  type(contentType: string, charset?: string) {
+    return this.header(
+      "content-type",
+      (MIME_LIST[contentType] ?? contentType) +
+        (charset ? "; charset=" + charset : ""),
+    );
   }
   /**
    * render `requires app.engine configs`

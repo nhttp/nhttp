@@ -12,7 +12,8 @@ export type HelmetRewind = {
 type FCHelmet =
   & FC<{
     footer?: boolean;
-    children?: JSX.Element[] | JSX.Element;
+    // deno-lint-ignore no-explicit-any
+    children?: JSX.Element[] | JSX.Element | any;
   }>
   & {
     /**

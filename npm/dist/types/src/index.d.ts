@@ -5,6 +5,6 @@ export { decoder, decURIComponent, findFns, parseQuery, toBytes, } from "./utils
 export { RequestEvent } from "./request_event";
 export { HttpResponse, JsonResponse } from "./http_response";
 export { default as Router } from "./router";
-export type { Handler, Handlers, NextFunction, NFile, TApp, TObject, TRet, } from "./types";
+export type { Cookie, Handler, Handlers, NextFunction, NFile, TApp, TObject, TRet, } from "./types";
 export { getError, HttpError } from "./error";
 export { s_response } from "./symbol";

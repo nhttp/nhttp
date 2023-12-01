@@ -1,16 +1,35 @@
 export * from "./render";
 export * from "./helmet";
-type TRet = any;
+type EObject = {};
+type Merge<A, B> = {
+    [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
+};
+export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | string | number | boolean | null | undefined;
+export declare const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
     namespace JSX {
-        type Element = TRet;
+        type Element = JSXElement;
         interface IntrinsicElements {
-            [k: string]: TRet;
+            [k: string]: Attributes & {
+                children?: JSXNode;
+            };
+        }
+        interface ElementChildrenAttribute {
+            children: EObject;
         }
     }
 }
-type JsxProps = {
-    children?: TRet;
+export type JSXElement<T = EObject> = {
+    type: string | FC<T>;
+    props: T | null | undefined;
+    key: number | string | null;
+};
+export type Attributes = {
+    style?: string | Record<string, string | number>;
+    [dangerHTML]?: {
+        __html: string;
+    };
+    [name: string]: unknown;
 };
 /**
  * Function Component (FC).
@@ -19,15 +38,9 @@ type JsxProps = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T extends unknown = unknown> = (props: JsxProps & T) => JSX.Element;
-export declare function n(type: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
-export declare namespace n {
-    var Fragment: FC<unknown>;
-}
-export declare function h(type: TRet, props: TRet | undefined | null, ...args: TRet[]): any;
-export declare namespace h {
-    var Fragment: FC<unknown>;
-}
+export type FC<T = EObject> = (props: Merge<{
+    children?: JSXNode;
+}, T>) => JSXElement | null;
 /**
  * Fragment.
  * @example
@@ -36,6 +49,12 @@ export declare namespace h {
  * }
  */
 export declare const Fragment: FC;
+export declare function n(type: string, props?: Attributes | null, ...children: JSXNode[]): JSXElement;
+export declare function n<T = EObject>(type: FC<T>, props?: T | null, ...children: JSXNode[]): JSXElement | null;
+export declare namespace n {
+    var Fragment: FC<EObject>;
+}
+export { n as h };
 /**
  * Client interactive.
  * @example
@@ -53,4 +72,5 @@ export declare const Client: FC<{
     src: string;
     id?: string;
     type?: string;
+    children?: JSXNode;
 }>;

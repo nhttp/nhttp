@@ -7,8 +7,7 @@ const createElement: CrateElement = (type, props) => {
   const hasChild = props.children != null;
   const children = hasChild ? props.children : [];
   if (hasChild) delete props.children;
-  const arr = children.pop ? children : [children];
-  return n(type, props, ...arr);
+  return n(type, props, ...(children.pop ? children : [children]));
 };
 export { Fragment };
 export { createElement as jsx };
