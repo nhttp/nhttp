@@ -21,8 +21,6 @@ __export(is_valid_element_exports, {
 });
 module.exports = __toCommonJS(is_valid_element_exports);
 const isValidElement = (elem) => {
-  if (typeof elem === "string" && elem[0] === "<")
-    return true;
   if (typeof elem === "object") {
     if (typeof elem.type === "function")
       return true;

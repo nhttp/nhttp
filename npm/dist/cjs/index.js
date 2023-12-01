@@ -1248,9 +1248,15 @@ var HttpResponse = class {
    * shorthand for content-type headers
    * @example
    * response.type("html").send("<h1>hello, world</h1>");
+   *
+   * // with charset
+   * response.type("html", "utf-8").send("<h1>hello, world</h1>");
    */
-  type(contentType) {
-    return this.header("content-type", MIME_LIST[contentType] ?? contentType);
+  type(contentType, charset) {
+    return this.header(
+      "content-type",
+      (MIME_LIST[contentType] ?? contentType) + (charset ? "; charset=" + charset : "")
+    );
   }
   /**
    * render `requires app.engine configs`

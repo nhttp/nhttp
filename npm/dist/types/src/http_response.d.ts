@@ -38,7 +38,7 @@ export declare class HttpResponse {
      * @example
      * const str = response.getHeader("key");
      */
-    getHeader(key: string): any;
+    getHeader(key: string): string | undefined;
     /**
      * set header or get header
      * @example
@@ -59,7 +59,7 @@ export declare class HttpResponse {
      * const headers = response.header().toJSON();
      */
     header(key: string, value: string | string[]): this;
-    header(key: string): string;
+    header(key: string): string | undefined;
     header(key: TObject): this;
     header(): RetHeaders;
     /**
@@ -112,8 +112,11 @@ export declare class HttpResponse {
      * shorthand for content-type headers
      * @example
      * response.type("html").send("<h1>hello, world</h1>");
+     *
+     * // with charset
+     * response.type("html", "utf-8").send("<h1>hello, world</h1>");
      */
-    type(contentType: string): this;
+    type(contentType: string, charset?: string): this;
     /**
      * render `requires app.engine configs`
      * @example

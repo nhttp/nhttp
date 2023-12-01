@@ -9,9 +9,9 @@ type Merge<A, B> = {
       : (K extends keyof A ? A[K] : never)
   );
 };
-export type JSXNode =
-  | JSXNode[]
-  | JSXElement
+export type JSXNode<T = EObject> =
+  | JSXNode<T>[]
+  | JSXElement<T>
   | string
   | number
   | boolean

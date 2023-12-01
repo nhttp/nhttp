@@ -1,6 +1,4 @@
 const isValidElement = (elem) => {
-  if (typeof elem === "string" && elem[0] === "<")
-    return true;
   if (typeof elem === "object") {
     if (typeof elem.type === "function")
       return true;

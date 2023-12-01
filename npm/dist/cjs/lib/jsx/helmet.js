@@ -20,70 +20,52 @@ __export(helmet_exports, {
   Helmet: () => Helmet
 });
 module.exports = __toCommonJS(helmet_exports);
-class Attr extends Map {
-  toString() {
-    let str = "";
-    this.forEach((v, k) => str += ` ${k}="${v}"`);
-    return str.trim();
+var import_index = require("./index");
+function toHelmet(elems) {
+  const helmet = [];
+  let hasBase = false;
+  let hasTitle = false;
+  for (let i = elems.length - 1; i >= 0; i -= 1) {
+    const elem = elems[i];
+    if (elem.type === "base") {
+      if (hasBase)
+        continue;
+      hasBase = true;
+    } else if (elem.type === "title") {
+      if (hasTitle)
+        continue;
+      hasTitle = true;
+    }
+    helmet.push(elem);
   }
-  toJSON() {
-    return Object.fromEntries(this.entries());
-  }
-}
-function toHelmet(olds, childs) {
-  const idx = olds.findIndex((el) => el.startsWith("<title>"));
-  const latest = childs.map((item) => {
-    if (item.startsWith("<title>") && idx !== -1)
-      olds.splice(idx, 1);
-    return item;
-  });
-  const arr = latest.concat(olds);
-  const res = arr.filter((item, i) => arr.indexOf(item) === i).filter((el) => {
-    return el !== "</html>" && el !== "</body>";
-  });
-  return res;
-}
-function toAttr(regex, child) {
-  const arr = regex.exec(child) ?? [];
-  const map = new Attr();
-  if (arr[1]) {
-    arr[1].split(/\s+/).forEach((el) => {
-      if (el.includes("=")) {
-        const [k, v] = el.split(/\=/);
-        map.set(k, v.replace(/\"/g, ""));
-      } else {
-        map.set(el, true);
-      }
-    });
-  }
-  return map;
+  return helmet.reverse();
 }
 const Helmet = ({ children, footer }) => {
-  children = Helmet.render(children) ?? children;
-  if (typeof children !== "string")
+  if (children == null)
     return null;
-  const arr = children.replace(/></g, ">#$n$#<").split("#$n$#");
+  if (!Array.isArray(children))
+    children = [children];
   const heads = Helmet.writeHeadTag ? Helmet.writeHeadTag() : [];
   const bodys = Helmet.writeFooterTag ? Helmet.writeFooterTag() : [];
-  const childs = [];
-  for (let i = 0; i < arr.length; i++) {
-    const child = arr[i];
-    if (child.startsWith("<html")) {
-      Helmet.writeHtmlAttr = () => toAttr(/<html\s([^>]+)>/gm, child);
-    } else if (child.startsWith("<body")) {
-      Helmet.writeBodyAttr = () => toAttr(/<body\s([^>]+)>/gm, child);
+  const elements = [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child.type === "html") {
+      Helmet.writeHtmlAttr = () => child.props ?? {};
+    } else if (child.type === "body") {
+      Helmet.writeBodyAttr = () => child.props ?? {};
     } else
-      childs.push(child);
+      elements.push(child);
   }
   if (footer)
-    Helmet.writeFooterTag = () => toHelmet(bodys, childs);
+    Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
   else
-    Helmet.writeHeadTag = () => toHelmet(heads, childs);
+    Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
   return null;
 };
 Helmet.rewind = (elem) => {
   const data = {
-    attr: { body: new Attr(), html: new Attr() },
+    attr: { body: {}, html: {} },
     head: [],
     footer: [],
     body: elem
@@ -102,7 +84,7 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-Helmet.render = (val) => val;
+Helmet.render = (val) => (0, import_index.renderToString)(val);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Helmet

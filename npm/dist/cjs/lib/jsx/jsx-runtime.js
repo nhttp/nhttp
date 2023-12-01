@@ -30,8 +30,7 @@ const createElement = (type, props) => {
   const children = hasChild ? props.children : [];
   if (hasChild)
     delete props.children;
-  const arr = children.pop ? children : [children];
-  return (0, import_index.n)(type, props, ...arr);
+  return (0, import_index.n)(type, props, ...children.pop ? children : [children]);
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
