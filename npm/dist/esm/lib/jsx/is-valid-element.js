@@ -1,3 +1,4 @@
+import { options } from "./index.js";
 const isValidElement = (elem) => {
   if (typeof elem === "object") {
     if (typeof elem.type === "function")
@@ -5,6 +6,9 @@ const isValidElement = (elem) => {
     const has = (k) => Object.hasOwn(elem, k);
     if (has("type") && has("props") && has("key"))
       return true;
+  }
+  if (options.precompile && typeof elem === "string" && elem[0] === "<") {
+    return true;
   }
   return false;
 };

@@ -72,5 +72,4 @@ export declare const Client: FC<{
     src: string;
     id?: string;
     type?: string;
-    children?: JSXNode;
 }>;

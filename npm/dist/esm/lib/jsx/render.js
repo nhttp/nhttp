@@ -17,8 +17,39 @@ const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   track: true,
   wbr: true
 });
-function escapeHtml(unsafe) {
-  return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+const REG_HTML = /["'&<>]/;
+function escapeHtml(str, force) {
+  return options.precompile && !force || !REG_HTML.test(str) ? str : (() => {
+    let esc = "", i = 0, l = 0, html = "";
+    for (; i < str.length; i++) {
+      switch (str.charCodeAt(i)) {
+        case 34:
+          esc = "&quot;";
+          break;
+        case 38:
+          esc = "&amp;";
+          break;
+        case 39:
+          esc = "&#39;";
+          break;
+        case 60:
+          esc = "&lt;";
+          break;
+        case 62:
+          esc = "&gt;";
+          break;
+        default:
+          continue;
+      }
+      if (i !== l)
+        html += str.substring(l, i);
+      html += esc;
+      l = i + 1;
+    }
+    if (i !== l)
+      html += str.substring(l, i);
+    return html;
+  })();
 }
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
@@ -39,16 +70,15 @@ const renderToString = (elem) => {
   if (Array.isArray(elem))
     return elem.map(renderToString).join("");
   const { type, props } = elem;
-  if (typeof type === "function") {
+  if (typeof type === "function")
     return renderToString(type(props ?? {}));
-  }
   let attributes = "";
   for (const k in props) {
     let val = props[k];
     if (val == null || val === false || k === dangerHTML || k === "children" || typeof val === "function") {
       continue;
     }
-    const key = k === "className" ? "class" : kebab(k);
+    const key = k === "className" ? "class" : k.toLowerCase();
     if (val === true) {
       attributes += ` ${key}`;
     } else {
@@ -99,8 +129,10 @@ const renderToHtml = (elem, rev) => {
 };
 renderToHtml.check = isValidElement;
 export {
+  escapeHtml,
   isValidElement,
   options,
   renderToHtml,
-  renderToString
+  renderToString,
+  toStyle
 };

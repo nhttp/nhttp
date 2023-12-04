@@ -21,7 +21,13 @@ type TOptionsRender = {
      * }
      */
     onRenderHtml: (html: string, rev: RequestEvent) => string | Promise<string>;
+    /**
+     * jsx transform precompile.
+     */
+    precompile?: boolean;
 };
+export declare function escapeHtml(str: string, force?: boolean): string;
+export declare const toStyle: (val: Record<string, string | number>) => string;
 /**
  * renderToString.
  * @example
