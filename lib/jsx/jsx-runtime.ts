@@ -39,7 +39,9 @@ export const jsxTemplate = (tpl: TemplateStringsArray, ...subs: JSXNode[]) => {
 export const jsxEscape = (
   v: string | null | JSXNode | Array<string | null | JSXNode>,
 ) => {
-  return typeof v === "boolean" || typeof v === "function" ? null : v;
+  return v == null || typeof v === "boolean" || typeof v === "function"
+    ? null
+    : v;
 };
 export const jsxAttr = (k: string, v: unknown) => {
   if (k === "style" && typeof v === "object") {
