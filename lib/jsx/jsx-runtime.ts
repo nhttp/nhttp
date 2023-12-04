@@ -33,7 +33,7 @@ export { createElement as jsxDEV };
 export const jsxTemplate = (tpl: TemplateStringsArray, ...subs: JSXNode[]) => {
   options.precompile ??= true;
   return tpl.reduce((prev, cur, i) => {
-    return prev + renderToString(subs[i - 1] as JSXNode) + cur;
+    return prev + renderToString(subs[i - 1]) + cur;
   });
 };
 export const jsxEscape = (
