@@ -1,16 +1,53 @@
-import { Fragment, n } from "./index.ts";
-// deno-lint-ignore no-explicit-any
-type TRet = any;
+import {
+  type Attributes,
+  escapeHtml,
+  Fragment,
+  type JSXElement,
+  type JSXNode,
+  n,
+  options,
+  renderToString,
+  toStyle,
+} from "./index.ts";
 
-type CrateElement = (type: TRet, props: TRet, ...args: TRet) => TRet;
-const createElement: CrateElement = (type, props) => {
-  const hasChild = props.children != null;
-  const children = hasChild ? props.children : [];
-  if (hasChild) delete props.children;
-  return n(type, props, ...(children.pop ? children : [children]));
+type CreateElement = (
+  type: string,
+  props?: Attributes & { children?: JSXElement | JSXElement[] },
+  ...args: unknown[]
+) => JSXNode;
+const isArray = Array.isArray;
+const createElement: CreateElement = (type, props) => {
+  if (props?.children == null) return n(type, props);
+  const childs = props.children;
+  delete props.children;
+  if (isArray(childs)) return n(type, props, ...childs);
+  return n(type, props, childs);
 };
 export { Fragment };
 export { createElement as jsx };
 export { createElement as jsxs };
 export { createElement as jsxDev };
 export { createElement as jsxDEV };
+
+// support jsx-transform precompile.
+export const jsxTemplate = (tpl: TemplateStringsArray, ...subs: JSXNode[]) => {
+  options.precompile ??= true;
+  return tpl.reduce((prev, cur, i) => {
+    return prev + renderToString(subs[i - 1] as JSXNode) + cur;
+  });
+};
+export const jsxEscape = (v: unknown) => v;
+export const jsxAttr = (k: string, v: unknown) => {
+  if (k === "style" && typeof v === "object") {
+    return `${k}="${toStyle(v as Record<string, string | number>)}"`;
+  }
+  if (
+    v == null ||
+    v === false ||
+    typeof v === "function" ||
+    typeof v === "object"
+  ) {
+    return "";
+  } else if (v === true) return k;
+  return k + '="' + escapeHtml(v as string, true) + '"';
+};

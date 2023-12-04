@@ -44,10 +44,14 @@ type TOptionsRender = {
    * }
    */
   onRenderHtml: (html: string, rev: RequestEvent) => string | Promise<string>;
+  /**
+   * jsx transform precompile.
+   */
+  precompile?: boolean;
 };
-
-function escapeHtml(unsafe: string) {
-  return unsafe
+const REG_HTML = /["'&<>]/;
+export function escapeHtml(str: string, force = false): string {
+  return !REG_HTML.test(str) || (options.precompile && !force) ? str : str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -59,7 +63,7 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-const toStyle = (val: Record<string, string | number>) => {
+export const toStyle = (val: Record<string, string | number>) => {
   return Object.keys(val).reduce(
     (a, b) =>
       a +

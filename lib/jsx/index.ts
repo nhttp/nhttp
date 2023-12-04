@@ -104,7 +104,6 @@ export const Client: FC<{
   src: string;
   id?: string;
   type?: string;
-  children?: JSXNode;
 }> = (props) => {
   return n(Fragment, {}, [
     n(
