@@ -36,7 +36,11 @@ export const jsxTemplate = (tpl: TemplateStringsArray, ...subs: JSXNode[]) => {
     return prev + renderToString(subs[i - 1] as JSXNode) + cur;
   });
 };
-export const jsxEscape = (v: unknown) => v;
+export const jsxEscape = (
+  v: string | null | JSXNode | Array<string | null | JSXNode>,
+) => {
+  return typeof v === "boolean" || typeof v === "function" ? null : v;
+};
 export const jsxAttr = (k: string, v: unknown) => {
   if (k === "style" && typeof v === "object") {
     return `${k}="${toStyle(v as Record<string, string | number>)}"`;
@@ -49,5 +53,5 @@ export const jsxAttr = (k: string, v: unknown) => {
   ) {
     return "";
   } else if (v === true) return k;
-  return k + '="' + escapeHtml(v as string, true) + '"';
+  return `${k}="${escapeHtml(v as string, true)}"`;
 };

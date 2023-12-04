@@ -12,7 +12,9 @@ export const isValidElement = (elem: TRet) => {
     const has = (k: string) => Object.hasOwn(elem, k);
     if (has("type") && has("props") && has("key")) return true;
   }
-  if (options.precompile && typeof elem === "string" && elem[0] === "<") {
+  if (
+    options.precompile && typeof elem === "string" && elem[0] === "<"
+  ) {
     return true;
   }
   return false;
