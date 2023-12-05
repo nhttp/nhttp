@@ -32,7 +32,7 @@ __export(jwt_exports, {
   jwt: () => jwt
 });
 module.exports = __toCommonJS(jwt_exports);
-var import_jwt_simple = __toESM(require("jwt-simple"), 1);
+var import_jwt_simple = __toESM(require("jwt-simple"));
 var import_deps = require("./deps");
 var import_controller = require("./controller");
 class UnauthorizedError extends import_deps.HttpError {

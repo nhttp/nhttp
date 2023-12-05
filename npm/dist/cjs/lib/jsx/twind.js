@@ -33,8 +33,8 @@ __export(twind_exports, {
 });
 module.exports = __toCommonJS(twind_exports);
 var import_core = require("@twind/core");
-var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"), 1);
-var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"), 1);
+var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"));
+var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"));
 var import_render = require("./render");
 const install = (config = {}, isProduction) => {
   return (0, import_core.install)({

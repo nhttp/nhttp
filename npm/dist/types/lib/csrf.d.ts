@@ -1,5 +1,5 @@
 import { type Cookie, type Handler, type RequestEvent, type TRet } from "./deps";
-type Options = {
+export type CSRFOptions = {
     /**
      * cookie. default to `false`.
      */
@@ -28,6 +28,10 @@ type Options = {
      * auto verify csrf. default to `true`.
      */
     autoVerify?: boolean;
+    /**
+     * algorithm when creating CSRF. default to `SHA1`.
+     */
+    algo?: "MD5" | "SHA" | "SHA1" | "SHA256" | "SHA512";
 };
 /**
  * Cross-Site Request Forgery (CSRF) protected middleware.
@@ -52,5 +56,5 @@ type Options = {
  *   return <MyForm csrf={rev.csrfToken()}/>
  * });
  */
-export declare const csrf: (opts?: Options) => Handler;
+export declare const csrf: (opts?: CSRFOptions) => Handler;
 export default csrf;
