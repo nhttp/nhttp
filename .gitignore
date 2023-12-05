@@ -2,6 +2,7 @@ dev.ts
 dev.js
 dev.tsx
 bench.ts
+bench.tsx
 dev.tsx
 deno.lock
 note.txt

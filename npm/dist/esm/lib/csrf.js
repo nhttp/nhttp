@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import {
   HttpError
 } from "./deps.js";
-const rand = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(5)}`.replace(".", "");
+const rand = () => `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`.replace(".", "");
 const CHARS = [
   "A",
   "B",
@@ -73,6 +73,7 @@ const csrf = (opts = {}) => {
     opts.secret ??= rand();
   const cname = "__csrf__";
   const ignoreMethods = opts.ignoreMethods ?? ["GET", "HEAD", "OPTIONS", "TRACE"];
+  const algo = opts.algo ?? "SHA1";
   return (rev, next) => {
     rev.csrfToken = () => {
       let secret = opts.secret ?? rand();
@@ -85,18 +86,18 @@ const csrf = (opts = {}) => {
           typeof cookie === "object" ? cookie : void 0
         );
       }
-      return create(secret, opts.salt ?? 8);
+      return create(secret, opts.salt ?? 8, algo);
     };
     rev.csrfVerify = () => {
-      if (ignoreMethods.includes(rev.method)) {
+      if (ignoreMethods.includes(rev.method))
         return true;
-      }
       const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
       if (value == null)
         return true;
       return verify(
         cookie ? rev.cookies[cname] : opts.secret,
-        value
+        value,
+        algo
       );
     };
     if (autoVerify) {
@@ -109,18 +110,18 @@ const csrf = (opts = {}) => {
     return next();
   };
 };
-function toHash(str) {
-  return crypto.createHash("sha1").update(str, "utf8").digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+function toHash(str, algo) {
+  return crypto.createHash(algo).update(str, "utf8").digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
-function create(secret, saltLen) {
+function create(secret, saltLen, algo) {
   const salt = new Array(saltLen).fill(void 0).map(() => CHARS[Math.random() * CHARS.length | 0]).join("");
-  return `${salt}-${toHash(`${salt}-${secret}`)}`;
+  return `${salt}-${toHash(`${salt}-${secret}`, algo)}`;
 }
-function verify(secret, token) {
+function verify(secret, token, algo) {
   if (!~token.indexOf("-"))
     return false;
   const salt = token.substring(0, token.indexOf("-"));
-  const expected = `${salt}-${toHash(`${salt}-${secret}`)}`;
+  const expected = `${salt}-${toHash(`${salt}-${secret}`, algo)}`;
   return expected === token;
 }
 function getDefaultValue(rev) {

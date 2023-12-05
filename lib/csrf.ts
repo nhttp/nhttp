@@ -8,7 +8,7 @@ import {
 } from "./deps.ts";
 
 const rand = () =>
-  `${Date.now().toString(36)}${Math.random().toString(36).slice(5)}`
+  `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
     .replace(".", "");
 
 const CHARS = [
@@ -74,7 +74,7 @@ const CHARS = [
   9,
 ];
 
-type Options = {
+export type CSRFOptions = {
   /**
    * cookie. default to `false`.
    */
@@ -103,6 +103,15 @@ type Options = {
    * auto verify csrf. default to `true`.
    */
   autoVerify?: boolean;
+  /**
+   * algorithm when creating CSRF. default to `SHA1`.
+   */
+  algo?:
+    | "MD5"
+    | "SHA"
+    | "SHA1"
+    | "SHA256"
+    | "SHA512";
 };
 const message = "Failed to verify csrf";
 /**
@@ -128,13 +137,14 @@ const message = "Failed to verify csrf";
  *   return <MyForm csrf={rev.csrfToken()}/>
  * });
  */
-export const csrf = (opts: Options = {}): Handler => {
+export const csrf = (opts: CSRFOptions = {}): Handler => {
   const cookie = opts.cookie;
   const autoVerify = opts.autoVerify ?? true;
   if (!cookie) opts.secret ??= rand();
   const cname = "__csrf__";
   const ignoreMethods = opts.ignoreMethods ??
     ["GET", "HEAD", "OPTIONS", "TRACE"];
+  const algo = opts.algo ?? "SHA1";
   return (rev, next) => {
     rev.csrfToken = () => {
       let secret = opts.secret ?? rand();
@@ -146,17 +156,16 @@ export const csrf = (opts: Options = {}): Handler => {
           typeof cookie === "object" ? cookie : void 0,
         );
       }
-      return create(secret, opts.salt ?? 8);
+      return create(secret, opts.salt ?? 8, algo);
     };
     rev.csrfVerify = () => {
-      if (ignoreMethods.includes(rev.method)) {
-        return true;
-      }
+      if (ignoreMethods.includes(rev.method)) return true;
       const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
       if (value == null) return true;
       return verify(
         cookie ? rev.cookies[cname] : opts.secret,
         value,
+        algo,
       );
     };
     if (autoVerify) {
@@ -168,27 +177,27 @@ export const csrf = (opts: Options = {}): Handler => {
   };
 };
 
-function toHash(str: string) {
+function toHash(str: string, algo: string) {
   return crypto
-    .createHash("sha1")
+    .createHash(algo)
     .update(str, "utf8")
     .digest("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
 }
-function create(secret: string, saltLen: number) {
+function create(secret: string, saltLen: number, algo: string) {
   const salt = new Array(saltLen)
     .fill(void 0)
     .map(() => CHARS[(Math.random() * CHARS.length) | 0])
     .join("");
-  return `${salt}-${toHash(`${salt}-${secret}`)}`;
+  return `${salt}-${toHash(`${salt}-${secret}`, algo)}`;
 }
 
-function verify(secret: string, token: string) {
+function verify(secret: string, token: string, algo: string) {
   if (!~token.indexOf("-")) return false;
   const salt = token.substring(0, token.indexOf("-"));
-  const expected = `${salt}-${toHash(`${salt}-${secret}`)}`;
+  const expected = `${salt}-${toHash(`${salt}-${secret}`, algo)}`;
   return expected === token;
 }
 function getDefaultValue(rev: RequestEvent): string | undefined | null {

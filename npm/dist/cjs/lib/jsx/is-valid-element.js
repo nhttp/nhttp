@@ -20,6 +20,7 @@ __export(is_valid_element_exports, {
   isValidElement: () => isValidElement
 });
 module.exports = __toCommonJS(is_valid_element_exports);
+var import_index = require("./index");
 const isValidElement = (elem) => {
   if (typeof elem === "object") {
     if (typeof elem.type === "function")
@@ -27,6 +28,9 @@ const isValidElement = (elem) => {
     const has = (k) => Object.hasOwn(elem, k);
     if (has("type") && has("props") && has("key"))
       return true;
+  }
+  if (import_index.options.precompile && typeof elem === "string" && elem[0] === "<") {
+    return true;
   }
   return false;
 };

@@ -19,24 +19,52 @@ var jsx_runtime_exports = {};
 __export(jsx_runtime_exports, {
   Fragment: () => import_index.Fragment,
   jsx: () => createElement,
+  jsxAttr: () => jsxAttr,
   jsxDEV: () => createElement,
   jsxDev: () => createElement,
+  jsxEscape: () => jsxEscape,
+  jsxTemplate: () => jsxTemplate,
   jsxs: () => createElement
 });
 module.exports = __toCommonJS(jsx_runtime_exports);
 var import_index = require("./index");
+const isArray = Array.isArray;
 const createElement = (type, props) => {
-  const hasChild = props.children != null;
-  const children = hasChild ? props.children : [];
-  if (hasChild)
-    delete props.children;
-  return (0, import_index.n)(type, props, ...children.pop ? children : [children]);
+  if (props?.children == null)
+    return (0, import_index.n)(type, props);
+  const childs = props.children;
+  delete props.children;
+  if (isArray(childs))
+    return (0, import_index.n)(type, props, ...childs);
+  return (0, import_index.n)(type, props, childs);
+};
+const jsxTemplate = (tpl, ...subs) => {
+  import_index.options.precompile ??= true;
+  return tpl.reduce((prev, cur, i) => {
+    return prev + (0, import_index.renderToString)(subs[i - 1]) + cur;
+  });
+};
+const jsxEscape = (v) => {
+  return v == null || typeof v === "boolean" || typeof v === "function" ? null : v;
+};
+const jsxAttr = (k, v) => {
+  if (k === "style" && typeof v === "object") {
+    return `${k}="${(0, import_index.toStyle)(v)}"`;
+  }
+  if (v == null || v === false || typeof v === "function" || typeof v === "object") {
+    return "";
+  } else if (v === true)
+    return k;
+  return `${k}="${(0, import_index.escapeHtml)(v, true)}"`;
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Fragment,
   jsx,
+  jsxAttr,
   jsxDEV,
   jsxDev,
+  jsxEscape,
+  jsxTemplate,
   jsxs
 });
