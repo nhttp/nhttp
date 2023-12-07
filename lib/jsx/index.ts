@@ -1,6 +1,8 @@
 import { Helmet } from "./helmet.ts";
+import type { HTMLAttributes, IntrinsicElements as IElement } from "./types.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
+export * from "./types.ts";
 // deno-lint-ignore ban-types
 type EObject = {};
 type Merge<A, B> = {
@@ -22,9 +24,13 @@ declare global {
   namespace JSX {
     // @ts-ignore: elem
     type Element = JSXElement;
-    interface IntrinsicElements {
+    interface IntrinsicElements extends IElement {
       // @ts-ignore: IntrinsicElements
-      [k: string]: Attributes & { children?: JSXNode };
+      [k: string]: {
+        children?: JSXNode;
+        // deno-lint-ignore no-explicit-any
+        [k: string]: any;
+      };
     }
     interface ElementChildrenAttribute {
       children: EObject;
@@ -37,11 +43,6 @@ export type JSXElement<T = EObject> = {
   props: T | null | undefined;
   // shim key
   key: number | string | null;
-};
-export type Attributes = {
-  style?: string | Record<string, string | number>;
-  [dangerHTML]?: { __html: string };
-  [name: string]: unknown;
 };
 
 /**
@@ -66,7 +67,7 @@ export const Fragment: FC = ({ children }) => children as JSXElement;
 
 export function n(
   type: string,
-  props?: Attributes | null,
+  props?: HTMLAttributes | null,
   ...children: JSXNode[]
 ): JSXElement;
 export function n<T = EObject>(

@@ -1,7 +1,7 @@
 import {
-  type Attributes,
   escapeHtml,
   Fragment,
+  type HTMLAttributes,
   type JSXElement,
   type JSXNode,
   n,
@@ -12,7 +12,7 @@ import {
 
 type CreateElement = (
   type: string,
-  props?: Attributes & { children?: JSXElement | JSXElement[] },
+  props?: HTMLAttributes & { children?: JSXElement | JSXElement[] },
   ...args: unknown[]
 ) => JSXNode;
 const isArray = Array.isArray;

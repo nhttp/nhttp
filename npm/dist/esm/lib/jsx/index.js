@@ -1,6 +1,7 @@
 import { Helmet } from "./helmet.js";
 export * from "./render.js";
 export * from "./helmet.js";
+export * from "./types.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const Fragment = ({ children }) => children;
 function n(type, props, ...children) {

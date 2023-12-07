@@ -81,6 +81,15 @@ function escapeHtml(str, force) {
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
+const kebabList = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv"
+};
+function withKebabCheck(key) {
+  if (kebabList[key] !== void 0)
+    return kebab(key);
+  return key.toLowerCase();
+}
 const toStyle = (val) => {
   return Object.keys(val).reduce(
     (a, b) => a + kebab(b) + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
@@ -105,7 +114,7 @@ const renderToString = (elem) => {
     if (val == null || val === false || k === import_index.dangerHTML || k === "children" || typeof val === "function") {
       continue;
     }
-    const key = k === "className" ? "class" : k.toLowerCase();
+    const key = k === "className" ? "class" : withKebabCheck(k);
     if (val === true) {
       attributes += ` ${key}`;
     } else {

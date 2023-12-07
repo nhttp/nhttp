@@ -1,11 +1,11 @@
-import { type Attributes, type FC, renderToString } from "./index.ts";
+import { type FC, type HTMLAttributes, renderToString } from "./index.ts";
 
 export type HelmetRewind = {
   head: JSX.Element[];
   footer: JSX.Element[];
   attr: {
-    body: Attributes;
-    html: Attributes;
+    body: HTMLAttributes;
+    html: HTMLAttributes;
   };
   body?: JSX.Element;
 };
@@ -46,8 +46,8 @@ type FCHelmet =
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
-    writeHtmlAttr?: () => Attributes;
-    writeBodyAttr?: () => Attributes;
+    writeHtmlAttr?: () => HTMLAttributes;
+    writeBodyAttr?: () => HTMLAttributes;
   };
 
 function toHelmet(elems: JSX.Element[]) {
@@ -91,9 +91,9 @@ export const Helmet: FCHelmet = ({ children, footer }) => {
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     if (child.type === "html") {
-      Helmet.writeHtmlAttr = () => (child.props ?? {}) as Attributes;
+      Helmet.writeHtmlAttr = () => (child.props ?? {}) as HTMLAttributes;
     } else if (child.type === "body") {
-      Helmet.writeBodyAttr = () => (child.props ?? {}) as Attributes;
+      Helmet.writeBodyAttr = () => (child.props ?? {}) as HTMLAttributes;
     } else elements.push(child);
   }
   if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));

@@ -1,4 +1,4 @@
-import { TRet } from "../deps";
+import type { TRet } from "../deps";
 /**
  * isValidElement.
  * @example

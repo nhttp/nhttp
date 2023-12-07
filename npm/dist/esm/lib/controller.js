@@ -94,11 +94,11 @@ function Status(status) {
     return des;
   };
 }
-function Type(name) {
+function Type(name, charset) {
   return (target, prop, des) => {
     const typeFn = (rev, next) => {
       const value = typeof name === "function" ? name(rev, next) : name;
-      rev.response.type(value);
+      rev.response.type(value, charset);
       return next();
     };
     const className = target.constructor.name;

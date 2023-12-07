@@ -1,10 +1,10 @@
-import { type Attributes, type FC } from "./index";
+import { type FC, type HTMLAttributes } from "./index";
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];
     attr: {
-        body: Attributes;
-        html: Attributes;
+        body: HTMLAttributes;
+        html: HTMLAttributes;
     };
     body?: JSX.Element;
 };
@@ -42,8 +42,8 @@ type FCHelmet = FC<{
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
-    writeHtmlAttr?: () => Attributes;
-    writeBodyAttr?: () => Attributes;
+    writeHtmlAttr?: () => HTMLAttributes;
+    writeBodyAttr?: () => HTMLAttributes;
 };
 /**
  * Simple SSR Helmet for SEO

@@ -1,5 +1,5 @@
-import { type Attributes, Fragment, type JSXElement, type JSXNode } from "./index";
-type CreateElement = (type: string, props?: Attributes & {
+import { Fragment, type HTMLAttributes, type JSXElement, type JSXNode } from "./index";
+type CreateElement = (type: string, props?: HTMLAttributes & {
     children?: JSXElement | JSXElement[];
 }, ...args: unknown[]) => JSXNode;
 declare const createElement: CreateElement;

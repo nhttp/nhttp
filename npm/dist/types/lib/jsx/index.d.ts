@@ -1,5 +1,7 @@
+import type { HTMLAttributes, IntrinsicElements as IElement } from "./types";
 export * from "./render";
 export * from "./helmet";
+export * from "./types";
 type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
@@ -9,9 +11,10 @@ export declare const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
     namespace JSX {
         type Element = JSXElement;
-        interface IntrinsicElements {
-            [k: string]: Attributes & {
+        interface IntrinsicElements extends IElement {
+            [k: string]: {
                 children?: JSXNode;
+                [k: string]: any;
             };
         }
         interface ElementChildrenAttribute {
@@ -23,13 +26,6 @@ export type JSXElement<T = EObject> = {
     type: string | FC<T>;
     props: T | null | undefined;
     key: number | string | null;
-};
-export type Attributes = {
-    style?: string | Record<string, string | number>;
-    [dangerHTML]?: {
-        __html: string;
-    };
-    [name: string]: unknown;
 };
 /**
  * Function Component (FC).
@@ -49,7 +45,7 @@ export type FC<T = EObject> = (props: Merge<{
  * }
  */
 export declare const Fragment: FC;
-export declare function n(type: string, props?: Attributes | null, ...children: JSXNode[]): JSXElement;
+export declare function n(type: string, props?: HTMLAttributes | null, ...children: JSXNode[]): JSXElement;
 export declare function n<T = EObject>(type: FC<T>, props?: T | null, ...children: JSXNode[]): JSXElement | null;
 export declare namespace n {
     var Fragment: FC<EObject>;

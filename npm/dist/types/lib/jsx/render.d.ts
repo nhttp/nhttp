@@ -26,6 +26,9 @@ type TOptionsRender = {
      */
     precompile?: boolean;
 };
+export type RenderHTML = ((...args: TRet) => TRet) & {
+    check: (elem: TRet) => boolean;
+};
 export declare function escapeHtml(str: string, force?: boolean): string;
 export declare const toStyle: (val: Record<string, string | number>) => string;
 /**
@@ -35,9 +38,6 @@ export declare const toStyle: (val: Record<string, string | number>) => string;
  */
 export declare const renderToString: (elem: JSXNode<any>) => string;
 export declare const options: TOptionsRender;
-export type RenderHTML = ((...args: TRet) => TRet) & {
-    check: (elem: TRet) => boolean;
-};
 /**
  * render to html in `app.engine`.
  * @example

@@ -1,4 +1,4 @@
-import { TRet } from "../deps.ts";
+import type { TRet } from "../deps.ts";
 import { options } from "./index.ts";
 
 /**

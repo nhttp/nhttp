@@ -49,6 +49,9 @@ type TOptionsRender = {
    */
   precompile?: boolean;
 };
+export type RenderHTML = ((...args: TRet) => TRet) & {
+  check: (elem: TRet) => boolean;
+};
 const REG_HTML = /["'&<>]/;
 export function escapeHtml(str: string, force?: boolean) {
   // optimize
@@ -82,9 +85,18 @@ export function escapeHtml(str: string, force?: boolean) {
     return html;
   })();
 }
-
 function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
+}
+
+// ref => https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#attribute_list
+const kebabList: Record<string, string> = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv",
+};
+function withKebabCheck(key: string) {
+  if (kebabList[key] !== void 0) return kebab(key);
+  return key.toLowerCase();
 }
 
 export const toStyle = (val: Record<string, string | number>) => {
@@ -124,7 +136,7 @@ export const renderToString = (elem: JSXNode<any>): string => {
     ) {
       continue;
     }
-    const key = k === "className" ? "class" : k.toLowerCase();
+    const key = k === "className" ? "class" : withKebabCheck(k);
     if (val === true) {
       attributes += ` ${key}`;
     } else {
@@ -146,9 +158,7 @@ export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
 };
-export type RenderHTML = ((...args: TRet) => TRet) & {
-  check: (elem: TRet) => boolean;
-};
+
 const toHtml = (body: string, { head, footer, attr }: HelmetRewind) => {
   const bodyWithFooter = body + renderToString(footer);
   return (
