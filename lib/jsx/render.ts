@@ -22,6 +22,13 @@ const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   wbr: true,
 });
 
+export const mutateAttr: Record<string, string> = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv",
+  htmlFor: "for",
+  className: "class",
+};
+
 type TOptionsRender = {
   /**
    * Attach on render element.
@@ -89,16 +96,6 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-// ref => https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#attribute_list
-const kebabList: Record<string, string> = {
-  acceptCharset: "accept-charset",
-  httpEquiv: "http-equiv",
-};
-function withKebabCheck(key: string) {
-  if (kebabList[key] !== void 0) return kebab(key);
-  return key.toLowerCase();
-}
-
 export const toStyle = (val: Record<string, string | number>) => {
   return Object.keys(val).reduce(
     (a, b) =>
@@ -110,21 +107,9 @@ export const toStyle = (val: Record<string, string | number>) => {
     "",
   );
 };
-
-/**
- * renderToString.
- * @example
- * const str = renderToString(<App />);
- */
 // deno-lint-ignore no-explicit-any
-export const renderToString = (elem: JSXNode<any>): string => {
-  if (elem == null || typeof elem === "boolean") return "";
-  if (typeof elem === "number") return String(elem);
-  if (typeof elem === "string") return escapeHtml(elem);
-  if (Array.isArray(elem)) return elem.map(renderToString).join("");
-  const { type, props } = elem;
-  if (typeof type === "function") return renderToString(type(props ?? {}));
-  let attributes = "";
+const toAttr = (props: any) => {
+  let attr = "";
   for (const k in props) {
     let val = props[k];
     if (
@@ -136,14 +121,30 @@ export const renderToString = (elem: JSXNode<any>): string => {
     ) {
       continue;
     }
-    const key = k === "className" ? "class" : withKebabCheck(k);
+    const key = mutateAttr[k] ?? k.toLowerCase();
     if (val === true) {
-      attributes += ` ${key}`;
+      attr += ` ${key}`;
     } else {
       if (key === "style" && typeof val === "object") val = toStyle(val);
-      attributes += ` ${key}="${escapeHtml(String(val))}"`;
+      attr += ` ${key}="${escapeHtml(String(val))}"`;
     }
   }
+  return attr;
+};
+/**
+ * renderToString.
+ * @example
+ * const str = renderToString(<App />);
+ */
+// deno-lint-ignore no-explicit-any
+export function renderToString(elem: JSXNode<any>): string {
+  if (elem == null || typeof elem === "boolean") return "";
+  if (typeof elem === "number") return String(elem);
+  if (typeof elem === "string") return escapeHtml(elem);
+  if (Array.isArray(elem)) return elem.map(renderToString).join("");
+  const { type, props } = elem;
+  if (typeof type === "function") return renderToString(type(props ?? {}));
+  const attributes = toAttr(props);
   if (type in voidTags) {
     return `<${type}${attributes}>`;
   }
@@ -153,7 +154,7 @@ export const renderToString = (elem: JSXNode<any>): string => {
   return `<${type}${attributes}>${
     renderToString(props?.["children"])
   }</${type}>`;
-};
+}
 export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
@@ -197,5 +198,38 @@ export const renderToHtml: RenderHTML = (elem, rev) => {
   if (body instanceof Promise) return body.then(render);
   return render(body);
 };
-
+const encoder = new TextEncoder();
+/**
+ * render to ReadableStream in `app.engine`.
+ * @experimental
+ * @example
+ * const app = nhttp();
+ *
+ * app.engine(renderToReadableStream);
+ */
+export const renderToReadableStream: RenderHTML = (elem) => {
+  return new ReadableStream({
+    start(ctrl) {
+      const body = renderToString(elem);
+      const { head, footer, attr } = Helmet.rewind();
+      const write = (str: string) => ctrl.enqueue(encoder.encode(str));
+      write("<!DOCTYPE html>");
+      write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
+      write("<head>");
+      write(`<meta charset="utf-8">`);
+      write(
+        `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+      );
+      head.map(renderToString).forEach(write);
+      write("</head>");
+      write(`<body${toAttr(attr.body)}>`);
+      write(body);
+      footer.map(renderToString).forEach(write);
+      write("</body>");
+      write("</html>");
+      ctrl.close();
+    },
+  });
+};
 renderToHtml.check = isValidElement;
+renderToReadableStream.check = isValidElement;

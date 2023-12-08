@@ -670,6 +670,7 @@ export interface KeygenHTMLAttributes extends HTMLAttributes {
 export interface LabelHTMLAttributes extends HTMLAttributes {
   form?: string | undefined;
   htmlFor?: string | undefined;
+  for?: string | undefined;
 }
 
 export interface LiHTMLAttributes extends HTMLAttributes {
@@ -768,6 +769,7 @@ export interface OptionHTMLAttributes extends HTMLAttributes {
 export interface OutputHTMLAttributes extends HTMLAttributes {
   form?: string | undefined;
   htmlFor?: string | undefined;
+  for?: string | undefined;
   name?: string | undefined;
 }
 
