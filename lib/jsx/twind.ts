@@ -5,6 +5,7 @@ import {
   type TwindConfig,
   TwindUserConfig,
 } from "https://esm.sh/v132/@twind/core@1.1.3";
+import TwindStream from "https://esm.sh/v132/@twind/with-react@1.1.3/readableStream";
 import presetAutoprefix from "https://esm.sh/v132/@twind/preset-autoprefix@1.0.7";
 import presetTailwind from "https://esm.sh/v132/@twind/preset-tailwind@1.1.4";
 import { options } from "./render.ts";
@@ -37,9 +38,13 @@ install();
 export const useTwind = (
   opts?: InlineOptions,
 ) => {
-  const hook = options.onRenderHtml;
+  const writeHtml = options.onRenderHtml;
+  const writeStream = options.onRenderStream;
   options.onRenderHtml = (html, rev) => {
-    return hook(inline(html, opts), rev);
+    return writeHtml(inline(html, opts), rev);
+  };
+  options.onRenderStream = (stream, rev) => {
+    return writeStream(stream.pipeThrough(new TwindStream(opts)), rev);
   };
 };
 

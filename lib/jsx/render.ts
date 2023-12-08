@@ -1,6 +1,6 @@
 import type { RequestEvent, TRet } from "../deps.ts";
-import { Helmet, type HelmetRewind } from "./helmet.ts";
-import { dangerHTML, JSXNode, n } from "./index.ts";
+import { Helmet } from "./helmet.ts";
+import { dangerHTML, JSXNode } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 export { isValidElement };
@@ -28,8 +28,25 @@ export const mutateAttr: Record<string, string> = {
   htmlFor: "for",
   className: "class",
 };
+export function writeHtml(body: string, write: (data: string) => void) {
+  const { head, footer, attr } = Helmet.rewind();
+  write("<!DOCTYPE html>");
+  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
+  write("<head>");
+  write(`<meta charset="utf-8">`);
+  write(
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+  );
+  head.map(renderToString).forEach(write);
+  write("</head>");
+  write(`<body${toAttr(attr.body)}>`);
+  write(body);
+  footer.map(renderToString).forEach(write);
+  write("</body>");
+  write("</html>");
+}
 
-type TOptionsRender = {
+export type TOptionsRender = {
   /**
    * Attach on render element.
    * @example
@@ -51,6 +68,18 @@ type TOptionsRender = {
    * }
    */
   onRenderHtml: (html: string, rev: RequestEvent) => string | Promise<string>;
+  /**
+   * Attach on render stream.
+   * @example
+   * options.onRenderStream = (stream, rev) => {
+   *   // code here
+   *   return stream;
+   * }
+   */
+  onRenderStream: (
+    stream: ReadableStream,
+    rev: RequestEvent,
+  ) => ReadableStream | Promise<ReadableStream>;
   /**
    * jsx transform precompile.
    */
@@ -145,9 +174,7 @@ export function renderToString(elem: JSXNode<any>): string {
   const { type, props } = elem;
   if (typeof type === "function") return renderToString(type(props ?? {}));
   const attributes = toAttr(props);
-  if (type in voidTags) {
-    return `<${type}${attributes}>`;
-  }
+  if (type in voidTags) return `<${type}${attributes}>`;
   if (props?.[dangerHTML] != null) {
     return `<${type}${attributes}>${props[dangerHTML].__html}</${type}>`;
   }
@@ -158,29 +185,7 @@ export function renderToString(elem: JSXNode<any>): string {
 export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
-};
-
-const toHtml = (body: string, { head, footer, attr }: HelmetRewind) => {
-  const bodyWithFooter = body + renderToString(footer);
-  return (
-    "<!DOCTYPE html>" +
-    renderToString(
-      n("html", { lang: "en", ...attr.html }, [
-        n("head", {}, [
-          n("meta", { charset: "utf-8" }),
-          n("meta", {
-            name: "viewport",
-            content: "width=device-width, initial-scale=1.0",
-          }),
-          head,
-        ]),
-        n("body", {
-          ...attr.body,
-          dangerouslySetInnerHTML: { __html: bodyWithFooter },
-        }),
-      ]),
-    )
-  );
+  onRenderStream: (stream) => stream,
 };
 
 /**
@@ -193,7 +198,9 @@ const toHtml = (body: string, { head, footer, attr }: HelmetRewind) => {
 export const renderToHtml: RenderHTML = (elem, rev) => {
   const body = options.onRenderElement(elem, rev);
   const render = (str: string) => {
-    return options.onRenderHtml(toHtml(str, Helmet.rewind()), rev);
+    let html = "";
+    writeHtml(str, (s: string) => (html += s));
+    return options.onRenderHtml(html, rev);
   };
   if (body instanceof Promise) return body.then(render);
   return render(body);
@@ -201,35 +208,23 @@ export const renderToHtml: RenderHTML = (elem, rev) => {
 const encoder = new TextEncoder();
 /**
  * render to ReadableStream in `app.engine`.
- * @experimental
  * @example
  * const app = nhttp();
  *
  * app.engine(renderToReadableStream);
  */
-export const renderToReadableStream: RenderHTML = (elem) => {
-  return new ReadableStream({
-    start(ctrl) {
-      const body = renderToString(elem);
-      const { head, footer, attr } = Helmet.rewind();
-      const write = (str: string) => ctrl.enqueue(encoder.encode(str));
-      write("<!DOCTYPE html>");
-      write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
-      write("<head>");
-      write(`<meta charset="utf-8">`);
-      write(
-        `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
-      );
-      head.map(renderToString).forEach(write);
-      write("</head>");
-      write(`<body${toAttr(attr.body)}>`);
-      write(body);
-      footer.map(renderToString).forEach(write);
-      write("</body>");
-      write("</html>");
-      ctrl.close();
-    },
-  });
+export const renderToReadableStream: RenderHTML = (elem, rev) => {
+  return options.onRenderStream(
+    new ReadableStream({
+      async start(ctrl) {
+        const body = await options.onRenderElement(elem, rev);
+        writeHtml(body, (str: string) => ctrl.enqueue(encoder.encode(str)));
+        ctrl.close();
+      },
+    }),
+    rev,
+  );
 };
+
 renderToHtml.check = isValidElement;
 renderToReadableStream.check = isValidElement;
