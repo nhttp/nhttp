@@ -195,21 +195,16 @@ export class NHttp<
     return this.use((rev: RequestEvent, next) => {
       if (check !== undefined) {
         const send = rev.send.bind(rev);
-        rev.send = (body, lose) => {
+        rev.__app = () => this;
+        rev.send = async (body, lose) => {
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            const res = render(body, rev);
-            if (res instanceof Promise) {
-              res.then((res) => {
-                rev[s_response] = new Response(res, rev[s_init]);
-              }).catch(next);
-            } else {
-              rev[s_response] = new Response(res, rev[s_init]);
-            }
+            const res = await render(body, rev);
+            rev[s_response] = new Response(res, rev[s_init]);
           } else {
-            send(body, lose);
+            await send(body, lose);
           }
         };
       }
@@ -261,7 +256,7 @@ export class NHttp<
   };
   private onErr = async (err: Error, req: Request) => {
     const rev = <Rev> new RequestEvent(req);
-    rev.send(await this._onError(err, rev) as TRet, 1);
+    await rev.send(await this._onError(err, rev) as TRet, 1);
     return rev[s_response] ?? awaiter(rev);
   };
   /**
@@ -329,7 +324,7 @@ export class NHttp<
             await writeBody(rev, type, opts, this.parseQuery);
           }
         }
-        rev.send(await fns[i++](rev, next), 1);
+        await rev.send(await fns[i++](rev, next), 1);
       } catch (e) {
         return next(e);
       }

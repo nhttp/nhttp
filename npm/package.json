@@ -119,6 +119,11 @@
       "import": "./dist/esm/lib/jsx/is-valid-element.js",
       "require": "./dist/cjs/lib/jsx/is-valid-element.js"
     },
+    "./jsx/hook": {
+      "types": "./dist/types/lib/jsx/hook.d.ts",
+      "import": "./dist/esm/lib/jsx/hook.js",
+      "require": "./dist/cjs/lib/jsx/hook.js"
+    },
     "./jsx/jsx-dev-runtime": {
       "types": "./dist/types/lib/jsx/jsx-dev-runtime.d.ts",
       "import": "./dist/esm/lib/jsx/jsx-dev-runtime.js",
@@ -200,6 +205,9 @@
       ],
       "jsx/is-valid-element": [
         "./dist/types/lib/jsx/is-valid-element.d.ts"
+      ],
+      "jsx/hook": [
+        "./dist/types/lib/jsx/hook.d.ts"
       ],
       "jsx/jsx-dev-runtime": [
         "./dist/types/lib/jsx/jsx-dev-runtime.d.ts"

@@ -1,4 +1,5 @@
-import { type FC, type HTMLAttributes } from "./index";
+import type { TRet } from "../deps";
+import { type HTMLAttributes, type JSXProps } from "./index";
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];
@@ -8,10 +9,10 @@ export type HelmetRewind = {
     };
     body?: JSX.Element;
 };
-type FCHelmet = FC<{
+type FCHelmet = ((props: JSXProps<{
     footer?: boolean;
-    children?: JSX.Element[] | JSX.Element | any;
-}> & {
+    children?: JSX.Element[] | JSX.Element | TRet;
+}>) => TRet) & {
     /**
      * Rewind Helmet.
      * @example
@@ -20,6 +21,7 @@ type FCHelmet = FC<{
     rewind: (elem?: JSX.Element) => HelmetRewind;
     /**
      * Custom render.
+     * @deprecated
      */
     render: (elem: JSX.Element) => string;
     /**

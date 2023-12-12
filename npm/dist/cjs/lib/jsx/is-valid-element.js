@@ -21,17 +21,21 @@ __export(is_valid_element_exports, {
 });
 module.exports = __toCommonJS(is_valid_element_exports);
 var import_index = require("./index");
+const isArray = Array.isArray;
 const isValidElement = (elem) => {
+  if (elem == null)
+    return false;
   if (typeof elem === "object") {
+    if (isArray(elem))
+      elem = elem[0] ?? {};
     if (typeof elem.type === "function")
       return true;
     const has = (k) => Object.hasOwn(elem, k);
     if (has("type") && has("props") && has("key"))
       return true;
   }
-  if (import_index.options.precompile && typeof elem === "string" && elem[0] === "<") {
+  if (import_index.options.precompile && typeof elem === "string")
     return true;
-  }
   return false;
 };
 // Annotate the CommonJS export names for ESM import in node:

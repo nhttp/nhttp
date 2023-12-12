@@ -1,10 +1,21 @@
 import type { RequestEvent, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
-import { dangerHTML, JSXNode } from "./index.ts";
+import {
+  dangerHTML,
+  FC,
+  JSXElement,
+  JSXNode,
+  RequestEventContext,
+} from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 export { isValidElement };
 
+export const options: TOptionsRender = {
+  onRenderHtml: (html) => html,
+  onRenderElement: renderToString,
+  onRenderStream: (stream) => stream,
+};
 const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   area: true,
   base: true,
@@ -21,27 +32,55 @@ const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   track: true,
   wbr: true,
 });
-
+const isArray = Array.isArray;
 export const mutateAttr: Record<string, string> = {
   acceptCharset: "accept-charset",
   httpEquiv: "http-equiv",
   htmlFor: "for",
   className: "class",
 };
-export function writeHtml(body: string, write: (data: string) => void) {
+const toAttr = (props: TRet) => {
+  let attr = "";
+  for (const k in props) {
+    let val = props[k];
+    if (
+      val == null ||
+      val === false ||
+      k === dangerHTML ||
+      k === "children" ||
+      typeof val === "function"
+    ) {
+      continue;
+    }
+    const key = mutateAttr[k] ?? k.toLowerCase();
+    if (val === true) {
+      attr += ` ${key}`;
+    } else {
+      if (key === "style" && typeof val === "object") val = toStyle(val);
+      attr += ` ${key}="${escapeHtml(String(val))}"`;
+    }
+  }
+  return attr;
+};
+export async function writeHtml(body: string, write: (data: string) => void) {
   const { head, footer, attr } = Helmet.rewind();
-  write("<!DOCTYPE html>");
+  const writeElem = async (elem: JSX.Element[]) => {
+    for (let i = 0; i < elem.length; i++) {
+      write(await renderToString(elem[i]));
+    }
+  };
+  write(options.docType ?? "<!DOCTYPE html>");
   write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
   write("<head>");
   write(`<meta charset="utf-8">`);
   write(
     `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
   );
-  head.map(renderToString).forEach(write);
+  await writeElem(head);
   write("</head>");
   write(`<body${toAttr(attr.body)}>`);
   write(body);
-  footer.map(renderToString).forEach(write);
+  await writeElem(footer);
   write("</body>");
   write("</html>");
 }
@@ -84,6 +123,20 @@ export type TOptionsRender = {
    * jsx transform precompile.
    */
   precompile?: boolean;
+  /**
+   * custom error on stream.
+   * @example
+   * ```tsx
+   * options.onErrorStream = (props) => {
+   *  return <h1>{props.error.message}</h1>
+   * }
+   * ```
+   */
+  onErrorStream?: FC<{ error: Error }>;
+  /**
+   * custom doc type.
+   */
+  docType?: string;
 };
 export type RenderHTML = ((...args: TRet) => TRet) & {
   check: (elem: TRet) => boolean;
@@ -136,89 +189,94 @@ export const toStyle = (val: Record<string, string | number>) => {
     "",
   );
 };
-// deno-lint-ignore no-explicit-any
-const toAttr = (props: any) => {
-  let attr = "";
-  for (const k in props) {
-    let val = props[k];
-    if (
-      val == null ||
-      val === false ||
-      k === dangerHTML ||
-      k === "children" ||
-      typeof val === "function"
-    ) {
-      continue;
-    }
-    const key = mutateAttr[k] ?? k.toLowerCase();
-    if (val === true) {
-      attr += ` ${key}`;
-    } else {
-      if (key === "style" && typeof val === "object") val = toStyle(val);
-      attr += ` ${key}="${escapeHtml(String(val))}"`;
-    }
-  }
-  return attr;
-};
+
 /**
  * renderToString.
  * @example
- * const str = renderToString(<App />);
+ * const str = await renderToString(<App />);
  */
-// deno-lint-ignore no-explicit-any
-export function renderToString(elem: JSXNode<any>): string {
+export async function renderToString(elem: JSXNode<TRet>): Promise<string> {
+  if (elem instanceof Promise) return renderToString(await elem);
   if (elem == null || typeof elem === "boolean") return "";
   if (typeof elem === "number") return String(elem);
   if (typeof elem === "string") return escapeHtml(elem);
-  if (Array.isArray(elem)) return elem.map(renderToString).join("");
-  const { type, props } = elem;
-  if (typeof type === "function") return renderToString(type(props ?? {}));
+  if (isArray(elem)) {
+    return (await Promise.all(elem.map(renderToString))).join("");
+  }
+  const { type, props } = elem as JSXElement<TRet>;
+  if (typeof type === "function") {
+    return renderToString(await type(props ?? {}));
+  }
   const attributes = toAttr(props);
   if (type in voidTags) return `<${type}${attributes}>`;
   if (props?.[dangerHTML] != null) {
     return `<${type}${attributes}>${props[dangerHTML].__html}</${type}>`;
   }
-  return `<${type}${attributes}>${
-    renderToString(props?.["children"])
-  }</${type}>`;
+  return `<${type}${attributes}>${await renderToString(
+    props?.["children"],
+  )}</${type}>`;
 }
-export const options: TOptionsRender = {
-  onRenderHtml: (html) => html,
-  onRenderElement: renderToString,
-  onRenderStream: (stream) => stream,
-};
 
 /**
  * render to html in `app.engine`.
  * @example
+ * ```tsx
  * const app = nhttp();
  *
  * app.engine(renderToHtml);
+ *
+ * app.get("/", () => {
+ *   return <h1>hello</h1>;
+ * });
+ * ```
  */
-export const renderToHtml: RenderHTML = (elem, rev) => {
-  const body = options.onRenderElement(elem, rev);
-  const render = (str: string) => {
-    let html = "";
-    writeHtml(str, (s: string) => (html += s));
-    return options.onRenderHtml(html, rev);
-  };
-  if (body instanceof Promise) return body.then(render);
-  return render(body);
+export const renderToHtml: RenderHTML = async (elem, rev) => {
+  elem = RequestEventContext({ rev, children: elem });
+  const body = await options.onRenderElement(elem, rev);
+  let html = "";
+  await writeHtml(body, (s: string) => (html += s));
+  return options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
 /**
  * render to ReadableStream in `app.engine`.
  * @example
+ * ```tsx
  * const app = nhttp();
  *
  * app.engine(renderToReadableStream);
+ *
+ * app.get("/", () => {
+ *   return <h1>hello</h1>;
+ * });
+ * ```
  */
 export const renderToReadableStream: RenderHTML = (elem, rev) => {
   return options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
-        const body = await options.onRenderElement(elem, rev);
-        writeHtml(body, (str: string) => ctrl.enqueue(encoder.encode(str)));
+        const writeStream = async (child: JSXElement) => {
+          const elem = RequestEventContext({
+            rev,
+            children: child,
+          }) as JSXElement;
+          const body = await options.onRenderElement(elem, rev);
+          await writeHtml(
+            body,
+            (str: string) => ctrl.enqueue(encoder.encode(str)),
+          );
+        };
+        try {
+          await writeStream(elem);
+        } catch (error) {
+          if (options.onErrorStream) {
+            await writeStream(
+              await options.onErrorStream({ error }) as JSXElement,
+            );
+          } else {
+            ctrl.enqueue(encoder.encode(error));
+          }
+        }
         ctrl.close();
       },
     }),

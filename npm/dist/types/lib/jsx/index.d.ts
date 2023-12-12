@@ -1,16 +1,20 @@
 import type { HTMLAttributes, IntrinsicElements as IElement } from "./types";
 export * from "./render";
 export * from "./helmet";
+export * from "./hook";
 export * from "./types";
-type EObject = {};
+export type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
 };
-export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | string | number | boolean | null | undefined;
+export type JSXProps<P = EObject> = Merge<{
+    children?: JSXNode;
+}, P>;
+export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | Promise<JSXElement<T>> | string | number | boolean | null | undefined;
 export declare const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
     namespace JSX {
-        type Element = JSXElement;
+        type Element = JSXElement | Promise<JSXElement>;
         interface IntrinsicElements extends IElement {
             [k: string]: {
                 children?: JSXNode;
@@ -34,9 +38,7 @@ export type JSXElement<T = EObject> = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = EObject> = (props: Merge<{
-    children?: JSXNode;
-}, T>) => JSXElement | null;
+export type FC<T = EObject> = (props: JSXProps<T>) => JSXElement | Promise<JSXElement> | null;
 /**
  * Fragment.
  * @example
@@ -66,6 +68,7 @@ export { n as h };
  */
 export declare const Client: FC<{
     src: string;
+    footer?: boolean;
     id?: string;
     type?: string;
 }>;

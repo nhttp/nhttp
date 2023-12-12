@@ -1,5 +1,6 @@
 import { HTML_TYPE, JSON_TYPE, MIME_LIST } from "./constant.ts";
 import { serializeCookie } from "./cookie.ts";
+import { HttpError } from "./error.ts";
 import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
 import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
@@ -118,9 +119,9 @@ export class HttpResponse {
   sendStatus(code: number) {
     if (code > 511) code = 500;
     try {
-      this.status(code).send(code);
+      return this.status(code).send(code);
     } catch (_e) {
-      this.status(code).send(null);
+      return this.status(code).send(null);
     }
   }
   /**
@@ -198,7 +199,7 @@ export class HttpResponse {
    * response.html("<h1>Hello World</h1>");
    */
   html(html: string | Uint8Array) {
-    this.type(HTML_TYPE).send(html);
+    return this.type(HTML_TYPE).send(html);
   }
   /**
    * shorthand for send json body
@@ -206,7 +207,10 @@ export class HttpResponse {
    * response.json({ name: "john" });
    */
   json(body: TObject) {
-    this.send(body);
+    if (typeof body !== "object") {
+      throw new HttpError(400, "body not json");
+    }
+    return this.send(body);
   }
   /**
    * redirect url
@@ -216,7 +220,7 @@ export class HttpResponse {
    * response.redirect("http://google.com");
    */
   redirect(url: string, status?: number) {
-    this.header("Location", url).status(status ?? 302).send();
+    return this.header("Location", url).status(status ?? 302).send();
   }
   /**
    * cookie

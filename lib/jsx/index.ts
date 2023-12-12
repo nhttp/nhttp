@@ -2,18 +2,21 @@ import { Helmet } from "./helmet.ts";
 import type { HTMLAttributes, IntrinsicElements as IElement } from "./types.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
+export * from "./hook.ts";
 export * from "./types.ts";
 // deno-lint-ignore ban-types
-type EObject = {};
+export type EObject = {};
 type Merge<A, B> = {
   [K in keyof (A & B)]: (
     K extends keyof B ? B[K]
       : (K extends keyof A ? A[K] : never)
   );
 };
+export type JSXProps<P = EObject> = Merge<{ children?: JSXNode }, P>;
 export type JSXNode<T = EObject> =
   | JSXNode<T>[]
   | JSXElement<T>
+  | Promise<JSXElement<T>>
   | string
   | number
   | boolean
@@ -23,7 +26,7 @@ export const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
     // @ts-ignore: elem
-    type Element = JSXElement;
+    type Element = JSXElement | Promise<JSXElement>;
     interface IntrinsicElements extends IElement {
       // @ts-ignore: IntrinsicElements
       [k: string]: {
@@ -53,8 +56,8 @@ export type JSXElement<T = EObject> = {
  * }
  */
 export type FC<T = EObject> = (
-  props: Merge<{ children?: JSXNode }, T>,
-) => JSXElement | null;
+  props: JSXProps<T>,
+) => JSXElement | Promise<JSXElement> | null;
 
 /**
  * Fragment.
@@ -103,13 +106,15 @@ export { n as h };
  */
 export const Client: FC<{
   src: string;
+  footer?: boolean;
   id?: string;
   type?: string;
 }> = (props) => {
+  props.footer ??= true;
   return n(Fragment, {}, [
     n(
       Helmet,
-      { footer: true },
+      { footer: props.footer },
       n(
         "script",
         { src: props.src },

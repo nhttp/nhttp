@@ -1,5 +1,5 @@
 /** @jsx n */
-/** @jsxFrag  n.Fragment */
+/** @jsxFrag n.Fragment */
 
 import About from "./components/about.tsx";
 import Contact from "./components/contact.tsx";

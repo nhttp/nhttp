@@ -115,7 +115,7 @@ const etag = (opts = {}) => {
   return (rev, next) => {
     const weak = opts.weak !== false;
     const send = rev.send.bind(rev);
-    rev.send = (body, lose) => {
+    rev.send = async (body, lose) => {
       if (body) {
         const { response, request } = rev;
         if (!response.header("etag") && !(body instanceof ReadableStream || body instanceof Blob || body instanceof Response)) {
@@ -137,11 +137,12 @@ const etag = (opts = {}) => {
           response.header("etag", _etag);
           if (nonMatch && nonMatch === _etag) {
             response.status(304);
-            return rev[s_response] = new Response(null, response.init);
+            rev[s_response] = new Response(null, response.init);
+            return;
           }
         }
       }
-      send(body, lose);
+      await send(body, lose);
     };
     return next();
   };

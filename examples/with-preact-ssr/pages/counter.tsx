@@ -1,5 +1,6 @@
 /* @jsx h */
 /* @jsxFrag Fragment */
+import { Helmet } from "../../../lib/jsx.ts";
 import {
   Fragment,
   FunctionComponent as FC,
@@ -10,7 +11,6 @@ import {
   useState,
 } from "https://esm.sh/stable/preact@10.15.0/hooks";
 import withClient from "../helpers/client.ts";
-import { Helmet } from "../../../lib/jsx/helmet.ts";
 
 const Counter: FC<{ init: number }> = ({ init }) => {
   const [count, setCount] = useState(init);

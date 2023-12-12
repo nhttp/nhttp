@@ -30,11 +30,19 @@ export { createElement as jsxDev };
 export { createElement as jsxDEV };
 
 // support jsx-transform precompile.
-export const jsxTemplate = (tpl: TemplateStringsArray, ...subs: JSXNode[]) => {
+export const jsxTemplate = async (
+  tpl: TemplateStringsArray,
+  ...subs: JSXNode[]
+) => {
   options.precompile ??= true;
-  return tpl.reduce((prev, cur, i) => {
-    return prev + renderToString(subs[i - 1]) + cur;
-  });
+  let str = "";
+  for (let i = 0; i < tpl.length; i++) {
+    str += await renderToString(tpl[i]);
+    if (i < subs.length) {
+      str += await renderToString(subs[i]);
+    }
+  }
+  return str;
 };
 export const jsxEscape = (
   v: string | null | JSXNode | Array<string | null | JSXNode>,

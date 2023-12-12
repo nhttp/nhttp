@@ -19,15 +19,23 @@ var render_exports = {};
 __export(render_exports, {
   escapeHtml: () => escapeHtml,
   isValidElement: () => import_is_valid_element.isValidElement,
+  mutateAttr: () => mutateAttr,
   options: () => options,
   renderToHtml: () => renderToHtml,
+  renderToReadableStream: () => renderToReadableStream,
   renderToString: () => renderToString,
-  toStyle: () => toStyle
+  toStyle: () => toStyle,
+  writeHtml: () => writeHtml
 });
 module.exports = __toCommonJS(render_exports);
 var import_helmet = require("./helmet");
 var import_index = require("./index");
 var import_is_valid_element = require("./is-valid-element");
+const options = {
+  onRenderHtml: (html) => html,
+  onRenderElement: renderToString,
+  onRenderStream: (stream) => stream
+};
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
   base: true,
@@ -44,6 +52,53 @@ const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   track: true,
   wbr: true
 });
+const isArray = Array.isArray;
+const mutateAttr = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv",
+  htmlFor: "for",
+  className: "class"
+};
+const toAttr = (props) => {
+  let attr = "";
+  for (const k in props) {
+    let val = props[k];
+    if (val == null || val === false || k === import_index.dangerHTML || k === "children" || typeof val === "function") {
+      continue;
+    }
+    const key = mutateAttr[k] ?? k.toLowerCase();
+    if (val === true) {
+      attr += ` ${key}`;
+    } else {
+      if (key === "style" && typeof val === "object")
+        val = toStyle(val);
+      attr += ` ${key}="${escapeHtml(String(val))}"`;
+    }
+  }
+  return attr;
+};
+async function writeHtml(body, write) {
+  const { head, footer, attr } = import_helmet.Helmet.rewind();
+  const writeElem = async (elem) => {
+    for (let i = 0; i < elem.length; i++) {
+      write(await renderToString(elem[i]));
+    }
+  };
+  write(options.docType ?? "<!DOCTYPE html>");
+  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
+  write("<head>");
+  write(`<meta charset="utf-8">`);
+  write(
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+  );
+  await writeElem(head);
+  write("</head>");
+  write(`<body${toAttr(attr.body)}>`);
+  write(body);
+  await writeElem(footer);
+  write("</body>");
+  write("</html>");
+}
 const REG_HTML = /["'&<>]/;
 function escapeHtml(str, force) {
   return options.precompile && !force || !REG_HTML.test(str) ? str : (() => {
@@ -81,95 +136,89 @@ function escapeHtml(str, force) {
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
-const kebabList = {
-  acceptCharset: "accept-charset",
-  httpEquiv: "http-equiv"
-};
-function withKebabCheck(key) {
-  if (kebabList[key] !== void 0)
-    return kebab(key);
-  return key.toLowerCase();
-}
 const toStyle = (val) => {
   return Object.keys(val).reduce(
     (a, b) => a + kebab(b) + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
     ""
   );
 };
-const renderToString = (elem) => {
+async function renderToString(elem) {
+  if (elem instanceof Promise)
+    return renderToString(await elem);
   if (elem == null || typeof elem === "boolean")
     return "";
   if (typeof elem === "number")
     return String(elem);
   if (typeof elem === "string")
     return escapeHtml(elem);
-  if (Array.isArray(elem))
-    return elem.map(renderToString).join("");
+  if (isArray(elem)) {
+    return (await Promise.all(elem.map(renderToString))).join("");
+  }
   const { type, props } = elem;
-  if (typeof type === "function")
-    return renderToString(type(props ?? {}));
-  let attributes = "";
-  for (const k in props) {
-    let val = props[k];
-    if (val == null || val === false || k === import_index.dangerHTML || k === "children" || typeof val === "function") {
-      continue;
-    }
-    const key = k === "className" ? "class" : withKebabCheck(k);
-    if (val === true) {
-      attributes += ` ${key}`;
-    } else {
-      if (key === "style" && typeof val === "object")
-        val = toStyle(val);
-      attributes += ` ${key}="${escapeHtml(String(val))}"`;
-    }
+  if (typeof type === "function") {
+    return renderToString(await type(props ?? {}));
   }
-  if (type in voidTags) {
+  const attributes = toAttr(props);
+  if (type in voidTags)
     return `<${type}${attributes}>`;
-  }
   if (props?.[import_index.dangerHTML] != null) {
     return `<${type}${attributes}>${props[import_index.dangerHTML].__html}</${type}>`;
   }
-  return `<${type}${attributes}>${renderToString(props?.["children"])}</${type}>`;
+  return `<${type}${attributes}>${await renderToString(
+    props?.["children"]
+  )}</${type}>`;
+}
+const renderToHtml = async (elem, rev) => {
+  elem = (0, import_index.RequestEventContext)({ rev, children: elem });
+  const body = await options.onRenderElement(elem, rev);
+  let html = "";
+  await writeHtml(body, (s) => html += s);
+  return options.onRenderHtml(html, rev);
 };
-const options = {
-  onRenderHtml: (html) => html,
-  onRenderElement: renderToString
-};
-const toHtml = (body, { head, footer, attr }) => {
-  const bodyWithFooter = body + renderToString(footer);
-  return "<!DOCTYPE html>" + renderToString(
-    (0, import_index.n)("html", { lang: "en", ...attr.html }, [
-      (0, import_index.n)("head", {}, [
-        (0, import_index.n)("meta", { charset: "utf-8" }),
-        (0, import_index.n)("meta", {
-          name: "viewport",
-          content: "width=device-width, initial-scale=1.0"
-        }),
-        head
-      ]),
-      (0, import_index.n)("body", {
-        ...attr.body,
-        dangerouslySetInnerHTML: { __html: bodyWithFooter }
-      })
-    ])
+const encoder = new TextEncoder();
+const renderToReadableStream = (elem, rev) => {
+  return options.onRenderStream(
+    new ReadableStream({
+      async start(ctrl) {
+        const writeStream = async (child) => {
+          const elem2 = (0, import_index.RequestEventContext)({
+            rev,
+            children: child
+          });
+          const body = await options.onRenderElement(elem2, rev);
+          await writeHtml(
+            body,
+            (str) => ctrl.enqueue(encoder.encode(str))
+          );
+        };
+        try {
+          await writeStream(elem);
+        } catch (error) {
+          if (options.onErrorStream) {
+            await writeStream(
+              await options.onErrorStream({ error })
+            );
+          } else {
+            ctrl.enqueue(encoder.encode(error));
+          }
+        }
+        ctrl.close();
+      }
+    }),
+    rev
   );
 };
-const renderToHtml = (elem, rev) => {
-  const body = options.onRenderElement(elem, rev);
-  const render = (str) => {
-    return options.onRenderHtml(toHtml(str, import_helmet.Helmet.rewind()), rev);
-  };
-  if (body instanceof Promise)
-    return body.then(render);
-  return render(body);
-};
 renderToHtml.check = import_is_valid_element.isValidElement;
+renderToReadableStream.check = import_is_valid_element.isValidElement;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   escapeHtml,
   isValidElement,
+  mutateAttr,
   options,
   renderToHtml,
+  renderToReadableStream,
   renderToString,
-  toStyle
+  toStyle,
+  writeHtml
 });

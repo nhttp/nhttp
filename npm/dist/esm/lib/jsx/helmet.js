@@ -1,4 +1,3 @@
-import { renderToString } from "./index.js";
 function toHelmet(elems) {
   const helmet = [];
   let hasBase = false;
@@ -62,7 +61,7 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-Helmet.render = (val) => renderToString(val);
+Helmet.render = () => "";
 export {
   Helmet
 };

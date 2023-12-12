@@ -1,4 +1,9 @@
-import { type FC, type HTMLAttributes, renderToString } from "./index.ts";
+import type { TRet } from "../deps.ts";
+import {
+  type HTMLAttributes,
+  type JSXElement,
+  type JSXProps,
+} from "./index.ts";
 
 export type HelmetRewind = {
   head: JSX.Element[];
@@ -9,12 +14,31 @@ export type HelmetRewind = {
   };
   body?: JSX.Element;
 };
+function toHelmet(elems: JSX.Element[]) {
+  const helmet: JSX.Element[] = [];
+  let hasBase = false;
+  let hasTitle = false;
+  for (let i = elems.length - 1; i >= 0; i -= 1) {
+    const elem = elems[i] as JSXElement;
+    if (elem.type === "base") {
+      if (hasBase) continue;
+      hasBase = true;
+    } else if (elem.type === "title") {
+      if (hasTitle) continue;
+      hasTitle = true;
+    }
+    helmet.push(elem);
+  }
+  return helmet.reverse();
+}
+// shiming for support preact/react.
 type FCHelmet =
-  & FC<{
-    footer?: boolean;
-    // deno-lint-ignore no-explicit-any
-    children?: JSX.Element[] | JSX.Element | any;
-  }>
+  & ((
+    props: JSXProps<{
+      footer?: boolean;
+      children?: JSX.Element[] | JSX.Element | TRet;
+    }>,
+  ) => TRet)
   & {
     /**
      * Rewind Helmet.
@@ -24,6 +48,7 @@ type FCHelmet =
     rewind: (elem?: JSX.Element) => HelmetRewind;
     /**
      * Custom render.
+     * @deprecated
      */
     render: (elem: JSX.Element) => string;
     /**
@@ -49,25 +74,6 @@ type FCHelmet =
     writeHtmlAttr?: () => HTMLAttributes;
     writeBodyAttr?: () => HTMLAttributes;
   };
-
-function toHelmet(elems: JSX.Element[]) {
-  const helmet: JSX.Element[] = [];
-  let hasBase = false;
-  let hasTitle = false;
-  for (let i = elems.length - 1; i >= 0; i -= 1) {
-    const elem = elems[i];
-    if (elem.type === "base") {
-      if (hasBase) continue;
-      hasBase = true;
-    } else if (elem.type === "title") {
-      if (hasTitle) continue;
-      hasTitle = true;
-    }
-    helmet.push(elem);
-  }
-  return helmet.reverse();
-}
-
 /**
  * Simple SSR Helmet for SEO
  * @example
@@ -119,4 +125,4 @@ Helmet.rewind = (elem) => {
   return data;
 };
 
-Helmet.render = (val) => renderToString(val);
+Helmet.render = () => "";

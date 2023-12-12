@@ -16,11 +16,16 @@ const createElement = (type, props) => {
     return n(type, props, ...childs);
   return n(type, props, childs);
 };
-const jsxTemplate = (tpl, ...subs) => {
+const jsxTemplate = async (tpl, ...subs) => {
   options.precompile ??= true;
-  return tpl.reduce((prev, cur, i) => {
-    return prev + renderToString(subs[i - 1]) + cur;
-  });
+  let str = "";
+  for (let i = 0; i < tpl.length; i++) {
+    str += await renderToString(tpl[i]);
+    if (i < subs.length) {
+      str += await renderToString(subs[i]);
+    }
+  }
+  return str;
 };
 const jsxEscape = (v) => {
   return v == null || typeof v === "boolean" || typeof v === "function" ? null : v;

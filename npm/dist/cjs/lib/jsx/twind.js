@@ -33,6 +33,7 @@ __export(twind_exports, {
 });
 module.exports = __toCommonJS(twind_exports);
 var import_core = require("@twind/core");
+var import_readableStream = __toESM(require("@twind/with-react/readableStream"));
 var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"));
 var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"));
 var import_render = require("./render");
@@ -44,9 +45,13 @@ const install = (config = {}, isProduction) => {
 };
 install();
 const useTwind = (opts) => {
-  const hook = import_render.options.onRenderHtml;
+  const writeHtml = import_render.options.onRenderHtml;
+  const writeStream = import_render.options.onRenderStream;
   import_render.options.onRenderHtml = (html, rev) => {
-    return hook((0, import_core.inline)(html, opts), rev);
+    return writeHtml((0, import_core.inline)(html, opts), rev);
+  };
+  import_render.options.onRenderStream = (stream, rev) => {
+    return writeStream(stream.pipeThrough(new import_readableStream.default(opts)), rev);
   };
 };
 var twind_default = useTwind;
