@@ -27,7 +27,8 @@ __export(hook_exports, {
   useRequest: () => useRequest,
   useRequestEvent: () => useRequestEvent,
   useResponse: () => useResponse,
-  useScript: () => useScript
+  useScript: () => useScript,
+  useStyle: () => useStyle
 });
 module.exports = __toCommonJS(hook_exports);
 var import_index = require("./index");
@@ -76,33 +77,85 @@ function useScript(fn, params, options = {}) {
     } else if (typeof fn === "function") {
       js_string = fn.toString();
     } else {
-      useScript(params, fn, options);
-      return;
+      return useScript(params, fn, options);
     }
     const i = hook.js_i;
     const app = rev.__app();
     const path = `/__JS__/${now}${i}.js`;
     hook.js_i--;
-    if (app.route.GET?.[path] === void 0) {
+    const inline = options.inline;
+    const toScript = () => {
+      const src = `(${js_string})(${JSON.stringify(params ?? null)});`;
+      const arr = src.split(/\n/);
+      return arr.map(
+        (str) => str.includes("//") || str.includes("*") ? `
+${str}
+` : str.replace(/\s\s+/g, " ")
+      ).join("");
+    };
+    if (app.route.GET?.[path] === void 0 && !inline) {
       app.get(`${path}`, ({ response }) => {
         response.type("js");
         response.setHeader(
           "cache-control",
           "public, max-age=31536000, immutable"
         );
-        return `(${js_string})(${JSON.stringify(params ?? null)});`.replace(
-          /\s\s+/g,
-          " "
-        );
+        return toScript();
       });
     }
+    const isWrite = options.writeToHelmet ?? true;
     const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
     options.position = void 0;
+    options.inline = void 0;
     options.type ??= "application/javascript";
-    options.src = path;
     const last = import_index.Helmet[pos]?.() ?? [];
-    import_index.Helmet[pos] = () => [...last, (0, import_index.n)("script", options)];
+    const out = {};
+    if (inline) {
+      out.source = toScript();
+      if (isWrite) {
+        import_index.Helmet[pos] = () => [
+          ...last,
+          (0, import_index.n)("script", {
+            ...options,
+            dangerouslySetInnerHTML: {
+              __html: out.source
+            }
+          })
+        ];
+      }
+    } else {
+      options.src = path;
+      if (isWrite) {
+        import_index.Helmet[pos] = () => [...last, (0, import_index.n)("script", options)];
+        out.path = path;
+      }
+    }
+    return out;
   }
+  return {};
+}
+const cssToString = (css) => {
+  let str = "";
+  for (const k in css) {
+    str += `${k}{${(0, import_index.toStyle)(css[k])}}`;
+  }
+  return str;
+};
+useStyle({
+  ".selector": {
+    backgroundColor: "red"
+  },
+  ".title": {
+    color: "blue"
+  }
+});
+function useStyle(css) {
+  const str = typeof css === "string" ? css : cssToString(css);
+  const last = import_index.Helmet.writeHeadTag?.() ?? [];
+  import_index.Helmet.writeHeadTag = () => [
+    ...last,
+    (0, import_index.n)("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } })
+  ];
 }
 const useId = () => `:${hook.id--}`;
 // Annotate the CommonJS export names for ESM import in node:
@@ -117,5 +170,6 @@ const useId = () => `:${hook.id--}`;
   useRequest,
   useRequestEvent,
   useResponse,
-  useScript
+  useScript,
+  useStyle
 });

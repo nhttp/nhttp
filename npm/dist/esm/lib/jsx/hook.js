@@ -1,6 +1,7 @@
 import {
   Helmet,
-  n
+  n,
+  toStyle
 } from "./index.js";
 const now = Date.now();
 const hook = {
@@ -47,33 +48,85 @@ function useScript(fn, params, options = {}) {
     } else if (typeof fn === "function") {
       js_string = fn.toString();
     } else {
-      useScript(params, fn, options);
-      return;
+      return useScript(params, fn, options);
     }
     const i = hook.js_i;
     const app = rev.__app();
     const path = `/__JS__/${now}${i}.js`;
     hook.js_i--;
-    if (app.route.GET?.[path] === void 0) {
+    const inline = options.inline;
+    const toScript = () => {
+      const src = `(${js_string})(${JSON.stringify(params ?? null)});`;
+      const arr = src.split(/\n/);
+      return arr.map(
+        (str) => str.includes("//") || str.includes("*") ? `
+${str}
+` : str.replace(/\s\s+/g, " ")
+      ).join("");
+    };
+    if (app.route.GET?.[path] === void 0 && !inline) {
       app.get(`${path}`, ({ response }) => {
         response.type("js");
         response.setHeader(
           "cache-control",
           "public, max-age=31536000, immutable"
         );
-        return `(${js_string})(${JSON.stringify(params ?? null)});`.replace(
-          /\s\s+/g,
-          " "
-        );
+        return toScript();
       });
     }
+    const isWrite = options.writeToHelmet ?? true;
     const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
     options.position = void 0;
+    options.inline = void 0;
     options.type ??= "application/javascript";
-    options.src = path;
     const last = Helmet[pos]?.() ?? [];
-    Helmet[pos] = () => [...last, n("script", options)];
+    const out = {};
+    if (inline) {
+      out.source = toScript();
+      if (isWrite) {
+        Helmet[pos] = () => [
+          ...last,
+          n("script", {
+            ...options,
+            dangerouslySetInnerHTML: {
+              __html: out.source
+            }
+          })
+        ];
+      }
+    } else {
+      options.src = path;
+      if (isWrite) {
+        Helmet[pos] = () => [...last, n("script", options)];
+        out.path = path;
+      }
+    }
+    return out;
   }
+  return {};
+}
+const cssToString = (css) => {
+  let str = "";
+  for (const k in css) {
+    str += `${k}{${toStyle(css[k])}}`;
+  }
+  return str;
+};
+useStyle({
+  ".selector": {
+    backgroundColor: "red"
+  },
+  ".title": {
+    color: "blue"
+  }
+});
+function useStyle(css) {
+  const str = typeof css === "string" ? css : cssToString(css);
+  const last = Helmet.writeHeadTag?.() ?? [];
+  Helmet.writeHeadTag = () => [
+    ...last,
+    n("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } })
+  ];
 }
 const useId = () => `:${hook.id--}`;
 export {
@@ -87,5 +140,6 @@ export {
   useRequest,
   useRequestEvent,
   useResponse,
-  useScript
+  useScript,
+  useStyle
 };

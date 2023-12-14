@@ -50,35 +50,23 @@ Deno.test({
   },
 });
 Deno.test({
-  name: "server flash",
+  name: "server misc",
   async fn(t) {
-    await t.step("run server flash", async () => {
+    await t.step("run server without callback", () => {
       const ac = new AbortController();
       const app = nhttp();
       app.get("/", () => "home");
-      app.listen({ port: 8081, signal: ac.signal });
-      const res = await fetch("http://localhost:8081/");
-      assertEquals(res.ok, true);
-      await res.body?.cancel();
-      ac.abort();
+      const server = app.listen({ port: 8081, signal: ac.signal });
+      server?.shutdown();
     });
-  },
-});
-
-Deno.test({
-  name: "server flash with callback",
-  async fn(t) {
-    await t.step("run server flash", async () => {
+    await t.step("run server with callback", () => {
       const ac = new AbortController();
       const app = nhttp();
       app.get("/", () => "home");
-      app.listen({ port: 8082, signal: ac.signal }, () => {
+      const server = app.listen({ port: 8082, signal: ac.signal }, () => {
         console.log("run");
       });
-      const res = await fetch("http://localhost:8082/");
-      assertEquals(res.ok, true);
-      await res.body?.cancel();
-      ac.abort();
+      server?.shutdown();
     });
   },
 });

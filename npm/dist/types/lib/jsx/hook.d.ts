@@ -1,5 +1,5 @@
 import { type HttpResponse, type RequestEvent, type TObject, type TRet } from "../deps";
-import { type EObject, type FC, type JSXElement, type JSXProps, type ScriptHTMLAttributes } from "./index";
+import { type CSSProperties, type EObject, type FC, type JSXElement, type JSXProps, type ScriptHTMLAttributes } from "./index";
 type TValue = string | number | TRet;
 type TContext = {
     Provider: (props: JSXProps<{
@@ -111,7 +111,19 @@ interface AttrScript extends ScriptHTMLAttributes {
      * position. default to `footer`
      */
     position?: "head" | "footer";
+    /**
+     * inline script. default to `false`
+     */
+    inline?: boolean;
+    /**
+     * write script to Helmet. default to `true`
+     */
+    writeToHelmet?: boolean;
 }
+type OutScript = {
+    path?: string;
+    source?: string;
+};
 /**
  * useScript. simple client-script from server-side.
  * @example
@@ -143,10 +155,32 @@ interface AttrScript extends ScriptHTMLAttributes {
  * }
  * ```
  */
-export declare function useScript<T>(params: T, js_string: string, options?: AttrScript): void;
-export declare function useScript<T>(params: T, fn: (params: T) => void | Promise<void>, options?: AttrScript): void;
-export declare function useScript<T>(fn: (params: T) => void | Promise<void>, params?: T, options?: AttrScript): void;
-export declare function useScript<T>(js_string: string, params?: T, options?: AttrScript): void;
+export declare function useScript<T>(params: T, js_string: string, options?: AttrScript): OutScript;
+export declare function useScript<T>(params: T, fn: (params: T) => void | Promise<void>, options?: AttrScript): OutScript;
+export declare function useScript<T>(fn: (params: T) => void | Promise<void>, params?: T, options?: AttrScript): OutScript;
+export declare function useScript<T>(js_string: string, params?: T, options?: AttrScript): OutScript;
+/**
+ * useStyle. server-side only.
+ * @example
+ * ```tsx
+ * const Home: FC = () => {
+ *   useStyle({
+ *     ".section": {
+ *       backgroundColor: "red"
+ *     },
+ *     ".title": {
+ *       color: "blue"
+ *     }
+ *   });
+ *   return (
+ *     <section className="section">
+ *       <h1 className="title">title</h1>
+ *     </section>
+ *   )
+ * }
+ * ```
+ */
+export declare function useStyle(css: Record<string, CSSProperties> | string): void;
 /**
  * generate unique ID.
  */

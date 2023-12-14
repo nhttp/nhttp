@@ -1,10 +1,7 @@
 import type { RequestEvent, TRet } from "../deps";
-import { FC, JSXNode } from "./index";
+import { CSSProperties, FC, JSXNode } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
-export declare const options: TOptionsRender;
-export declare const mutateAttr: Record<string, string>;
-export declare function writeHtml(body: string, write: (data: string) => void): Promise<void>;
 export type TOptionsRender = {
     /**
      * Attach on render element.
@@ -53,12 +50,19 @@ export type TOptionsRender = {
      * custom doc type.
      */
     docType?: string;
+    /**
+     * use hook. default to `true`.
+     */
+    useHook: boolean;
 };
+export declare const options: TOptionsRender;
+export declare const mutateAttr: Record<string, string>;
+export declare function writeHtml(body: string, write: (data: string) => void): Promise<void>;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
-export declare const toStyle: (val: Record<string, string | number>) => string;
+export declare const toStyle: (val: CSSProperties) => string;
 /**
  * renderToString.
  * @example
@@ -93,3 +97,24 @@ export declare const renderToHtml: RenderHTML;
  * ```
  */
 export declare const renderToReadableStream: RenderHTML;
+/**
+ * `DON'T USE IT`. Suspense for renderToReadableStream.
+ * @unsupported
+ * - Helmet
+ * - Twind
+ * @example
+ * ```tsx
+ * app.engine(renderToReadableStream);
+ *
+ * app.get("/", () => {
+ *   return (
+ *     <Suspense fallback={<span>loading...</span>}>
+ *       <Home/>
+ *     </Suspense>
+ *   )
+ * })
+ * ```
+ */
+export declare const Suspense: FC<{
+    fallback: JSX.Element | FC;
+}>;

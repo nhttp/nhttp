@@ -1,13 +1,19 @@
 import { Helmet } from "./helmet.js";
 import {
   dangerHTML,
+  n,
   RequestEventContext
 } from "./index.js";
 import { isValidElement } from "./is-valid-element.js";
+const sus = {
+  i: 0,
+  arr: []
+};
 const options = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
-  onRenderStream: (stream) => stream
+  onRenderStream: (stream) => stream,
+  useHook: true
 };
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
@@ -51,26 +57,40 @@ const toAttr = (props) => {
   return attr;
 };
 async function writeHtml(body, write) {
-  const { head, footer, attr } = Helmet.rewind();
   const writeElem = async (elem) => {
-    for (let i = 0; i < elem.length; i++) {
-      write(await renderToString(elem[i]));
+    if (elem.length) {
+      for (let i = 0; i < elem.length; i++) {
+        write(await renderToString(elem[i]));
+      }
     }
   };
   write(options.docType ?? "<!DOCTYPE html>");
+  const { footer, attr, head } = Helmet.rewind();
   write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
-  write("<head>");
-  write(`<meta charset="utf-8">`);
+  write(`<head><meta charset="utf-8">`);
   write(
     `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
   );
   await writeElem(head);
-  write("</head>");
-  write(`<body${toAttr(attr.body)}>`);
+  write(`</head><body${toAttr(attr.body)}>`);
   write(body);
-  await writeElem(footer);
-  write("</body>");
-  write("</html>");
+  if (sus.i) {
+    for (let i = 0; i < sus.i; i++) {
+      const elem = sus.arr[i];
+      write(`<template id="__t__:${i}">`);
+      write(await renderToString(elem));
+      write(`</template>`);
+      write(
+        `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
+      );
+    }
+    await writeElem(Helmet.rewind().footer);
+    sus.i = 0;
+    sus.arr = [];
+  } else {
+    await writeElem(footer);
+  }
+  write("</body></html>");
 }
 const REG_HTML = /["'&<>]/;
 function escapeHtml(str, force) {
@@ -125,7 +145,13 @@ async function renderToString(elem) {
   if (typeof elem === "string")
     return escapeHtml(elem);
   if (isArray(elem)) {
-    return (await Promise.all(elem.map(renderToString))).join("");
+    let str = "", i = 0;
+    const len = elem.length;
+    while (i < len) {
+      str += await renderToString(elem[i]);
+      i++;
+    }
+    return str;
   }
   const { type, props } = elem;
   if (typeof type === "function") {
@@ -142,22 +168,24 @@ async function renderToString(elem) {
   )}</${type}>`;
 }
 const renderToHtml = async (elem, rev) => {
-  elem = RequestEventContext({ rev, children: elem });
+  if (options.useHook) {
+    elem = RequestEventContext({ rev, children: elem });
+  }
   const body = await options.onRenderElement(elem, rev);
   let html = "";
   await writeHtml(body, (s) => html += s);
-  return options.onRenderHtml(html, rev);
+  return await options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
-const renderToReadableStream = (elem, rev) => {
-  return options.onRenderStream(
+const renderToReadableStream = async (elem, rev) => {
+  const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
         const writeStream = async (child) => {
-          const elem2 = RequestEventContext({
+          const elem2 = options.useHook ? RequestEventContext({
             rev,
             children: child
-          });
+          }) : child;
           const body = await options.onRenderElement(elem2, rev);
           await writeHtml(
             body,
@@ -180,10 +208,23 @@ const renderToReadableStream = (elem, rev) => {
     }),
     rev
   );
+  return stream;
 };
 renderToHtml.check = isValidElement;
 renderToReadableStream.check = isValidElement;
+const Suspense = (props) => {
+  const i = sus.i;
+  const id = `__s__:${i}`;
+  sus.arr[i] = props.children;
+  sus.i++;
+  return n(
+    "div",
+    { id },
+    typeof props.fallback === "function" ? props.fallback({}) : props.fallback
+  );
+};
 export {
+  Suspense,
   escapeHtml,
   isValidElement,
   mutateAttr,
