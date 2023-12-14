@@ -141,14 +141,6 @@ const cssToString = (css) => {
   }
   return str;
 };
-useStyle({
-  ".selector": {
-    backgroundColor: "red"
-  },
-  ".title": {
-    color: "blue"
-  }
-});
 function useStyle(css) {
   const str = typeof css === "string" ? css : cssToString(css);
   const last = import_index.Helmet.writeHeadTag?.() ?? [];

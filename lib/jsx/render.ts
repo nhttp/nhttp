@@ -202,7 +202,7 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-export const toStyle = (val: CSSProperties) => {
+export function toStyle(val: CSSProperties) {
   return Object.keys(val).reduce(
     (a, b) =>
       a +
@@ -212,7 +212,7 @@ export const toStyle = (val: CSSProperties) => {
       ";",
     "",
   );
-};
+}
 
 /**
  * renderToString.

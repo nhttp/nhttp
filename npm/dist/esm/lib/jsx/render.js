@@ -129,12 +129,12 @@ function escapeHtml(str, force) {
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
-const toStyle = (val) => {
+function toStyle(val) {
   return Object.keys(val).reduce(
     (a, b) => a + kebab(b) + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
     ""
   );
-};
+}
 async function renderToString(elem) {
   if (elem instanceof Promise)
     return renderToString(await elem);

@@ -297,14 +297,6 @@ const cssToString = (css: Record<string, CSSProperties>) => {
   }
   return str;
 };
-useStyle({
-  ".selector": {
-    backgroundColor: "red",
-  },
-  ".title": {
-    color: "blue",
-  },
-});
 /**
  * useStyle. server-side only.
  * @example

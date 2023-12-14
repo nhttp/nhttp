@@ -62,7 +62,7 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
-export declare const toStyle: (val: CSSProperties) => string;
+export declare function toStyle(val: CSSProperties): string;
 /**
  * renderToString.
  * @example
