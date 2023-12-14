@@ -1,90 +1,21 @@
 import type { RequestEvent, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import {
+  CSSProperties,
   dangerHTML,
   FC,
   JSXElement,
   JSXNode,
+  n,
   RequestEventContext,
 } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
+const sus = {
+  i: 0,
+  arr: [] as TRet[],
+};
 export { isValidElement };
-
-export const options: TOptionsRender = {
-  onRenderHtml: (html) => html,
-  onRenderElement: renderToString,
-  onRenderStream: (stream) => stream,
-};
-const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
-  area: true,
-  base: true,
-  br: true,
-  col: true,
-  embed: true,
-  hr: true,
-  img: true,
-  input: true,
-  link: true,
-  meta: true,
-  param: true,
-  source: true,
-  track: true,
-  wbr: true,
-});
-const isArray = Array.isArray;
-export const mutateAttr: Record<string, string> = {
-  acceptCharset: "accept-charset",
-  httpEquiv: "http-equiv",
-  htmlFor: "for",
-  className: "class",
-};
-const toAttr = (props: TRet) => {
-  let attr = "";
-  for (const k in props) {
-    let val = props[k];
-    if (
-      val == null ||
-      val === false ||
-      k === dangerHTML ||
-      k === "children" ||
-      typeof val === "function"
-    ) {
-      continue;
-    }
-    const key = mutateAttr[k] ?? k.toLowerCase();
-    if (val === true) {
-      attr += ` ${key}`;
-    } else {
-      if (key === "style" && typeof val === "object") val = toStyle(val);
-      attr += ` ${key}="${escapeHtml(String(val))}"`;
-    }
-  }
-  return attr;
-};
-export async function writeHtml(body: string, write: (data: string) => void) {
-  const { head, footer, attr } = Helmet.rewind();
-  const writeElem = async (elem: JSX.Element[]) => {
-    for (let i = 0; i < elem.length; i++) {
-      write(await renderToString(elem[i]));
-    }
-  };
-  write(options.docType ?? "<!DOCTYPE html>");
-  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
-  write("<head>");
-  write(`<meta charset="utf-8">`);
-  write(
-    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
-  );
-  await writeElem(head);
-  write("</head>");
-  write(`<body${toAttr(attr.body)}>`);
-  write(body);
-  await writeElem(footer);
-  write("</body>");
-  write("</html>");
-}
-
 export type TOptionsRender = {
   /**
    * Attach on render element.
@@ -137,7 +68,100 @@ export type TOptionsRender = {
    * custom doc type.
    */
   docType?: string;
+  /**
+   * use hook. default to `true`.
+   */
+  useHook: boolean;
 };
+export const options: TOptionsRender = {
+  onRenderHtml: (html) => html,
+  onRenderElement: renderToString,
+  onRenderStream: (stream) => stream,
+  useHook: true,
+};
+const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
+  area: true,
+  base: true,
+  br: true,
+  col: true,
+  embed: true,
+  hr: true,
+  img: true,
+  input: true,
+  link: true,
+  meta: true,
+  param: true,
+  source: true,
+  track: true,
+  wbr: true,
+});
+const isArray = Array.isArray;
+export const mutateAttr: Record<string, string> = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv",
+  htmlFor: "for",
+  className: "class",
+};
+const toAttr = (props: TRet) => {
+  let attr = "";
+  for (const k in props) {
+    let val = props[k];
+    if (
+      val == null ||
+      val === false ||
+      k === dangerHTML ||
+      k === "children" ||
+      typeof val === "function"
+    ) {
+      continue;
+    }
+    const key = mutateAttr[k] ?? k.toLowerCase();
+    if (val === true) {
+      attr += ` ${key}`;
+    } else {
+      if (key === "style" && typeof val === "object") val = toStyle(val);
+      attr += ` ${key}="${escapeHtml(String(val))}"`;
+    }
+  }
+  return attr;
+};
+export async function writeHtml(body: string, write: (data: string) => void) {
+  const writeElem = async (elem: JSX.Element[]) => {
+    if (elem.length) {
+      for (let i = 0; i < elem.length; i++) {
+        write(await renderToString(elem[i]));
+      }
+    }
+  };
+  write(options.docType ?? "<!DOCTYPE html>");
+  const { footer, attr, head } = Helmet.rewind();
+  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
+  write(`<head><meta charset="utf-8">`);
+  write(
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+  );
+  await writeElem(head);
+  write(`</head><body${toAttr(attr.body)}>`);
+  write(body);
+  if (sus.i) {
+    for (let i = 0; i < sus.i; i++) {
+      const elem = sus.arr[i];
+      write(`<template id="__t__:${i}">`);
+      write(await renderToString(elem));
+      write(`</template>`);
+      write(
+        `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`,
+      );
+    }
+    await writeElem(Helmet.rewind().footer);
+    sus.i = 0;
+    sus.arr = [];
+  } else {
+    await writeElem(footer);
+  }
+  write("</body></html>");
+}
+
 export type RenderHTML = ((...args: TRet) => TRet) & {
   check: (elem: TRet) => boolean;
 };
@@ -178,7 +202,7 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-export const toStyle = (val: Record<string, string | number>) => {
+export const toStyle = (val: CSSProperties) => {
   return Object.keys(val).reduce(
     (a, b) =>
       a +
@@ -201,7 +225,13 @@ export async function renderToString(elem: JSXNode<TRet>): Promise<string> {
   if (typeof elem === "number") return String(elem);
   if (typeof elem === "string") return escapeHtml(elem);
   if (isArray(elem)) {
-    return (await Promise.all(elem.map(renderToString))).join("");
+    let str = "", i = 0;
+    const len = elem.length;
+    while (i < len) {
+      str += await renderToString(elem[i]);
+      i++;
+    }
+    return str;
   }
   const { type, props } = elem as JSXElement<TRet>;
   if (typeof type === "function") {
@@ -231,11 +261,13 @@ export async function renderToString(elem: JSXNode<TRet>): Promise<string> {
  * ```
  */
 export const renderToHtml: RenderHTML = async (elem, rev) => {
-  elem = RequestEventContext({ rev, children: elem });
+  if (options.useHook) {
+    elem = RequestEventContext({ rev, children: elem });
+  }
   const body = await options.onRenderElement(elem, rev);
   let html = "";
   await writeHtml(body, (s: string) => (html += s));
-  return options.onRenderHtml(html, rev);
+  return await options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
 /**
@@ -251,15 +283,17 @@ const encoder = new TextEncoder();
  * });
  * ```
  */
-export const renderToReadableStream: RenderHTML = (elem, rev) => {
-  return options.onRenderStream(
+export const renderToReadableStream: RenderHTML = async (elem, rev) => {
+  const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
         const writeStream = async (child: JSXElement) => {
-          const elem = RequestEventContext({
-            rev,
-            children: child,
-          }) as JSXElement;
+          const elem = options.useHook
+            ? RequestEventContext({
+              rev,
+              children: child,
+            }) as JSXElement
+            : child;
           const body = await options.onRenderElement(elem, rev);
           await writeHtml(
             body,
@@ -282,7 +316,40 @@ export const renderToReadableStream: RenderHTML = (elem, rev) => {
     }),
     rev,
   );
+  return stream;
 };
 
 renderToHtml.check = isValidElement;
 renderToReadableStream.check = isValidElement;
+
+/**
+ * `DON'T USE IT`. Suspense for renderToReadableStream.
+ * @unsupported
+ * - Helmet
+ * - Twind
+ * @example
+ * ```tsx
+ * app.engine(renderToReadableStream);
+ *
+ * app.get("/", () => {
+ *   return (
+ *     <Suspense fallback={<span>loading...</span>}>
+ *       <Home/>
+ *     </Suspense>
+ *   )
+ * })
+ * ```
+ */
+export const Suspense: FC<
+  { fallback: JSX.Element | FC }
+> = (props) => {
+  const i = sus.i;
+  const id = `__s__:${i}`;
+  sus.arr[i] = props.children;
+  sus.i++;
+  return n(
+    "div",
+    { id },
+    typeof props.fallback === "function" ? props.fallback({}) : props.fallback,
+  ) as JSXElement;
+};

@@ -6,6 +6,7 @@ import {
   type TRet,
 } from "../deps.ts";
 import {
+  type CSSProperties,
   type EObject,
   type FC,
   Helmet,
@@ -13,6 +14,7 @@ import {
   type JSXProps,
   n,
   type ScriptHTMLAttributes,
+  toStyle,
 } from "./index.ts";
 
 const now = Date.now();
@@ -155,8 +157,16 @@ interface AttrScript extends ScriptHTMLAttributes {
    * position. default to `footer`
    */
   position?: "head" | "footer";
+  /**
+   * inline script. default to `false`
+   */
+  inline?: boolean;
+  /**
+   * write script to Helmet. default to `true`
+   */
+  writeToHelmet?: boolean;
 }
-
+type OutScript = { path?: string; source?: string };
 /**
  * useScript. simple client-script from server-side.
  * @example
@@ -192,22 +202,22 @@ export function useScript<T>(
   params: T,
   js_string: string,
   options?: AttrScript,
-): void;
+): OutScript;
 export function useScript<T>(
   params: T,
   fn: (params: T) => void | Promise<void>,
   options?: AttrScript,
-): void;
+): OutScript;
 export function useScript<T>(
   fn: (params: T) => void | Promise<void>,
   params?: T,
   options?: AttrScript,
-): void;
+): OutScript;
 export function useScript<T>(
   js_string: string,
   params?: T,
   options?: AttrScript,
-): void;
+): OutScript;
 export function useScript<T>(
   fn: ((params: T) => void | Promise<void>) | string | T,
   params?: T | ((params: T) => void | Promise<void>) | string,
@@ -221,33 +231,108 @@ export function useScript<T>(
     } else if (typeof fn === "function") {
       js_string = fn.toString();
     } else {
-      useScript(params as TRet, fn, options);
-      return;
+      return useScript(params as TRet, fn, options);
     }
     const i = hook.js_i;
     const app = rev.__app() as NHttp;
     const path = `/__JS__/${now}${i}.js`;
     hook.js_i--;
-    if (app.route.GET?.[path] === void 0) {
+    const inline = options.inline;
+    const toScript = () => {
+      const src = `(${js_string})(${JSON.stringify(params ?? null)});`;
+      const arr = src.split(/\n/);
+      return arr.map((str) =>
+        str.includes("//") || str.includes("*")
+          ? `\n${str}\n`
+          : str.replace(/\s\s+/g, " ")
+      ).join("");
+    };
+
+    if (app.route.GET?.[path] === void 0 && !inline) {
       app.get(`${path}`, ({ response }) => {
         response.type("js");
         response.setHeader(
           "cache-control",
           "public, max-age=31536000, immutable",
         );
-        return `(${js_string})(${JSON.stringify(params ?? null)});`.replace(
-          /\s\s+/g,
-          " ",
-        );
+        return toScript();
       });
     }
+    const isWrite = options.writeToHelmet ?? true;
     const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
     options.position = void 0;
+    options.inline = void 0;
     options.type ??= "application/javascript";
-    options.src = path;
     const last = Helmet[pos]?.() ?? [];
-    Helmet[pos] = () => [...last, n("script", options)];
+    const out = {} as OutScript;
+    if (inline) {
+      out.source = toScript();
+      if (isWrite) {
+        Helmet[pos] = () => [
+          ...last,
+          n("script", {
+            ...options,
+            dangerouslySetInnerHTML: {
+              __html: out.source as string,
+            },
+          }),
+        ];
+      }
+    } else {
+      options.src = path;
+      if (isWrite) {
+        Helmet[pos] = () => [...last, n("script", options)];
+        out.path = path;
+      }
+    }
+    return out;
   }
+  return {};
+}
+
+const cssToString = (css: Record<string, CSSProperties>) => {
+  let str = "";
+  for (const k in css) {
+    str += `${k}{${toStyle(css[k])}}`;
+  }
+  return str;
+};
+useStyle({
+  ".selector": {
+    backgroundColor: "red",
+  },
+  ".title": {
+    color: "blue",
+  },
+});
+/**
+ * useStyle. server-side only.
+ * @example
+ * ```tsx
+ * const Home: FC = () => {
+ *   useStyle({
+ *     ".section": {
+ *       backgroundColor: "red"
+ *     },
+ *     ".title": {
+ *       color: "blue"
+ *     }
+ *   });
+ *   return (
+ *     <section className="section">
+ *       <h1 className="title">title</h1>
+ *     </section>
+ *   )
+ * }
+ * ```
+ */
+export function useStyle(css: Record<string, CSSProperties> | string) {
+  const str = typeof css === "string" ? css : cssToString(css);
+  const last = Helmet.writeHeadTag?.() ?? [];
+  Helmet.writeHeadTag = () => [
+    ...last,
+    n("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } }),
+  ];
 }
 /**
  * generate unique ID.

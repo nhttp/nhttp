@@ -27,6 +27,7 @@ declare global {
   namespace JSX {
     // @ts-ignore: elem
     type Element = JSXElement | Promise<JSXElement>;
+    // @ts-ignore: IntrinsicElements
     interface IntrinsicElements extends IElement {
       // @ts-ignore: IntrinsicElements
       [k: string]: {
