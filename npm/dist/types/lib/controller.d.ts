@@ -20,7 +20,7 @@ export declare function Wares<Rev extends RequestEvent = RequestEvent>(...middle
     new (...args: TRet[]): TRet;
 }[]): TDecorator;
 export declare function Status(status: number | TStatus): TDecorator;
-export declare function Type(name: string | TString): TDecorator;
+export declare function Type(name: string | TString, charset?: string): TDecorator;
 export declare function Header(header: TObject | THeaders): TDecorator;
 export declare function Inject(value?: TRet, ...args: TRet): TDecorator;
 export declare const Get: TMethod;

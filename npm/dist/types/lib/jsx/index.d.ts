@@ -1,17 +1,24 @@
+import type { HTMLAttributes, IntrinsicElements as IElement } from "./types";
 export * from "./render";
 export * from "./helmet";
-type EObject = {};
+export * from "./hook";
+export * from "./types";
+export type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
 };
-export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | string | number | boolean | null | undefined;
+export type JSXProps<P = EObject> = Merge<{
+    children?: JSXNode;
+}, P>;
+export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | Promise<JSXElement<T>> | string | number | boolean | null | undefined;
 export declare const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
     namespace JSX {
-        type Element = JSXElement;
-        interface IntrinsicElements {
-            [k: string]: Attributes & {
+        type Element = JSXElement | Promise<JSXElement>;
+        interface IntrinsicElements extends IElement {
+            [k: string]: {
                 children?: JSXNode;
+                [k: string]: any;
             };
         }
         interface ElementChildrenAttribute {
@@ -24,13 +31,6 @@ export type JSXElement<T = EObject> = {
     props: T | null | undefined;
     key: number | string | null;
 };
-export type Attributes = {
-    style?: string | Record<string, string | number>;
-    [dangerHTML]?: {
-        __html: string;
-    };
-    [name: string]: unknown;
-};
 /**
  * Function Component (FC).
  * @example
@@ -38,9 +38,7 @@ export type Attributes = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = EObject> = (props: Merge<{
-    children?: JSXNode;
-}, T>) => JSXElement | null;
+export type FC<T = EObject> = (props: JSXProps<T>) => JSXElement | Promise<JSXElement> | null;
 /**
  * Fragment.
  * @example
@@ -49,7 +47,7 @@ export type FC<T = EObject> = (props: Merge<{
  * }
  */
 export declare const Fragment: FC;
-export declare function n(type: string, props?: Attributes | null, ...children: JSXNode[]): JSXElement;
+export declare function n(type: string, props?: HTMLAttributes | null, ...children: JSXNode[]): JSXElement;
 export declare function n<T = EObject>(type: FC<T>, props?: T | null, ...children: JSXNode[]): JSXElement | null;
 export declare namespace n {
     var Fragment: FC<EObject>;
@@ -70,6 +68,7 @@ export { n as h };
  */
 export declare const Client: FC<{
     src: string;
+    footer?: boolean;
     id?: string;
     type?: string;
 }>;

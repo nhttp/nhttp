@@ -28,6 +28,8 @@ module.exports = __toCommonJS(jsx_exports);
 var import_helmet = require("./helmet");
 __reExport(jsx_exports, require("./render"), module.exports);
 __reExport(jsx_exports, require("./helmet"), module.exports);
+__reExport(jsx_exports, require("./hook"), module.exports);
+__reExport(jsx_exports, require("./types"), module.exports);
 const dangerHTML = "dangerouslySetInnerHTML";
 const Fragment = ({ children }) => children;
 function n(type, props, ...children) {
@@ -38,10 +40,11 @@ function n(type, props, ...children) {
 }
 n.Fragment = Fragment;
 const Client = (props) => {
+  props.footer ??= true;
   return n(Fragment, {}, [
     n(
       import_helmet.Helmet,
-      { footer: true },
+      { footer: props.footer },
       n(
         "script",
         { src: props.src }
@@ -58,5 +61,7 @@ const Client = (props) => {
   h,
   n,
   ...require("./render"),
-  ...require("./helmet")
+  ...require("./helmet"),
+  ...require("./hook"),
+  ...require("./types")
 });

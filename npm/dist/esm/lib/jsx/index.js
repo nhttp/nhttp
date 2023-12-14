@@ -1,6 +1,8 @@
 import { Helmet } from "./helmet.js";
 export * from "./render.js";
 export * from "./helmet.js";
+export * from "./hook.js";
+export * from "./types.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const Fragment = ({ children }) => children;
 function n(type, props, ...children) {
@@ -11,10 +13,11 @@ function n(type, props, ...children) {
 }
 n.Fragment = Fragment;
 const Client = (props) => {
+  props.footer ??= true;
   return n(Fragment, {}, [
     n(
       Helmet,
-      { footer: true },
+      { footer: props.footer },
       n(
         "script",
         { src: props.src }

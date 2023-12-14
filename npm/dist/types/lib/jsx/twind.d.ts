@@ -8,6 +8,7 @@ export declare const install: (config?: TwindConfig | TwindUserConfig, isProduct
 /**
  * useTwind.
  * @example
+ *
  * useTwind();
  *
  * const app = nhttp();

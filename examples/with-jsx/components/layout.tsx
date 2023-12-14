@@ -7,7 +7,6 @@ import { FC, n } from "../deps.ts";
 const Link: FC<{
   id: string;
   href: string;
-  children: string;
 }> = ({ href, id, children }) => {
   return (
     <a

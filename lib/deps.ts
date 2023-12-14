@@ -12,6 +12,7 @@ export type {
   Cookie,
   Handler,
   Handlers,
+  MatchRoute,
   NextFunction,
   NHttp,
   TMultipartUpload,

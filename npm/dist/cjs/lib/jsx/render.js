@@ -17,17 +17,31 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var render_exports = {};
 __export(render_exports, {
+  Suspense: () => Suspense,
   escapeHtml: () => escapeHtml,
   isValidElement: () => import_is_valid_element.isValidElement,
+  mutateAttr: () => mutateAttr,
   options: () => options,
   renderToHtml: () => renderToHtml,
+  renderToReadableStream: () => renderToReadableStream,
   renderToString: () => renderToString,
-  toStyle: () => toStyle
+  toStyle: () => toStyle,
+  writeHtml: () => writeHtml
 });
 module.exports = __toCommonJS(render_exports);
 var import_helmet = require("./helmet");
 var import_index = require("./index");
 var import_is_valid_element = require("./is-valid-element");
+const sus = {
+  i: 0,
+  arr: []
+};
+const options = {
+  onRenderHtml: (html) => html,
+  onRenderElement: renderToString,
+  onRenderStream: (stream) => stream,
+  useHook: true
+};
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
   base: true,
@@ -44,6 +58,67 @@ const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   track: true,
   wbr: true
 });
+const isArray = Array.isArray;
+const mutateAttr = {
+  acceptCharset: "accept-charset",
+  httpEquiv: "http-equiv",
+  htmlFor: "for",
+  className: "class"
+};
+const toAttr = (props) => {
+  let attr = "";
+  for (const k in props) {
+    let val = props[k];
+    if (val == null || val === false || k === import_index.dangerHTML || k === "children" || typeof val === "function") {
+      continue;
+    }
+    const key = mutateAttr[k] ?? k.toLowerCase();
+    if (val === true) {
+      attr += ` ${key}`;
+    } else {
+      if (key === "style" && typeof val === "object")
+        val = toStyle(val);
+      attr += ` ${key}="${escapeHtml(String(val))}"`;
+    }
+  }
+  return attr;
+};
+async function writeHtml(body, write) {
+  const writeElem = async (elem) => {
+    if (elem.length) {
+      for (let i = 0; i < elem.length; i++) {
+        write(await renderToString(elem[i]));
+      }
+    }
+  };
+  write(options.docType ?? "<!DOCTYPE html>");
+  const { footer, attr, head } = import_helmet.Helmet.rewind();
+  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
+  write(`<head><meta charset="utf-8">`);
+  write(
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+  );
+  await writeElem(head);
+  write(`</head><body${toAttr(attr.body)}>`);
+  write(body);
+  if (sus.i) {
+    for (let i = 0; i < sus.i; i++) {
+      const elem = sus.arr[i];
+      write(`<template id="__t__:${i}">`);
+      write(await renderToString(elem));
+      write(`</template>`);
+      write(
+        `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
+      );
+    }
+    await writeElem(import_helmet.Helmet.rewind().footer);
+    sus.i = 0;
+    sus.arr = [];
+  } else {
+    await writeElem(footer);
+  }
+  write("</body></html>");
+}
 const REG_HTML = /["'&<>]/;
 function escapeHtml(str, force) {
   return options.precompile && !force || !REG_HTML.test(str) ? str : (() => {
@@ -81,86 +156,110 @@ function escapeHtml(str, force) {
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
-const toStyle = (val) => {
+function toStyle(val) {
   return Object.keys(val).reduce(
     (a, b) => a + kebab(b) + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
     ""
   );
-};
-const renderToString = (elem) => {
+}
+async function renderToString(elem) {
+  if (elem instanceof Promise)
+    return renderToString(await elem);
   if (elem == null || typeof elem === "boolean")
     return "";
   if (typeof elem === "number")
     return String(elem);
   if (typeof elem === "string")
     return escapeHtml(elem);
-  if (Array.isArray(elem))
-    return elem.map(renderToString).join("");
+  if (isArray(elem)) {
+    let str = "", i = 0;
+    const len = elem.length;
+    while (i < len) {
+      str += await renderToString(elem[i]);
+      i++;
+    }
+    return str;
+  }
   const { type, props } = elem;
-  if (typeof type === "function")
-    return renderToString(type(props ?? {}));
-  let attributes = "";
-  for (const k in props) {
-    let val = props[k];
-    if (val == null || val === false || k === import_index.dangerHTML || k === "children" || typeof val === "function") {
-      continue;
-    }
-    const key = k === "className" ? "class" : k.toLowerCase();
-    if (val === true) {
-      attributes += ` ${key}`;
-    } else {
-      if (key === "style" && typeof val === "object")
-        val = toStyle(val);
-      attributes += ` ${key}="${escapeHtml(String(val))}"`;
-    }
+  if (typeof type === "function") {
+    return renderToString(await type(props ?? {}));
   }
-  if (type in voidTags) {
+  const attributes = toAttr(props);
+  if (type in voidTags)
     return `<${type}${attributes}>`;
-  }
   if (props?.[import_index.dangerHTML] != null) {
     return `<${type}${attributes}>${props[import_index.dangerHTML].__html}</${type}>`;
   }
-  return `<${type}${attributes}>${renderToString(props?.["children"])}</${type}>`;
+  return `<${type}${attributes}>${await renderToString(
+    props?.["children"]
+  )}</${type}>`;
+}
+const renderToHtml = async (elem, rev) => {
+  if (options.useHook) {
+    elem = (0, import_index.RequestEventContext)({ rev, children: elem });
+  }
+  const body = await options.onRenderElement(elem, rev);
+  let html = "";
+  await writeHtml(body, (s) => html += s);
+  return await options.onRenderHtml(html, rev);
 };
-const options = {
-  onRenderHtml: (html) => html,
-  onRenderElement: renderToString
-};
-const toHtml = (body, { head, footer, attr }) => {
-  const bodyWithFooter = body + renderToString(footer);
-  return "<!DOCTYPE html>" + renderToString(
-    (0, import_index.n)("html", { lang: "en", ...attr.html }, [
-      (0, import_index.n)("head", {}, [
-        (0, import_index.n)("meta", { charset: "utf-8" }),
-        (0, import_index.n)("meta", {
-          name: "viewport",
-          content: "width=device-width, initial-scale=1.0"
-        }),
-        head
-      ]),
-      (0, import_index.n)("body", {
-        ...attr.body,
-        dangerouslySetInnerHTML: { __html: bodyWithFooter }
-      })
-    ])
+const encoder = new TextEncoder();
+const renderToReadableStream = async (elem, rev) => {
+  const stream = await options.onRenderStream(
+    new ReadableStream({
+      async start(ctrl) {
+        const writeStream = async (child) => {
+          const elem2 = options.useHook ? (0, import_index.RequestEventContext)({
+            rev,
+            children: child
+          }) : child;
+          const body = await options.onRenderElement(elem2, rev);
+          await writeHtml(
+            body,
+            (str) => ctrl.enqueue(encoder.encode(str))
+          );
+        };
+        try {
+          await writeStream(elem);
+        } catch (error) {
+          if (options.onErrorStream) {
+            await writeStream(
+              await options.onErrorStream({ error })
+            );
+          } else {
+            ctrl.enqueue(encoder.encode(error));
+          }
+        }
+        ctrl.close();
+      }
+    }),
+    rev
   );
-};
-const renderToHtml = (elem, rev) => {
-  const body = options.onRenderElement(elem, rev);
-  const render = (str) => {
-    return options.onRenderHtml(toHtml(str, import_helmet.Helmet.rewind()), rev);
-  };
-  if (body instanceof Promise)
-    return body.then(render);
-  return render(body);
+  return stream;
 };
 renderToHtml.check = import_is_valid_element.isValidElement;
+renderToReadableStream.check = import_is_valid_element.isValidElement;
+const Suspense = (props) => {
+  const i = sus.i;
+  const id = `__s__:${i}`;
+  sus.arr[i] = props.children;
+  sus.i++;
+  return (0, import_index.n)(
+    "div",
+    { id },
+    typeof props.fallback === "function" ? props.fallback({}) : props.fallback
+  );
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  Suspense,
   escapeHtml,
   isValidElement,
+  mutateAttr,
   options,
   renderToHtml,
+  renderToReadableStream,
   renderToString,
-  toStyle
+  toStyle,
+  writeHtml
 });

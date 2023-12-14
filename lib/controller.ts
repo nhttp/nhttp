@@ -153,11 +153,11 @@ export function Status(status: number | TStatus): TDecorator {
   };
 }
 
-export function Type(name: string | TString): TDecorator {
+export function Type(name: string | TString, charset?: string): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const typeFn: Handler = (rev, next) => {
       const value = typeof name === "function" ? name(rev, next) : name;
-      rev.response.type(value);
+      rev.response.type(value, charset);
       return next();
     };
     const className = target.constructor.name;

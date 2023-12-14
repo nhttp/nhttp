@@ -1,17 +1,18 @@
-import { type Attributes, type FC } from "./index";
+import type { TRet } from "../deps";
+import { type HTMLAttributes, type JSXProps } from "./index";
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];
     attr: {
-        body: Attributes;
-        html: Attributes;
+        body: HTMLAttributes;
+        html: HTMLAttributes;
     };
     body?: JSX.Element;
 };
-type FCHelmet = FC<{
+type FCHelmet = ((props: JSXProps<{
     footer?: boolean;
-    children?: JSX.Element[] | JSX.Element | any;
-}> & {
+    children?: JSX.Element[] | JSX.Element | TRet;
+}>) => TRet) & {
     /**
      * Rewind Helmet.
      * @example
@@ -20,6 +21,7 @@ type FCHelmet = FC<{
     rewind: (elem?: JSX.Element) => HelmetRewind;
     /**
      * Custom render.
+     * @deprecated
      */
     render: (elem: JSX.Element) => string;
     /**
@@ -42,8 +44,8 @@ type FCHelmet = FC<{
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
-    writeHtmlAttr?: () => Attributes;
-    writeBodyAttr?: () => Attributes;
+    writeHtmlAttr?: () => HTMLAttributes;
+    writeBodyAttr?: () => HTMLAttributes;
 };
 /**
  * Simple SSR Helmet for SEO

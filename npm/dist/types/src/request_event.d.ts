@@ -72,7 +72,7 @@ export declare class RequestEvent<O extends TObject = TObject> {
      * rev.response.send("hello");
      * rev.response.send({ name: "john" });
      */
-    send(body?: TSendBody, lose?: number): void;
+    send(body?: TSendBody, lose?: number): void | Promise<void>;
     /**
      * Lookup responseInit.
      */

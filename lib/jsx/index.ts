@@ -1,17 +1,22 @@
 import { Helmet } from "./helmet.ts";
+import type { HTMLAttributes, IntrinsicElements as IElement } from "./types.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
+export * from "./hook.ts";
+export * from "./types.ts";
 // deno-lint-ignore ban-types
-type EObject = {};
+export type EObject = {};
 type Merge<A, B> = {
   [K in keyof (A & B)]: (
     K extends keyof B ? B[K]
       : (K extends keyof A ? A[K] : never)
   );
 };
+export type JSXProps<P = EObject> = Merge<{ children?: JSXNode }, P>;
 export type JSXNode<T = EObject> =
   | JSXNode<T>[]
   | JSXElement<T>
+  | Promise<JSXElement<T>>
   | string
   | number
   | boolean
@@ -21,10 +26,15 @@ export const dangerHTML = "dangerouslySetInnerHTML";
 declare global {
   namespace JSX {
     // @ts-ignore: elem
-    type Element = JSXElement;
-    interface IntrinsicElements {
+    type Element = JSXElement | Promise<JSXElement>;
+    // @ts-ignore: IntrinsicElements
+    interface IntrinsicElements extends IElement {
       // @ts-ignore: IntrinsicElements
-      [k: string]: Attributes & { children?: JSXNode };
+      [k: string]: {
+        children?: JSXNode;
+        // deno-lint-ignore no-explicit-any
+        [k: string]: any;
+      };
     }
     interface ElementChildrenAttribute {
       children: EObject;
@@ -38,11 +48,6 @@ export type JSXElement<T = EObject> = {
   // shim key
   key: number | string | null;
 };
-export type Attributes = {
-  style?: string | Record<string, string | number>;
-  [dangerHTML]?: { __html: string };
-  [name: string]: unknown;
-};
 
 /**
  * Function Component (FC).
@@ -52,8 +57,8 @@ export type Attributes = {
  * }
  */
 export type FC<T = EObject> = (
-  props: Merge<{ children?: JSXNode }, T>,
-) => JSXElement | null;
+  props: JSXProps<T>,
+) => JSXElement | Promise<JSXElement> | null;
 
 /**
  * Fragment.
@@ -66,7 +71,7 @@ export const Fragment: FC = ({ children }) => children as JSXElement;
 
 export function n(
   type: string,
-  props?: Attributes | null,
+  props?: HTMLAttributes | null,
   ...children: JSXNode[]
 ): JSXElement;
 export function n<T = EObject>(
@@ -102,13 +107,15 @@ export { n as h };
  */
 export const Client: FC<{
   src: string;
+  footer?: boolean;
   id?: string;
   type?: string;
 }> = (props) => {
+  props.footer ??= true;
   return n(Fragment, {}, [
     n(
       Helmet,
-      { footer: true },
+      { footer: props.footer },
       n(
         "script",
         { src: props.src },

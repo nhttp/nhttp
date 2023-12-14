@@ -11,9 +11,7 @@ useRenderSSR(app);
 
 app.engine(renderToHtml);
 
-app.get("/", () => {
-  return <Counter init={10} />;
-});
+app.get("/", () => <Counter init={10} />);
 
 app.listen(8000, (_err, info) => {
   console.log(`Running on port ${info.port}`);

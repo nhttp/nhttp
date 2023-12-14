@@ -20,7 +20,6 @@ __export(helmet_exports, {
   Helmet: () => Helmet
 });
 module.exports = __toCommonJS(helmet_exports);
-var import_index = require("./index");
 function toHelmet(elems) {
   const helmet = [];
   let hasBase = false;
@@ -84,7 +83,7 @@ Helmet.rewind = (elem) => {
   Helmet.writeBodyAttr = void 0;
   return data;
 };
-Helmet.render = (val) => (0, import_index.renderToString)(val);
+Helmet.render = () => "";
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Helmet

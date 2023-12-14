@@ -1146,9 +1146,9 @@ var HttpResponse = class {
     if (code > 511)
       code = 500;
     try {
-      this.status(code).send(code);
+      return this.status(code).send(code);
     } catch (_e) {
-      this.status(code).send(null);
+      return this.status(code).send(null);
     }
   }
   /**
@@ -1220,7 +1220,7 @@ var HttpResponse = class {
    * response.html("<h1>Hello World</h1>");
    */
   html(html) {
-    this.type(HTML_TYPE).send(html);
+    return this.type(HTML_TYPE).send(html);
   }
   /**
    * shorthand for send json body
@@ -1228,7 +1228,10 @@ var HttpResponse = class {
    * response.json({ name: "john" });
    */
   json(body) {
-    this.send(body);
+    if (typeof body !== "object") {
+      throw new HttpError(400, "body not json");
+    }
+    return this.send(body);
   }
   /**
    * redirect url
@@ -1238,7 +1241,7 @@ var HttpResponse = class {
    * response.redirect("http://google.com");
    */
   redirect(url, status) {
-    this.header("Location", url).status(status ?? 302).send();
+    return this.header("Location", url).status(status ?? 302).send();
   }
   /**
    * cookie
@@ -1667,12 +1670,14 @@ var awaiter = (rev) => {
     return rev[s_response] ?? new Response(null, { status: 408 });
   })(0, 10, 200);
 };
-var onRes = (ret, rev) => {
-  rev.send(ret, 1);
-  return rev[s_response] ?? awaiter(rev);
+var onNext = async (ret, rev, next) => {
+  try {
+    await rev.send(await ret, 1);
+    return rev[s_response] ?? awaiter(rev);
+  } catch (error) {
+    return next(error);
+  }
 };
-var onAsyncRes = async (ret, rev) => onRes(await ret, rev);
-var onNext = (ret, rev, next) => ret?.then ? onAsyncRes(ret, rev).catch(next) : onRes(ret, rev);
 function buildListenOptions(opts) {
   let handler = this.handleRequest;
   if (typeof opts === "number") {
@@ -1835,21 +1840,16 @@ var NHttp = class extends Router {
     return this.use((rev, next) => {
       if (check !== void 0) {
         const send = rev.send.bind(rev);
-        rev.send = (body, lose) => {
+        rev.__app = () => this;
+        rev.send = async (body, lose) => {
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            const res = render(body, rev);
-            if (res instanceof Promise) {
-              res.then((res2) => {
-                rev[s_response] = new Response(res2, rev[s_init]);
-              }).catch(next);
-            } else {
-              rev[s_response] = new Response(res, rev[s_init]);
-            }
+            const res = await render(body, rev);
+            rev[s_response] = new Response(res, rev[s_init]);
           } else {
-            send(body, lose);
+            await send(body, lose);
           }
         };
       }
@@ -1901,7 +1901,7 @@ var NHttp = class extends Router {
   };
   onErr = async (err, req) => {
     const rev = new RequestEvent(req);
-    rev.send(await this._onError(err, rev), 1);
+    await rev.send(await this._onError(err, rev), 1);
     return rev[s_response] ?? awaiter(rev);
   };
   /**
@@ -1963,7 +1963,7 @@ var NHttp = class extends Router {
             await writeBody(rev, type, opts, this.parseQuery);
           }
         }
-        rev.send(await fns[i++](rev, next), 1);
+        await rev.send(await fns[i++](rev, next), 1);
       } catch (e) {
         return next(e);
       }

@@ -38,11 +38,16 @@ const createElement = (type, props) => {
     return (0, import_index.n)(type, props, ...childs);
   return (0, import_index.n)(type, props, childs);
 };
-const jsxTemplate = (tpl, ...subs) => {
+const jsxTemplate = async (tpl, ...subs) => {
   import_index.options.precompile ??= true;
-  return tpl.reduce((prev, cur, i) => {
-    return prev + (0, import_index.renderToString)(subs[i - 1]) + cur;
-  });
+  let str = "";
+  for (let i = 0; i < tpl.length; i++) {
+    str += await (0, import_index.renderToString)(tpl[i]);
+    if (i < subs.length) {
+      str += await (0, import_index.renderToString)(subs[i]);
+    }
+  }
+  return str;
 };
 const jsxEscape = (v) => {
   return v == null || typeof v === "boolean" || typeof v === "function" ? null : v;

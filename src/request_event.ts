@@ -137,7 +137,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * rev.response.send("hello");
    * rev.response.send({ name: "john" });
    */
-  send(body?: TSendBody, lose?: number): void {
+  send(body?: TSendBody, lose?: number): void | Promise<void> {
     if (typeof body === "string") {
       this[s_response] = new Response(body, this[s_init]);
     } else if (

@@ -1,5 +1,5 @@
 import { Handler, HttpError, Router } from "../mod.ts";
-import { nhttp } from "./nhttp.ts";
+import { NHttp, nhttp } from "./nhttp.ts";
 import { RequestEvent } from "./request_event.ts";
 import { assertEquals, superdeno } from "./deps_test.ts";
 import { NextFunction, TRet } from "./types.ts";
@@ -152,7 +152,10 @@ Deno.test("nhttp", async (t) => {
     renderToHtml.check = (elem: TRet) => typeof elem === "string";
     const app = nhttp();
     app.engine(renderToHtml);
-    app.get("/", (_rev) => "hello");
+    app.get("/", (rev) => {
+      assertEquals(rev.__app() instanceof NHttp, true);
+      return "hello";
+    });
     await superdeno(app.handle).get("/").expect(200);
   });
   await t.step("engine jsx promise", async () => {

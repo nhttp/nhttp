@@ -70,6 +70,14 @@ Deno.test("HttpResponse", async (t) => {
       response.json({ name: "john" });
       assertEquals(response.statusCode, 200);
     });
+    await t.step("not json", () => {
+      const response = buildRes();
+      try {
+        response.json(1 as TRet);
+      } catch (error) {
+        assertEquals(error.status, 400);
+      }
+    });
     await t.step("html", () => {
       const response = buildRes();
       response.html("<h1>hello</h1>");
