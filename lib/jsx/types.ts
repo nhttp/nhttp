@@ -1,5 +1,4 @@
 // Credit : https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts
-/// <reference lib="dom" />
 // deno-lint-ignore no-explicit-any
 type TAny = any;
 type Bool = boolean | "true" | "false";
