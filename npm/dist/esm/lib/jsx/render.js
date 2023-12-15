@@ -38,7 +38,7 @@ const mutateAttr = {
   htmlFor: "for",
   className: "class"
 };
-const toAttr = (props) => {
+const toAttr = (props = {}) => {
   let attr = "";
   for (const k in props) {
     let val = props[k];
@@ -57,24 +57,15 @@ const toAttr = (props) => {
   return attr;
 };
 async function writeHtml(body, write) {
-  const writeElem = async (elem) => {
-    if (elem.length) {
-      for (let i = 0; i < elem.length; i++) {
-        write(await renderToString(elem[i]));
-      }
-    }
-  };
-  write(options.docType ?? "<!DOCTYPE html>");
   const { footer, attr, head } = Helmet.rewind();
-  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
-  write(`<head><meta charset="utf-8">`);
+  write(options.docType ?? "<!DOCTYPE html>");
   write(
-    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+    `<html${toAttr({ lang: "en", ...attr.html })}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`
   );
-  await writeElem(head);
-  write(`</head><body${toAttr(attr.body)}>`);
-  write(body);
-  if (sus.i) {
+  if (head.length > 0)
+    write(await renderToString(head));
+  write(`</head><body${toAttr(attr.body)}>${body}`);
+  if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
       write(`<template id="__t__:${i}">`);
@@ -84,11 +75,11 @@ async function writeHtml(body, write) {
         `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
       );
     }
-    await writeElem(Helmet.rewind().footer);
+    write(await renderToString(Helmet.rewind().footer));
     sus.i = 0;
     sus.arr = [];
-  } else {
-    await writeElem(footer);
+  } else if (footer.length > 0) {
+    write(await renderToString(footer));
   }
   write("</body></html>");
 }
@@ -136,8 +127,6 @@ function toStyle(val) {
   );
 }
 async function renderToString(elem) {
-  if (elem instanceof Promise)
-    return renderToString(await elem);
   if (elem == null || typeof elem === "boolean")
     return "";
   if (typeof elem === "number")
@@ -155,7 +144,7 @@ async function renderToString(elem) {
   }
   const { type, props } = elem;
   if (typeof type === "function") {
-    return renderToString(await type(props ?? {}));
+    return await renderToString(await type(props ?? {}));
   }
   const attributes = toAttr(props);
   if (type in voidTags)

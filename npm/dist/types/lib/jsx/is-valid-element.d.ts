@@ -4,4 +4,4 @@ import type { TRet } from "../deps";
  * @example
  * const bool = isValidElement(<App />);
  */
-export declare const isValidElement: (elem: TRet) => boolean;
+export declare function isValidElement(elem: TRet): boolean;

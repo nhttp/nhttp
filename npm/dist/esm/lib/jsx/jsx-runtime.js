@@ -3,7 +3,6 @@ import {
   Fragment,
   n,
   options,
-  renderToString,
   toStyle
 } from "./index.js";
 const isArray = Array.isArray;
@@ -16,16 +15,15 @@ const createElement = (type, props) => {
     return n(type, props, ...childs);
   return n(type, props, childs);
 };
-const jsxTemplate = async (tpl, ...subs) => {
+const jsxTemplate = (tpl, ...subs) => {
   options.precompile ??= true;
-  let str = "";
+  const ret = [];
   for (let i = 0; i < tpl.length; i++) {
-    str += await renderToString(tpl[i]);
-    if (i < subs.length) {
-      str += await renderToString(subs[i]);
-    }
+    ret.push(tpl[i]);
+    if (i < subs.length)
+      ret.push(subs[i]);
   }
-  return str;
+  return n(Fragment, {}, ret);
 };
 const jsxEscape = (v) => {
   return v == null || typeof v === "boolean" || typeof v === "function" ? null : v;
