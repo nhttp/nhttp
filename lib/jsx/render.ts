@@ -1,12 +1,12 @@
 import type { RequestEvent, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import {
-  CSSProperties,
   dangerHTML,
   FC,
   JSXElement,
   JSXNode,
   n,
+  type NJSX,
   RequestEventContext,
 } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
@@ -102,7 +102,7 @@ export const mutateAttr: Record<string, string> = {
   htmlFor: "for",
   className: "class",
 };
-const toAttr = (props: TRet) => {
+const toAttr = (props: TRet = {}) => {
   let attr = "";
   for (const k in props) {
     let val = props[k];
@@ -126,24 +126,16 @@ const toAttr = (props: TRet) => {
   return attr;
 };
 export async function writeHtml(body: string, write: (data: string) => void) {
-  const writeElem = async (elem: JSX.Element[]) => {
-    if (elem.length) {
-      for (let i = 0; i < elem.length; i++) {
-        write(await renderToString(elem[i]));
-      }
-    }
-  };
-  write(options.docType ?? "<!DOCTYPE html>");
   const { footer, attr, head } = Helmet.rewind();
-  write(`<html${toAttr({ lang: "en", ...attr.html })}>`);
-  write(`<head><meta charset="utf-8">`);
+  write(options.docType ?? "<!DOCTYPE html>");
   write(
-    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+    `<html${
+      toAttr({ lang: "en", ...attr.html })
+    }><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
   );
-  await writeElem(head);
-  write(`</head><body${toAttr(attr.body)}>`);
-  write(body);
-  if (sus.i) {
+  if (head.length > 0) write(await renderToString(head));
+  write(`</head><body${toAttr(attr.body)}>${body}`);
+  if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
       write(`<template id="__t__:${i}">`);
@@ -153,11 +145,11 @@ export async function writeHtml(body: string, write: (data: string) => void) {
         `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`,
       );
     }
-    await writeElem(Helmet.rewind().footer);
+    write(await renderToString(Helmet.rewind().footer));
     sus.i = 0;
     sus.arr = [];
-  } else {
-    await writeElem(footer);
+  } else if (footer.length > 0) {
+    write(await renderToString(footer));
   }
   write("</body></html>");
 }
@@ -202,7 +194,7 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-export function toStyle(val: CSSProperties) {
+export function toStyle(val: NJSX.CSSProperties) {
   return Object.keys(val).reduce(
     (a, b) =>
       a +
@@ -219,8 +211,8 @@ export function toStyle(val: CSSProperties) {
  * @example
  * const str = await renderToString(<App />);
  */
-export async function renderToString(elem: JSXNode<TRet>): Promise<string> {
-  if (elem instanceof Promise) return renderToString(await elem);
+export async function renderToString(elem: JSXNode<TRet>): Promise<string>;
+export async function renderToString(elem: TRet): Promise<string> {
   if (elem == null || typeof elem === "boolean") return "";
   if (typeof elem === "number") return String(elem);
   if (typeof elem === "string") return escapeHtml(elem);
@@ -233,9 +225,9 @@ export async function renderToString(elem: JSXNode<TRet>): Promise<string> {
     }
     return str;
   }
-  const { type, props } = elem as JSXElement<TRet>;
+  const { type, props } = elem;
   if (typeof type === "function") {
-    return renderToString(await type(props ?? {}));
+    return await renderToString(await type(props ?? {}));
   }
   const attributes = toAttr(props);
   if (type in voidTags) return `<${type}${attributes}>`;

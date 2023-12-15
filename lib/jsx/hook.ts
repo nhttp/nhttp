@@ -6,14 +6,13 @@ import {
   type TRet,
 } from "../deps.ts";
 import {
-  type CSSProperties,
   type EObject,
   type FC,
   Helmet,
   type JSXElement,
   type JSXProps,
   n,
-  type ScriptHTMLAttributes,
+  type NJSX,
   toStyle,
 } from "./index.ts";
 
@@ -152,7 +151,7 @@ export const useBody = <T = TObject>(): T => useRequestEvent()?.body as T;
 export const useResponse = (): HttpResponse => useRequestEvent()?.response;
 export const useRequest = (): Request => useRequestEvent()?.request;
 
-interface AttrScript extends ScriptHTMLAttributes {
+interface AttrScript extends NJSX.ScriptHTMLAttributes {
   /**
    * position. default to `footer`
    */
@@ -247,7 +246,6 @@ export function useScript<T>(
           : str.replace(/\s\s+/g, " ")
       ).join("");
     };
-
     if (app.route.GET?.[path] === void 0 && !inline) {
       app.get(`${path}`, ({ response }) => {
         response.type("js");
@@ -290,7 +288,7 @@ export function useScript<T>(
   return {};
 }
 
-const cssToString = (css: Record<string, CSSProperties>) => {
+const cssToString = (css: Record<string, NJSX.CSSProperties>) => {
   let str = "";
   for (const k in css) {
     str += `${k}{${toStyle(css[k])}}`;
@@ -318,7 +316,7 @@ const cssToString = (css: Record<string, CSSProperties>) => {
  * }
  * ```
  */
-export function useStyle(css: Record<string, CSSProperties> | string) {
+export function useStyle(css: Record<string, NJSX.CSSProperties> | string) {
   const str = typeof css === "string" ? css : cssToString(css);
   const last = Helmet.writeHeadTag?.() ?? [];
   Helmet.writeHeadTag = () => [
