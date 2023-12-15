@@ -1,4 +1,3 @@
-/// <reference lib="dom" />
 type TAny = any;
 type Bool = boolean | "true" | "false";
 type EObject = {};
