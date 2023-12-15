@@ -1,6 +1,6 @@
 /* @jsx h */
 /* @jsxFrag Fragment */
-import { Helmet } from "../../../lib/jsx.ts";
+import { Helmet } from "../../../lib/jsx/helmet.ts";
 import {
   Fragment,
   FunctionComponent as FC,

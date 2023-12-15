@@ -1,5 +1,5 @@
 import type { RequestEvent, TRet } from "../deps";
-import { CSSProperties, FC, JSXNode } from "./index";
+import { FC, JSXNode, type NJSX } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
 export type TOptionsRender = {
@@ -62,7 +62,7 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
-export declare function toStyle(val: CSSProperties): string;
+export declare function toStyle(val: NJSX.CSSProperties): string;
 /**
  * renderToString.
  * @example

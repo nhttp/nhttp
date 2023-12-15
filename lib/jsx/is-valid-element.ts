@@ -1,20 +1,19 @@
 import type { TRet } from "../deps.ts";
-import { options } from "./index.ts";
 
+const isFunc = <T>(v: T) => typeof v === "function";
 const isArray = Array.isArray;
 /**
  * isValidElement.
  * @example
  * const bool = isValidElement(<App />);
  */
-export const isValidElement = (elem: TRet) => {
-  if (elem == null) return false;
+export function isValidElement(elem: TRet) {
   if (typeof elem === "object") {
+    if (elem == null || elem instanceof Response) return false;
     if (isArray(elem)) elem = elem[0] ?? {};
-    if (typeof elem.type === "function") return true;
+    if (elem.__n__ || isFunc(elem.type)) return true;
     const has = (k: string) => Object.hasOwn(elem, k);
     if (has("type") && has("props") && has("key")) return true;
   }
-  if (options.precompile && typeof elem === "string") return true;
   return false;
-};
+}

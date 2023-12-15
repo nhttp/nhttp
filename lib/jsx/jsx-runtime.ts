@@ -1,18 +1,17 @@
 import {
   escapeHtml,
   Fragment,
-  type HTMLAttributes,
   type JSXElement,
   type JSXNode,
   n,
+  type NJSX,
   options,
-  renderToString,
   toStyle,
 } from "./index.ts";
 
 type CreateElement = (
   type: string,
-  props?: HTMLAttributes & { children?: JSXElement | JSXElement[] },
+  props?: NJSX.HTMLAttributes & { children?: JSXElement | JSXElement[] },
   ...args: unknown[]
 ) => JSXNode;
 const isArray = Array.isArray;
@@ -30,19 +29,17 @@ export { createElement as jsxDev };
 export { createElement as jsxDEV };
 
 // support jsx-transform precompile.
-export const jsxTemplate = async (
+export const jsxTemplate = (
   tpl: TemplateStringsArray,
   ...subs: JSXNode[]
 ) => {
   options.precompile ??= true;
-  let str = "";
+  const ret = [];
   for (let i = 0; i < tpl.length; i++) {
-    str += await renderToString(tpl[i]);
-    if (i < subs.length) {
-      str += await renderToString(subs[i]);
-    }
+    ret.push(tpl[i]);
+    if (i < subs.length) ret.push(subs[i]);
   }
-  return str;
+  return n(Fragment, {}, ret);
 };
 export const jsxEscape = (
   v: string | null | JSXNode | Array<string | null | JSXNode>,

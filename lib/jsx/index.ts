@@ -1,5 +1,23 @@
+import type { TRet } from "../deps.ts";
+import type { NJSX } from "./types.ts";
+declare global {
+  namespace JSX {
+    // @ts-ignore: elem
+    type Element = JSXElement | Promise<JSXElement>;
+    // @ts-ignore: IntrinsicElements
+    interface IntrinsicElements extends NJSX.IntrinsicElements {
+      // @ts-ignore: IntrinsicElements
+      [k: string]: {
+        children?: JSXNode;
+        [k: string]: TRet;
+      };
+    }
+    interface ElementChildrenAttribute {
+      children: EObject;
+    }
+  }
+}
 import { Helmet } from "./helmet.ts";
-import type { HTMLAttributes, IntrinsicElements as IElement } from "./types.ts";
 export * from "./render.ts";
 export * from "./helmet.ts";
 export * from "./hook.ts";
@@ -12,6 +30,7 @@ type Merge<A, B> = {
       : (K extends keyof A ? A[K] : never)
   );
 };
+
 export type JSXProps<P = EObject> = Merge<{ children?: JSXNode }, P>;
 export type JSXNode<T = EObject> =
   | JSXNode<T>[]
@@ -23,24 +42,6 @@ export type JSXNode<T = EObject> =
   | null
   | undefined;
 export const dangerHTML = "dangerouslySetInnerHTML";
-declare global {
-  namespace JSX {
-    // @ts-ignore: elem
-    type Element = JSXElement | Promise<JSXElement>;
-    // @ts-ignore: IntrinsicElements
-    interface IntrinsicElements extends IElement {
-      // @ts-ignore: IntrinsicElements
-      [k: string]: {
-        children?: JSXNode;
-        // deno-lint-ignore no-explicit-any
-        [k: string]: any;
-      };
-    }
-    interface ElementChildrenAttribute {
-      children: EObject;
-    }
-  }
-}
 
 export type JSXElement<T = EObject> = {
   type: string | FC<T>;
@@ -71,7 +72,7 @@ export const Fragment: FC = ({ children }) => children as JSXElement;
 
 export function n(
   type: string,
-  props?: HTMLAttributes | null,
+  props?: NJSX.HTMLAttributes | null,
   ...children: JSXNode[]
 ): JSXElement;
 export function n<T = EObject>(
@@ -84,10 +85,13 @@ export function n(
   props?: EObject | null,
   ...children: JSXNode[]
 ): JSXNode {
-  if (children.length > 0) {
-    return { type, props: { ...props, children }, key: null };
-  }
-  return { type, props, key: null };
+  return {
+    type,
+    props: children.length > 0 ? { ...props, children } : props,
+    key: null,
+    // fast check nhttp jsx
+    __n__: true,
+  } as JSXNode;
 }
 n.Fragment = Fragment;
 export { n as h };

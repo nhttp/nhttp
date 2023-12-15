@@ -1,11 +1,11 @@
 import type { TRet } from "../deps";
-import { type HTMLAttributes, type JSXProps } from "./index";
+import { type JSXProps, type NJSX } from "./index";
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];
     attr: {
-        body: HTMLAttributes;
-        html: HTMLAttributes;
+        body: NJSX.HTMLAttributes;
+        html: NJSX.HTMLAttributes;
     };
     body?: JSX.Element;
 };
@@ -44,8 +44,8 @@ type FCHelmet = ((props: JSXProps<{
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
-    writeHtmlAttr?: () => HTMLAttributes;
-    writeBodyAttr?: () => HTMLAttributes;
+    writeHtmlAttr?: () => NJSX.HTMLAttributes;
+    writeBodyAttr?: () => NJSX.HTMLAttributes;
 };
 /**
  * Simple SSR Helmet for SEO

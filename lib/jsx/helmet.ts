@@ -1,16 +1,12 @@
 import type { TRet } from "../deps.ts";
-import {
-  type HTMLAttributes,
-  type JSXElement,
-  type JSXProps,
-} from "./index.ts";
+import { type JSXElement, type JSXProps, type NJSX } from "./index.ts";
 
 export type HelmetRewind = {
   head: JSX.Element[];
   footer: JSX.Element[];
   attr: {
-    body: HTMLAttributes;
-    html: HTMLAttributes;
+    body: NJSX.HTMLAttributes;
+    html: NJSX.HTMLAttributes;
   };
   body?: JSX.Element;
 };
@@ -71,8 +67,8 @@ type FCHelmet =
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
-    writeHtmlAttr?: () => HTMLAttributes;
-    writeBodyAttr?: () => HTMLAttributes;
+    writeHtmlAttr?: () => NJSX.HTMLAttributes;
+    writeBodyAttr?: () => NJSX.HTMLAttributes;
   };
 /**
  * Simple SSR Helmet for SEO
@@ -97,9 +93,9 @@ export const Helmet: FCHelmet = ({ children, footer }) => {
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     if (child.type === "html") {
-      Helmet.writeHtmlAttr = () => (child.props ?? {}) as HTMLAttributes;
+      Helmet.writeHtmlAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
     } else if (child.type === "body") {
-      Helmet.writeBodyAttr = () => (child.props ?? {}) as HTMLAttributes;
+      Helmet.writeBodyAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
     } else elements.push(child);
   }
   if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));

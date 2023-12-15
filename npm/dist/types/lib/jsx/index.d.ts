@@ -1,4 +1,19 @@
-import type { HTMLAttributes, IntrinsicElements as IElement } from "./types";
+import type { TRet } from "../deps";
+import type { NJSX } from "./types";
+declare global {
+    namespace JSX {
+        type Element = JSXElement | Promise<JSXElement>;
+        interface IntrinsicElements extends NJSX.IntrinsicElements {
+            [k: string]: {
+                children?: JSXNode;
+                [k: string]: TRet;
+            };
+        }
+        interface ElementChildrenAttribute {
+            children: EObject;
+        }
+    }
+}
 export * from "./render";
 export * from "./helmet";
 export * from "./hook";
@@ -12,20 +27,6 @@ export type JSXProps<P = EObject> = Merge<{
 }, P>;
 export type JSXNode<T = EObject> = JSXNode<T>[] | JSXElement<T> | Promise<JSXElement<T>> | string | number | boolean | null | undefined;
 export declare const dangerHTML = "dangerouslySetInnerHTML";
-declare global {
-    namespace JSX {
-        type Element = JSXElement | Promise<JSXElement>;
-        interface IntrinsicElements extends IElement {
-            [k: string]: {
-                children?: JSXNode;
-                [k: string]: any;
-            };
-        }
-        interface ElementChildrenAttribute {
-            children: EObject;
-        }
-    }
-}
 export type JSXElement<T = EObject> = {
     type: string | FC<T>;
     props: T | null | undefined;
@@ -47,7 +48,7 @@ export type FC<T = EObject> = (props: JSXProps<T>) => JSXElement | Promise<JSXEl
  * }
  */
 export declare const Fragment: FC;
-export declare function n(type: string, props?: HTMLAttributes | null, ...children: JSXNode[]): JSXElement;
+export declare function n(type: string, props?: NJSX.HTMLAttributes | null, ...children: JSXNode[]): JSXElement;
 export declare function n<T = EObject>(type: FC<T>, props?: T | null, ...children: JSXNode[]): JSXElement | null;
 export declare namespace n {
     var Fragment: FC<EObject>;

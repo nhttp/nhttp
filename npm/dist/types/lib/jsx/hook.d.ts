@@ -1,5 +1,5 @@
 import { type HttpResponse, type RequestEvent, type TObject, type TRet } from "../deps";
-import { type CSSProperties, type EObject, type FC, type JSXElement, type JSXProps, type ScriptHTMLAttributes } from "./index";
+import { type EObject, type FC, type JSXElement, type JSXProps, type NJSX } from "./index";
 type TValue = string | number | TRet;
 type TContext = {
     Provider: (props: JSXProps<{
@@ -106,7 +106,7 @@ export declare const useBody: <T = TObject>() => T;
  */
 export declare const useResponse: () => HttpResponse;
 export declare const useRequest: () => Request;
-interface AttrScript extends ScriptHTMLAttributes {
+interface AttrScript extends NJSX.ScriptHTMLAttributes {
     /**
      * position. default to `footer`
      */
@@ -180,7 +180,7 @@ export declare function useScript<T>(js_string: string, params?: T, options?: At
  * }
  * ```
  */
-export declare function useStyle(css: Record<string, CSSProperties> | string): void;
+export declare function useStyle(css: Record<string, NJSX.CSSProperties> | string): void;
 /**
  * generate unique ID.
  */
