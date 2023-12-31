@@ -103,7 +103,7 @@ ${str}
           "cache-control",
           "public, max-age=31536000, immutable"
         );
-        return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id})`;
+        return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id});`;
       });
     }
     const isWrite = options.writeToHelmet ?? true;
