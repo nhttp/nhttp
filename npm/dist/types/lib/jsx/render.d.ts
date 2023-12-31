@@ -1,4 +1,4 @@
-import type { RequestEvent, TRet } from "../deps";
+import type { RequestEvent, TObject, TRet } from "../deps";
 import { FC, JSXNode, type NJSX } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
@@ -31,10 +31,6 @@ export type TOptionsRender = {
      */
     onRenderStream: (stream: ReadableStream, rev: RequestEvent) => ReadableStream | Promise<ReadableStream>;
     /**
-     * jsx transform precompile.
-     */
-    precompile?: boolean;
-    /**
      * custom error on stream.
      * @example
      * ```tsx
@@ -54,7 +50,9 @@ export type TOptionsRender = {
      * use hook. default to `true`.
      */
     useHook: boolean;
+    initHead: string;
 };
+export declare const internal: TObject;
 export declare const options: TOptionsRender;
 export declare const mutateAttr: Record<string, string>;
 export declare function writeHtml(body: string, write: (data: string) => void): Promise<void>;

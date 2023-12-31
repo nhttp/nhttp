@@ -15,28 +15,26 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var twind_exports = {};
-__export(twind_exports, {
-  default: () => twind_default,
-  twind: () => twind,
-  useTwind: () => useTwind
+var htmx_exports = {};
+__export(htmx_exports, {
+  htmx: () => htmx,
+  useHtmx: () => useHtmx
 });
-module.exports = __toCommonJS(twind_exports);
+module.exports = __toCommonJS(htmx_exports);
 var import_render = require("./render");
-const useTwind = (opts = {}) => {
-  if (import_render.internal.twind)
+const useHtmx = (opts = {}) => {
+  if (import_render.internal.htmx)
     return;
-  import_render.internal.twind = true;
-  opts.src ??= "//cdn.twind.style";
-  import_render.options.initHead += `<script src="${opts.src}" crossorigin></script>`;
+  import_render.internal.htmx = true;
+  opts.src ??= "//unpkg.com/htmx.org";
+  import_render.options.initHead += `<script src="${opts.src}"></script>`;
 };
-const twind = (opts = {}) => {
-  useTwind(opts);
+const htmx = (opts = {}) => {
+  useHtmx(opts);
   return void 0;
 };
-var twind_default = useTwind;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  twind,
-  useTwind
+  htmx,
+  useHtmx
 });

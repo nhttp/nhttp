@@ -200,8 +200,8 @@ export class NHttp<
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
-            rev[s_init].headers["content-type"] ??= HTML_TYPE;
             const res = await render(body, rev);
+            rev[s_init].headers["content-type"] ??= HTML_TYPE;
             rev[s_response] = new Response(res, rev[s_init]);
           } else {
             await send(body, lose);

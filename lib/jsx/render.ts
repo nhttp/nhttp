@@ -1,4 +1,4 @@
-import type { RequestEvent, TRet } from "../deps.ts";
+import type { RequestEvent, TObject, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import {
   dangerHTML,
@@ -51,10 +51,6 @@ export type TOptionsRender = {
     rev: RequestEvent,
   ) => ReadableStream | Promise<ReadableStream>;
   /**
-   * jsx transform precompile.
-   */
-  precompile?: boolean;
-  /**
    * custom error on stream.
    * @example
    * ```tsx
@@ -72,12 +68,15 @@ export type TOptionsRender = {
    * use hook. default to `true`.
    */
   useHook: boolean;
+  initHead: string;
 };
+export const internal = {} as TObject;
 export const options: TOptionsRender = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
   onRenderStream: (stream) => stream,
   useHook: true,
+  initHead: "",
 };
 const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   area: true,
@@ -134,7 +133,7 @@ export async function writeHtml(body: string, write: (data: string) => void) {
     }><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
   );
   if (head.length > 0) write(await renderToString(head));
-  write(`</head><body${toAttr(attr.body)}>${body}`);
+  write(`${options.initHead}</head><body${toAttr(attr.body)}>${body}`);
   if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
@@ -160,7 +159,7 @@ export type RenderHTML = ((...args: TRet) => TRet) & {
 const REG_HTML = /["'&<>]/;
 export function escapeHtml(str: string, force?: boolean) {
   // optimize
-  return (options.precompile && !force) || !REG_HTML.test(str) ? str : (() => {
+  return (internal.precompile && !force) || !REG_HTML.test(str) ? str : (() => {
     let esc = "", i = 0, l = 0, html = "";
     for (; i < str.length; i++) {
       switch (str.charCodeAt(i)) {
@@ -238,7 +237,6 @@ export async function renderToString(elem: TRet): Promise<string> {
     props?.["children"],
   )}</${type}>`;
 }
-
 /**
  * render to html in `app.engine`.
  * @example
@@ -257,6 +255,10 @@ export const renderToHtml: RenderHTML = async (elem, rev) => {
     elem = RequestEventContext({ rev, children: elem });
   }
   const body = await options.onRenderElement(elem, rev);
+  if (internal.htmx !== void 0 && rev.request.headers.has("HX-Request")) {
+    Helmet.reset();
+    return body;
+  }
   let html = "";
   await writeHtml(body, (s: string) => (html += s));
   return await options.onRenderHtml(html, rev);
@@ -276,6 +278,10 @@ const encoder = new TextEncoder();
  * ```
  */
 export const renderToReadableStream: RenderHTML = async (elem, rev) => {
+  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
+    Helmet.reset();
+    return await options.onRenderElement(elem, rev);
+  }
   const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {

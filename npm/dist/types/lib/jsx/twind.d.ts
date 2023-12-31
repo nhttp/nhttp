@@ -1,10 +1,8 @@
-import { type TwindConfig, TwindUserConfig } from "@twind/core";
-/**
- * Core install twind.
- * @example
- * install(config);
- */
-export declare const install: (config?: TwindConfig | TwindUserConfig, isProduction?: boolean) => any;
+import { Handler, TRet } from "../deps";
+type Options = {
+    src?: string;
+    [k: string]: TRet;
+};
 /**
  * useTwind.
  * @example
@@ -15,5 +13,16 @@ export declare const install: (config?: TwindConfig | TwindUserConfig, isProduct
  *
  * app.engine(renderToHtml);
  */
-export declare const useTwind: (opts?: InlineOptions) => void;
+export declare const useTwind: (opts?: Options) => void;
+/**
+ * twind.
+ * @example
+ *
+ * const app = nhttp();
+ *
+ * app.engine(renderToHtml);
+ *
+ * app.use(twind());
+ */
+export declare const twind: (opts?: Options) => Handler;
 export default useTwind;

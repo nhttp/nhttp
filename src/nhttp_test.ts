@@ -203,9 +203,15 @@ Deno.test("nhttp", async (t) => {
       return next();
     });
     app.get("/name", ({ name }) => name);
+    app.use("/data", (rev, next) => {
+      rev.name = "john";
+      return next();
+    });
+    app.use("/data", ({ name }) => name);
     await superdeno(app.handle).get("/assets/hello/doe/john").expect("5");
     await superdeno(app.handle).get("/hello").expect("hello");
     await superdeno(app.handle).get("/name").expect("john");
+    await superdeno(app.handle).get("/data").expect("john");
   });
   await t.step("assets", async () => {
     const app = nhttp();

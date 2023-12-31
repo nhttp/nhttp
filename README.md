@@ -12,7 +12,7 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
    <a href="https://codecov.io/gh/nhttp/nhttp"><img src="https://codecov.io/gh/nhttp/nhttp/branch/master/graph/badge.svg?token=SJ2NZQ0ZJG" alt="coverage" /></a>
    <a href="https://www.codefactor.io/repository/github/nhttp/nhttp/overview/master"><img src="https://www.codefactor.io/repository/github/nhttp/nhttp/badge/master" alt="codefactor" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp%2Fmod.ts" alt="denoland" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp@1.3.17%2Fmod.ts" alt="deps" /></a>
+   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp@1.3.18%2Fmod.ts" alt="deps" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/minzip/nhttp-land" alt="size" /></a>
    <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/min/nhttp-land" alt="size" /></a>
    <a href="http://badges.mit-license.org"><img src="https://img.shields.io/:license-mit-blue.svg" alt="licence" /></a>
@@ -101,16 +101,48 @@ app.get("/cat", () => {
   return { name: "cat" };
 });
 
-app.listen(8000, (err, info) => {
-  if (err) throw err;
-  console.log(`> Running on port ${info.port}`);
-});
+app.listen(8000);
 ```
 
-## Run
+### Run
 
 ```bash
 deno run -A app.ts
+```
+
+## Using JSX + Htmx
+
+Create file `app.tsx` and copy-paste this code.
+
+```jsx
+import nhttp from "https://deno.land/x/nhttp/mod.ts";
+import { htmx, renderToHtml } from "https://deno.land/x/nhttp/lib/jsx.ts";
+
+const app = nhttp();
+
+app.engine(renderToHtml);
+
+app.use(htmx());
+
+app.get("/", () => {
+  return (
+    <button hx-post="/clicked" hx-swap="outerHTML">
+      Click Me
+    </button>
+  );
+});
+
+app.post("/clicked", () => {
+  return <span>It's Me</span>;
+});
+
+app.listen(8000);
+```
+
+### Run
+
+```bash
+deno run -A app.tsx
 ```
 
 more docs => https://nhttp.deno.dev

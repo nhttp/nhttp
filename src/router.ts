@@ -16,7 +16,7 @@ import {
   pushRoutes,
   toPathx,
 } from "./utils.ts";
-
+const isArray = Array.isArray;
 export function findParams(el: TObject, url: string) {
   const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
@@ -120,12 +120,18 @@ export default class Router<
     if (str !== "" && str !== "*" && str !== "/*") {
       const { path, ori } = mutatePath(this.base, str);
       const { pattern, wild, path: _path } = toPathx(path, true);
-      (this.pmidds ??= []).push({
-        pattern,
-        wild,
-        path: _path,
-        fns: middAssets(ori).concat(findFns(args)),
-      });
+      this.pmidds ??= [];
+      const idx = this.pmidds.findIndex((el) => el.path === _path);
+      if (idx === -1) {
+        this.pmidds.push({
+          pattern,
+          wild,
+          path: _path,
+          fns: middAssets(ori).concat(findFns(args)),
+        });
+      } else {
+        this.pmidds[idx].fns = this.pmidds[idx].fns.concat(findFns(args));
+      }
       if ((this as TRet)["handle"]) {
         addGlobRoute(_path, { path, pattern, wild });
       }
@@ -271,7 +277,7 @@ export default class Router<
     notFound: (rev: Rev, next: NextFunction) => TRet,
   ): Handler<Rev>[] {
     const fns = this.route[method + path];
-    if (fns !== void 0) return fns.pop ? fns : [fns];
+    if (fns !== void 0) return isArray(fns) ? fns : [fns];
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r !== void 0) {
       setParam(findParams(r, path));
@@ -279,10 +285,10 @@ export default class Router<
       if (r.path !== "*" && r.path !== "/*") return r.fns;
     }
     if (this.pmidds !== void 0) {
-      const a = this.pmidds.find((el) => el.pattern.test(path));
-      if (a !== void 0) {
-        setParam(findParams(a, path));
-        return this.midds.concat(a.fns, [notFound]);
+      const r = this.pmidds.find((el) => el.pattern.test(path));
+      if (r !== void 0) {
+        setParam(findParams(r, path));
+        return this.midds.concat(r.fns, [notFound]);
       }
     }
     if (r !== void 0) return r.fns;

@@ -19,3 +19,4 @@ eggs-debug.log
 *.lcov
 cov_profile
 .eslintrc.json
+/scripts/dnt.ts
