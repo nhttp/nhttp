@@ -115,8 +115,11 @@ deno run -A app.ts
 Create file `app.tsx` and copy-paste this code.
 
 ```jsx
+/** @jsx n */
+/** @jsxFrag n.Fragment */
+
 import nhttp from "https://deno.land/x/nhttp/mod.ts";
-import { htmx, renderToHtml } from "https://deno.land/x/nhttp/lib/jsx.ts";
+import { htmx, n, renderToHtml } from "https://deno.land/x/nhttp/lib/jsx.ts";
 
 const app = nhttp();
 
