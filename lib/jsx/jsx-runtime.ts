@@ -1,13 +1,11 @@
 import {
-  escapeHtml,
   Fragment,
   type JSXElement,
   type JSXNode,
   n,
   type NJSX,
-  options,
-  toStyle,
 } from "./index.ts";
+import { escapeHtml, internal, toStyle } from "./render.ts";
 
 type CreateElement = (
   type: string,
@@ -33,7 +31,7 @@ export const jsxTemplate = (
   tpl: TemplateStringsArray,
   ...subs: JSXNode[]
 ) => {
-  options.precompile ??= true;
+  internal.precompile ??= true;
   const ret = [];
   for (let i = 0; i < tpl.length; i++) {
     ret.push(tpl[i]);

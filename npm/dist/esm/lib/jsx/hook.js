@@ -39,6 +39,7 @@ const useQuery = () => useRequestEvent()?.query;
 const useBody = () => useRequestEvent()?.body;
 const useResponse = () => useRequestEvent()?.response;
 const useRequest = () => useRequestEvent()?.request;
+const cst = {};
 function useScript(fn, params, options = {}) {
   const rev = useRequestEvent();
   if (rev !== void 0) {
@@ -52,11 +53,12 @@ function useScript(fn, params, options = {}) {
     }
     const i = hook.js_i;
     const app = rev.__app();
-    const path = `/__JS__/${now}${i}.js`;
+    const id = `${now}${i}`;
+    const path = `/__JS__/${id}.js`;
     hook.js_i--;
     const inline = options.inline;
     const toScript = () => {
-      const src = `(${js_string})(${JSON.stringify(params ?? null)});`;
+      const src = `(${js_string})`;
       const arr = src.split(/\n/);
       return arr.map(
         (str) => str.includes("//") || str.includes("*") ? `
@@ -64,14 +66,15 @@ ${str}
 ` : str.replace(/\s\s+/g, " ")
       ).join("");
     };
-    if (app.route.GET?.[path] === void 0 && !inline) {
+    if (cst[path] === void 0 && !inline) {
+      cst[path] = true;
       app.get(`${path}`, ({ response }) => {
         response.type("js");
         response.setHeader(
           "cache-control",
           "public, max-age=31536000, immutable"
         );
-        return toScript();
+        return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id})`;
       });
     }
     const isWrite = options.writeToHelmet ?? true;
@@ -81,23 +84,31 @@ ${str}
     options.type ??= "application/javascript";
     const last = Helmet[pos]?.() ?? [];
     const out = {};
+    const init = params !== void 0 ? n("script", {
+      dangerouslySetInnerHTML: {
+        __html: `window.__INIT_${id}=${JSON.stringify(params)}`
+      }
+    }) : void 0;
     if (inline) {
       out.source = toScript();
       if (isWrite) {
         Helmet[pos] = () => [
           ...last,
+          init,
           n("script", {
             ...options,
             dangerouslySetInnerHTML: {
               __html: out.source
             }
           })
-        ];
+        ].filter(Boolean);
       }
     } else {
       options.src = path;
       if (isWrite) {
-        Helmet[pos] = () => [...last, n("script", options)];
+        Helmet[pos] = () => [...last, init, n("script", options)].filter(
+          Boolean
+        );
         out.path = path;
       }
     }

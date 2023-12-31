@@ -1,6 +1,6 @@
 // npm/src/src/constant.ts
 var JSON_TYPE = "application/json";
-var HTML_TYPE = "text/html; charset=utf-8";
+var HTML_TYPE = "text/html; charset=UTF-8";
 var C_TYPE = "content-type";
 var STATUS_ERROR_LIST = {
   400: "Bad Request",
@@ -411,6 +411,7 @@ var defError = (err, rev, stack) => {
 };
 
 // npm/src/src/router.ts
+var isArray = Array.isArray;
 function findParams(el, url) {
   const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
@@ -503,12 +504,18 @@ var Router = class {
     if (str !== "" && str !== "*" && str !== "/*") {
       const { path, ori } = mutatePath(this.base, str);
       const { pattern, wild, path: _path } = toPathx(path, true);
-      (this.pmidds ??= []).push({
-        pattern,
-        wild,
-        path: _path,
-        fns: middAssets(ori).concat(findFns(args))
-      });
+      this.pmidds ??= [];
+      const idx = this.pmidds.findIndex((el) => el.path === _path);
+      if (idx === -1) {
+        this.pmidds.push({
+          pattern,
+          wild,
+          path: _path,
+          fns: middAssets(ori).concat(findFns(args))
+        });
+      } else {
+        this.pmidds[idx].fns = this.pmidds[idx].fns.concat(findFns(args));
+      }
       if (this["handle"]) {
         addGlobRoute(_path, { path, pattern, wild });
       }
@@ -618,7 +625,7 @@ var Router = class {
   find(method, path, setParam, notFound) {
     const fns = this.route[method + path];
     if (fns !== void 0)
-      return fns.pop ? fns : [fns];
+      return isArray(fns) ? fns : [fns];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r !== void 0) {
       setParam(findParams(r, path));
@@ -628,10 +635,10 @@ var Router = class {
         return r.fns;
     }
     if (this.pmidds !== void 0) {
-      const a = this.pmidds.find((el) => el.pattern.test(path));
-      if (a !== void 0) {
-        setParam(findParams(a, path));
-        return this.midds.concat(a.fns, [notFound]);
+      const r2 = this.pmidds.find((el) => el.pattern.test(path));
+      if (r2 !== void 0) {
+        setParam(findParams(r2, path));
+        return this.midds.concat(r2.fns, [notFound]);
       }
     }
     if (r !== void 0)
@@ -1845,8 +1852,8 @@ var NHttp = class extends Router {
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
-            rev[s_init].headers["content-type"] ??= HTML_TYPE;
             const res = await render(body, rev);
+            rev[s_init].headers["content-type"] ??= HTML_TYPE;
             rev[s_response] = new Response(res, rev[s_init]);
           } else {
             await send(body, lose);

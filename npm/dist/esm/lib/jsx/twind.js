@@ -1,31 +1,18 @@
-import {
-  inline,
-  install as installOri
-} from "@twind/core";
-import TwindStream from "@twind/with-react/readableStream";
-import presetAutoprefix from "@twind/preset-autoprefix";
-import presetTailwind from "@twind/preset-tailwind";
-import { options } from "./render.js";
-const install = (config = {}, isProduction) => {
-  return installOri({
-    presets: [presetAutoprefix(), presetTailwind()],
-    ...config
-  }, isProduction);
+import { internal, options } from "./render.js";
+const useTwind = (opts = {}) => {
+  if (internal.twind)
+    return;
+  internal.twind = true;
+  opts.src ??= "//cdn.twind.style";
+  options.initHead += `<script src="${opts.src}" crossorigin></script>`;
 };
-install();
-const useTwind = (opts) => {
-  const writeHtml = options.onRenderHtml;
-  const writeStream = options.onRenderStream;
-  options.onRenderHtml = (html, rev) => {
-    return writeHtml(inline(html, opts), rev);
-  };
-  options.onRenderStream = (stream, rev) => {
-    return writeStream(stream.pipeThrough(new TwindStream(opts)), rev);
-  };
+const twind = (opts = {}) => {
+  useTwind(opts);
+  return void 0;
 };
 var twind_default = useTwind;
 export {
   twind_default as default,
-  install,
+  twind,
   useTwind
 };

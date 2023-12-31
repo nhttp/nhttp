@@ -28,6 +28,7 @@ __export(jsx_runtime_exports, {
 });
 module.exports = __toCommonJS(jsx_runtime_exports);
 var import_index = require("./index");
+var import_render = require("./render");
 const isArray = Array.isArray;
 const createElement = (type, props) => {
   if (props?.children == null)
@@ -39,7 +40,7 @@ const createElement = (type, props) => {
   return (0, import_index.n)(type, props, childs);
 };
 const jsxTemplate = (tpl, ...subs) => {
-  import_index.options.precompile ??= true;
+  import_render.internal.precompile ??= true;
   const ret = [];
   for (let i = 0; i < tpl.length; i++) {
     ret.push(tpl[i]);
@@ -53,13 +54,13 @@ const jsxEscape = (v) => {
 };
 const jsxAttr = (k, v) => {
   if (k === "style" && typeof v === "object") {
-    return `${k}="${(0, import_index.toStyle)(v)}"`;
+    return `${k}="${(0, import_render.toStyle)(v)}"`;
   }
   if (v == null || v === false || typeof v === "function" || typeof v === "object") {
     return "";
   } else if (v === true)
     return k;
-  return `${k}="${(0, import_index.escapeHtml)(v, true)}"`;
+  return `${k}="${(0, import_render.escapeHtml)(v, true)}"`;
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

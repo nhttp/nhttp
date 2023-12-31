@@ -1,10 +1,8 @@
 import {
-  escapeHtml,
   Fragment,
-  n,
-  options,
-  toStyle
+  n
 } from "./index.js";
+import { escapeHtml, internal, toStyle } from "./render.js";
 const isArray = Array.isArray;
 const createElement = (type, props) => {
   if (props?.children == null)
@@ -16,7 +14,7 @@ const createElement = (type, props) => {
   return n(type, props, childs);
 };
 const jsxTemplate = (tpl, ...subs) => {
-  options.precompile ??= true;
+  internal.precompile ??= true;
   const ret = [];
   for (let i = 0; i < tpl.length; i++) {
     ret.push(tpl[i]);

@@ -38,7 +38,17 @@ const Helmet = ({ children, footer }) => {
     Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
   else
     Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
+  Helmet.hasHeader ??= true;
   return null;
+};
+Helmet.reset = () => {
+  if (Helmet.hasHeader !== void 0) {
+    Helmet.writeHeadTag = void 0;
+    Helmet.writeFooterTag = void 0;
+    Helmet.writeHtmlAttr = void 0;
+    Helmet.writeBodyAttr = void 0;
+    Helmet.hasHeader = void 0;
+  }
 };
 Helmet.rewind = (elem) => {
   const data = {
@@ -55,10 +65,7 @@ Helmet.rewind = (elem) => {
     data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr)
     data.attr.body = Helmet.writeBodyAttr();
-  Helmet.writeHeadTag = void 0;
-  Helmet.writeFooterTag = void 0;
-  Helmet.writeHtmlAttr = void 0;
-  Helmet.writeBodyAttr = void 0;
+  Helmet.reset();
   return data;
 };
 Helmet.render = () => "";

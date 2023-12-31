@@ -19,6 +19,7 @@ var render_exports = {};
 __export(render_exports, {
   Suspense: () => Suspense,
   escapeHtml: () => escapeHtml,
+  internal: () => internal,
   isValidElement: () => import_is_valid_element.isValidElement,
   mutateAttr: () => mutateAttr,
   options: () => options,
@@ -36,11 +37,13 @@ const sus = {
   i: 0,
   arr: []
 };
+const internal = {};
 const options = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
   onRenderStream: (stream) => stream,
-  useHook: true
+  useHook: true,
+  initHead: ""
 };
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
@@ -91,7 +94,7 @@ async function writeHtml(body, write) {
   );
   if (head.length > 0)
     write(await renderToString(head));
-  write(`</head><body${toAttr(attr.body)}>${body}`);
+  write(`${options.initHead}</head><body${toAttr(attr.body)}>${body}`);
   if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
@@ -112,7 +115,7 @@ async function writeHtml(body, write) {
 }
 const REG_HTML = /["'&<>]/;
 function escapeHtml(str, force) {
-  return options.precompile && !force || !REG_HTML.test(str) ? str : (() => {
+  return internal.precompile && !force || !REG_HTML.test(str) ? str : (() => {
     let esc = "", i = 0, l = 0, html = "";
     for (; i < str.length; i++) {
       switch (str.charCodeAt(i)) {
@@ -188,12 +191,20 @@ const renderToHtml = async (elem, rev) => {
     elem = (0, import_index.RequestEventContext)({ rev, children: elem });
   }
   const body = await options.onRenderElement(elem, rev);
+  if (internal.htmx !== void 0 && rev.request.headers.has("HX-Request")) {
+    import_helmet.Helmet.reset();
+    return body;
+  }
   let html = "";
   await writeHtml(body, (s) => html += s);
   return await options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
 const renderToReadableStream = async (elem, rev) => {
+  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
+    import_helmet.Helmet.reset();
+    return await options.onRenderElement(elem, rev);
+  }
   const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
@@ -243,6 +254,7 @@ const Suspense = (props) => {
 0 && (module.exports = {
   Suspense,
   escapeHtml,
+  internal,
   isValidElement,
   mutateAttr,
   options,

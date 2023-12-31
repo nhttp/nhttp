@@ -14,10 +14,11 @@ declare global {
         }
     }
 }
-export * from "./render";
-export * from "./helmet";
+export { escapeHtml, isValidElement, options, type RenderHTML, renderToHtml, renderToReadableStream, renderToString, Suspense, type TOptionsRender, toStyle, } from "./render";
+export { Helmet, type HelmetRewind } from "./helmet";
 export * from "./hook";
 export * from "./types";
+export * from "./htmx";
 export type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));
@@ -39,7 +40,7 @@ export type JSXElement<T = EObject> = {
  *   return <h1>{props.title}</h1>
  * }
  */
-export type FC<T = EObject> = (props: JSXProps<T>) => JSXElement | Promise<JSXElement> | null;
+export type FC<T = EObject> = (props: JSXProps<T>) => TRet;
 /**
  * Fragment.
  * @example

@@ -2,11 +2,10 @@ import type { TRet } from "../deps.ts";
 import type { NJSX } from "./types.ts";
 declare global {
   namespace JSX {
-    // @ts-ignore: elem
+    // @ts-ignore: Element
     type Element = JSXElement | Promise<JSXElement>;
     // @ts-ignore: IntrinsicElements
     interface IntrinsicElements extends NJSX.IntrinsicElements {
-      // @ts-ignore: IntrinsicElements
       [k: string]: {
         children?: JSXNode;
         [k: string]: TRet;
@@ -18,10 +17,22 @@ declare global {
   }
 }
 import { Helmet } from "./helmet.ts";
-export * from "./render.ts";
-export * from "./helmet.ts";
+export {
+  escapeHtml,
+  isValidElement,
+  options,
+  type RenderHTML,
+  renderToHtml,
+  renderToReadableStream,
+  renderToString,
+  Suspense,
+  type TOptionsRender,
+  toStyle,
+} from "./render.ts";
+export { Helmet, type HelmetRewind } from "./helmet.ts";
 export * from "./hook.ts";
 export * from "./types.ts";
+export * from "./htmx.ts";
 // deno-lint-ignore ban-types
 export type EObject = {};
 type Merge<A, B> = {
@@ -59,7 +70,7 @@ export type JSXElement<T = EObject> = {
  */
 export type FC<T = EObject> = (
   props: JSXProps<T>,
-) => JSXElement | Promise<JSXElement> | null;
+) => TRet;
 
 /**
  * Fragment.
