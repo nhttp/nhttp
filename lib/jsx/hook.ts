@@ -257,7 +257,7 @@ export function useScript<T>(
           "public, max-age=31536000, immutable",
         );
         return ((cst[path + "_sc"] as string) ??= toScript()) +
-          `(window.__INIT_${id})`;
+          `(window.__INIT_${id});`;
       });
     }
     const isWrite = options.writeToHelmet ?? true;
