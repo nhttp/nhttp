@@ -1,9 +1,7 @@
-import { internal, options } from "./render.ts";
-import { Handler, TRet } from "../deps.ts";
-type Options = {
-  src?: string;
-  [k: string]: TRet;
-};
+import type { NJSX } from "./types.ts";
+import type { Handler } from "../deps.ts";
+import { createHookLib } from "./hook.ts";
+import { internal } from "./render.ts";
 /**
  * useTwind.
  * @example
@@ -15,12 +13,12 @@ type Options = {
  * app.engine(renderToHtml);
  */
 export const useTwind = (
-  opts: Options = {},
+  opts: NJSX.ScriptHTMLAttributes = {},
 ) => {
   if (internal.twind) return;
   internal.twind = true;
   opts.src ??= "//cdn.twind.style";
-  options.initHead += `<script src="${opts.src}" crossorigin></script>`;
+  createHookLib(opts);
 };
 /**
  * twind.
@@ -32,9 +30,12 @@ export const useTwind = (
  *
  * app.use(twind());
  */
-export const twind = (opts: Options = {}): Handler => {
-  useTwind(opts);
-  return void 0 as TRet;
+export const twind = (opts: NJSX.ScriptHTMLAttributes = {}): Handler => {
+  return (rev, next) => {
+    opts.src ??= "//cdn.twind.style";
+    createHookLib(opts, rev);
+    return next();
+  };
 };
 
 export default useTwind;

@@ -7,8 +7,8 @@ import {
 import TwindStream from "https://esm.sh/v132/@twind/with-react@1.1.3/readableStream";
 import presetAutoprefix from "https://esm.sh/v132/@twind/preset-autoprefix@1.0.7";
 import presetTailwind from "https://esm.sh/v132/@twind/preset-tailwind@1.1.4";
-import { internal, options } from "./render.ts";
-import { Handler, TRet } from "../deps.ts";
+import { options } from "./render.ts";
+import type { Handler } from "../deps.ts";
 
 /**
  * Core install twind.
@@ -39,12 +39,11 @@ install();
 export const useTwindStream = (
   opts?: InlineOptions,
 ) => {
-  if (internal.twindStream) return;
-  internal.twindStream = true;
   const writeStream = options.onRenderStream;
   options.onRenderStream = (stream, rev) => {
     return writeStream(stream.pipeThrough(new TwindStream(opts)), rev);
   };
+  return writeStream;
 };
 
 /**
@@ -58,8 +57,11 @@ export const useTwindStream = (
  * app.use(twindStream());
  */
 export const twindStream = (opts?: InlineOptions): Handler => {
-  useTwindStream(opts);
-  return void 0 as TRet;
+  return async (_rev, next) => {
+    const last = useTwindStream(opts);
+    await next();
+    options.onRenderStream = last;
+  };
 };
 
 export default useTwindStream;

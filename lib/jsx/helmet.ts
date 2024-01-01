@@ -69,9 +69,10 @@ type FCHelmet =
     writeFooterTag?: () => JSX.Element[];
     writeHtmlAttr?: () => NJSX.HTMLAttributes;
     writeBodyAttr?: () => NJSX.HTMLAttributes;
-    hasHeader?: boolean;
     reset: () => void;
   };
+
+const isArray = Array.isArray;
 /**
  * Simple SSR Helmet for SEO
  * @example
@@ -88,9 +89,9 @@ type FCHelmet =
  */
 export const Helmet: FCHelmet = ({ children, footer }) => {
   if (children == null) return null;
-  if (!Array.isArray(children)) children = [children];
-  const heads = Helmet.writeHeadTag ? Helmet.writeHeadTag() : [];
-  const bodys = Helmet.writeFooterTag ? Helmet.writeFooterTag() : [];
+  if (!isArray(children)) children = [children];
+  const heads = Helmet.writeHeadTag?.() ?? [];
+  const bodys = Helmet.writeFooterTag?.() ?? [];
   const elements: JSX.Element[] = [];
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
@@ -102,17 +103,13 @@ export const Helmet: FCHelmet = ({ children, footer }) => {
   }
   if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
   else Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
-  Helmet.hasHeader ??= true;
   return null;
 };
 Helmet.reset = () => {
-  if (Helmet.hasHeader !== void 0) {
-    Helmet.writeHeadTag = void 0;
-    Helmet.writeFooterTag = void 0;
-    Helmet.writeHtmlAttr = void 0;
-    Helmet.writeBodyAttr = void 0;
-    Helmet.hasHeader = void 0;
-  }
+  Helmet.writeHeadTag = void 0;
+  Helmet.writeFooterTag = void 0;
+  Helmet.writeHtmlAttr = void 0;
+  Helmet.writeBodyAttr = void 0;
 };
 Helmet.rewind = (elem) => {
   const data = {

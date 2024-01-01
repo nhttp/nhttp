@@ -13,8 +13,10 @@ import {
   type JSXProps,
   n,
   type NJSX,
+  options,
   toStyle,
 } from "./index.ts";
+import { toAttr } from "./render.ts";
 
 const now = Date.now();
 type TValue = string | number | TRet;
@@ -344,3 +346,17 @@ export function useStyle(css: Record<string, NJSX.CSSProperties> | string) {
  * generate unique ID.
  */
 export const useId = () => `:${hook.id--}`;
+
+export const createHookLib = (
+  opts: NJSX.ScriptHTMLAttributes = {},
+  rev?: RequestEvent,
+) => {
+  const script = `<script${toAttr(opts)}></script>`;
+  if (rev !== void 0) {
+    rev.__init_head ??= "";
+    rev.__init_head += script;
+    return;
+  }
+  options.initHead ??= "";
+  options.initHead += script;
+};

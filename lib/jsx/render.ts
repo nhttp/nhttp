@@ -68,7 +68,7 @@ export type TOptionsRender = {
    * use hook. default to `true`.
    */
   useHook: boolean;
-  initHead: string;
+  initHead?: string;
 };
 export const internal = {} as TObject;
 export const options: TOptionsRender = {
@@ -76,7 +76,6 @@ export const options: TOptionsRender = {
   onRenderElement: renderToString,
   onRenderStream: (stream) => stream,
   useHook: true,
-  initHead: "",
 };
 const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   area: true,
@@ -95,13 +94,21 @@ const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   wbr: true,
 });
 const isArray = Array.isArray;
+function toInitHead(a: string | undefined, b: string | undefined) {
+  if (a !== void 0 && b !== void 0) return b + a;
+  return a || b;
+}
 export const mutateAttr: Record<string, string> = {
   acceptCharset: "accept-charset",
   httpEquiv: "http-equiv",
   htmlFor: "for",
   className: "class",
 };
-const toAttr = (props: TRet = {}) => {
+// handle alpine/vue e.g. at-click to @click
+function withAt(k: string) {
+  return k.startsWith("at-") ? "@" + k.slice(3) : k;
+}
+export const toAttr = (props: TRet = {}) => {
   let attr = "";
   for (const k in props) {
     let val = props[k];
@@ -114,7 +121,7 @@ const toAttr = (props: TRet = {}) => {
     ) {
       continue;
     }
-    const key = mutateAttr[k] ?? k.toLowerCase();
+    const key = mutateAttr[k] ?? withAt(k.toLowerCase());
     if (val === true) {
       attr += ` ${key}`;
     } else {
@@ -124,7 +131,11 @@ const toAttr = (props: TRet = {}) => {
   }
   return attr;
 };
-export async function writeHtml(body: string, write: (data: string) => void) {
+export async function writeHtml(
+  body: string,
+  write: (data: string) => void,
+  initHead?: string,
+) {
   const { footer, attr, head } = Helmet.rewind();
   write(options.docType ?? "<!DOCTYPE html>");
   write(
@@ -132,8 +143,9 @@ export async function writeHtml(body: string, write: (data: string) => void) {
       toAttr({ lang: "en", ...attr.html })
     }><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
   );
+  if (initHead !== void 0) write(initHead);
   if (head.length > 0) write(await renderToString(head));
-  write(`${options.initHead}</head><body${toAttr(attr.body)}>${body}`);
+  write(`</head><body${toAttr(attr.body)}>${body}`);
   if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
@@ -255,12 +267,16 @@ export const renderToHtml: RenderHTML = async (elem, rev) => {
     elem = RequestEventContext({ rev, children: elem });
   }
   const body = await options.onRenderElement(elem, rev);
-  if (internal.htmx !== void 0 && rev.request.headers.has("HX-Request")) {
+  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
     Helmet.reset();
     return body;
   }
   let html = "";
-  await writeHtml(body, (s: string) => (html += s));
+  await writeHtml(
+    body,
+    (s: string) => (html += s),
+    toInitHead(rev.__init_head, options.initHead),
+  );
   return await options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
@@ -282,6 +298,7 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
     Helmet.reset();
     return await options.onRenderElement(elem, rev);
   }
+  const initHead = toInitHead(rev.__init_head, options.initHead);
   const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
@@ -296,6 +313,7 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
           await writeHtml(
             body,
             (str: string) => ctrl.enqueue(encoder.encode(str)),
+            initHead,
           );
         };
         try {
