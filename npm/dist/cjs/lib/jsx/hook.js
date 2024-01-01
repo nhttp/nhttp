@@ -19,6 +19,7 @@ var hook_exports = {};
 __export(hook_exports, {
   RequestEventContext: () => RequestEventContext,
   createContext: () => createContext,
+  createHookLib: () => createHookLib,
   useBody: () => useBody,
   useContext: () => useContext,
   useId: () => useId,
@@ -32,6 +33,7 @@ __export(hook_exports, {
 });
 module.exports = __toCommonJS(hook_exports);
 var import_index = require("./index");
+var import_render = require("./render");
 const now = Date.now();
 const hook = {
   ctx_i: 0,
@@ -69,7 +71,7 @@ const useBody = () => useRequestEvent()?.body;
 const useResponse = () => useRequestEvent()?.response;
 const useRequest = () => useRequestEvent()?.request;
 const cst = {};
-function useScript(fn, params, options = {}) {
+function useScript(fn, params, options2 = {}) {
   const rev = useRequestEvent();
   if (rev !== void 0) {
     let js_string = "";
@@ -78,14 +80,14 @@ function useScript(fn, params, options = {}) {
     } else if (typeof fn === "function") {
       js_string = fn.toString();
     } else {
-      return useScript(params, fn, options);
+      return useScript(params, fn, options2);
     }
     const i = hook.js_i;
     const app = rev.__app();
     const id = `${now}${i}`;
     const path = `/__JS__/${id}.js`;
     hook.js_i--;
-    const inline = options.inline;
+    const inline = options2.inline;
     const toScript = () => {
       const src = `(${js_string})`;
       const arr = src.split(/\n/);
@@ -106,11 +108,11 @@ ${str}
         return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id});`;
       });
     }
-    const isWrite = options.writeToHelmet ?? true;
-    const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
-    options.position = void 0;
-    options.inline = void 0;
-    options.type ??= "application/javascript";
+    const isWrite = options2.writeToHelmet ?? true;
+    const pos = options2.position === "head" ? "writeHeadTag" : "writeFooterTag";
+    options2.position = void 0;
+    options2.inline = void 0;
+    options2.type ??= "application/javascript";
     const last = import_index.Helmet[pos]?.() ?? [];
     const out = {};
     const init = params !== void 0 ? (0, import_index.n)("script", {
@@ -125,7 +127,7 @@ ${str}
           ...last,
           init,
           (0, import_index.n)("script", {
-            ...options,
+            ...options2,
             dangerouslySetInnerHTML: {
               __html: out.source
             }
@@ -133,9 +135,9 @@ ${str}
         ].filter(Boolean);
       }
     } else {
-      options.src = path;
+      options2.src = path;
       if (isWrite) {
-        import_index.Helmet[pos] = () => [...last, init, (0, import_index.n)("script", options)].filter(
+        import_index.Helmet[pos] = () => [...last, init, (0, import_index.n)("script", options2)].filter(
           Boolean
         );
         out.path = path;
@@ -161,10 +163,21 @@ function useStyle(css) {
   ];
 }
 const useId = () => `:${hook.id--}`;
+const createHookLib = (opts = {}, rev) => {
+  const script = `<script${(0, import_render.toAttr)(opts)}></script>`;
+  if (rev !== void 0) {
+    rev.__init_head ??= "";
+    rev.__init_head += script;
+    return;
+  }
+  import_index.options.initHead ??= "";
+  import_index.options.initHead += script;
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   RequestEventContext,
   createContext,
+  createHookLib,
   useBody,
   useContext,
   useId,

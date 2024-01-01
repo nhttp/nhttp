@@ -185,4 +185,5 @@ export declare function useStyle(css: Record<string, NJSX.CSSProperties> | strin
  * generate unique ID.
  */
 export declare const useId: () => string;
+export declare const createHookLib: (opts?: NJSX.ScriptHTMLAttributes, rev?: RequestEvent) => void;
 export {};

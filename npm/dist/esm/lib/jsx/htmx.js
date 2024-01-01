@@ -1,14 +1,19 @@
-import { internal, options } from "./render.js";
+import { internal } from "./render.js";
+import { createHookLib } from "./hook.js";
 const useHtmx = (opts = {}) => {
   if (internal.htmx)
     return;
   internal.htmx = true;
   opts.src ??= "//unpkg.com/htmx.org";
-  options.initHead += `<script src="${opts.src}"></script>`;
+  createHookLib(opts);
 };
 const htmx = (opts = {}) => {
-  useHtmx(opts);
-  return void 0;
+  internal.htmx = true;
+  return (rev, next) => {
+    opts.src ??= "//unpkg.com/htmx.org";
+    createHookLib(opts, rev);
+    return next();
+  };
 };
 export {
   htmx,

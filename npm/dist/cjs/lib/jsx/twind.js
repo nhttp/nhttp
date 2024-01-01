@@ -22,17 +22,21 @@ __export(twind_exports, {
   useTwind: () => useTwind
 });
 module.exports = __toCommonJS(twind_exports);
+var import_hook = require("./hook");
 var import_render = require("./render");
 const useTwind = (opts = {}) => {
   if (import_render.internal.twind)
     return;
   import_render.internal.twind = true;
   opts.src ??= "//cdn.twind.style";
-  import_render.options.initHead += `<script src="${opts.src}" crossorigin></script>`;
+  (0, import_hook.createHookLib)(opts);
 };
 const twind = (opts = {}) => {
-  useTwind(opts);
-  return void 0;
+  return (rev, next) => {
+    opts.src ??= "//cdn.twind.style";
+    (0, import_hook.createHookLib)(opts, rev);
+    return next();
+  };
 };
 var twind_default = useTwind;
 // Annotate the CommonJS export names for ESM import in node:

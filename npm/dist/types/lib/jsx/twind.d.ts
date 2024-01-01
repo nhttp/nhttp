@@ -1,8 +1,5 @@
-import { Handler, TRet } from "../deps";
-type Options = {
-    src?: string;
-    [k: string]: TRet;
-};
+import type { NJSX } from "./types";
+import type { Handler } from "../deps";
 /**
  * useTwind.
  * @example
@@ -13,7 +10,7 @@ type Options = {
  *
  * app.engine(renderToHtml);
  */
-export declare const useTwind: (opts?: Options) => void;
+export declare const useTwind: (opts?: NJSX.ScriptHTMLAttributes) => void;
 /**
  * twind.
  * @example
@@ -24,5 +21,5 @@ export declare const useTwind: (opts?: Options) => void;
  *
  * app.use(twind());
  */
-export declare const twind: (opts?: Options) => Handler;
+export declare const twind: (opts?: NJSX.ScriptHTMLAttributes) => Handler;
 export default useTwind;

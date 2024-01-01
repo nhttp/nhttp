@@ -39,13 +39,14 @@ function toHelmet(elems) {
   }
   return helmet.reverse();
 }
+const isArray = Array.isArray;
 const Helmet = ({ children, footer }) => {
   if (children == null)
     return null;
-  if (!Array.isArray(children))
+  if (!isArray(children))
     children = [children];
-  const heads = Helmet.writeHeadTag ? Helmet.writeHeadTag() : [];
-  const bodys = Helmet.writeFooterTag ? Helmet.writeFooterTag() : [];
+  const heads = Helmet.writeHeadTag?.() ?? [];
+  const bodys = Helmet.writeFooterTag?.() ?? [];
   const elements = [];
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
@@ -60,17 +61,13 @@ const Helmet = ({ children, footer }) => {
     Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
   else
     Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));
-  Helmet.hasHeader ??= true;
   return null;
 };
 Helmet.reset = () => {
-  if (Helmet.hasHeader !== void 0) {
-    Helmet.writeHeadTag = void 0;
-    Helmet.writeFooterTag = void 0;
-    Helmet.writeHtmlAttr = void 0;
-    Helmet.writeBodyAttr = void 0;
-    Helmet.hasHeader = void 0;
-  }
+  Helmet.writeHeadTag = void 0;
+  Helmet.writeFooterTag = void 0;
+  Helmet.writeHtmlAttr = void 0;
+  Helmet.writeBodyAttr = void 0;
 };
 Helmet.rewind = (elem) => {
   const data = {

@@ -1,5 +1,5 @@
 import { type TwindConfig, TwindUserConfig } from "@twind/core";
-import { Handler } from "../deps";
+import type { Handler } from "../deps";
 /**
  * Core install twind.
  * @example
@@ -16,7 +16,7 @@ export declare const install: (config?: TwindConfig | TwindUserConfig, isProduct
  *
  * app.engine(renderToReadableStream);
  */
-export declare const useTwindStream: (opts?: InlineOptions) => void;
+export declare const useTwindStream: (opts?: InlineOptions) => (stream: ReadableStream<any>, rev: import("../deps").RequestEvent<import("../deps").TObject>) => ReadableStream<any> | Promise<ReadableStream<any>>;
 /**
  * twindStream.
  * @example
