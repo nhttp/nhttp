@@ -50,12 +50,13 @@ export type TOptionsRender = {
      * use hook. default to `true`.
      */
     useHook: boolean;
-    initHead: string;
+    initHead?: string;
 };
 export declare const internal: TObject;
 export declare const options: TOptionsRender;
 export declare const mutateAttr: Record<string, string>;
-export declare function writeHtml(body: string, write: (data: string) => void): Promise<void>;
+export declare const toAttr: (props?: TRet) => string;
+export declare function writeHtml(body: string, write: (data: string) => void, initHead?: string): Promise<void>;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };

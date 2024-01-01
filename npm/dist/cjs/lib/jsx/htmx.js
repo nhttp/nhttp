@@ -22,16 +22,21 @@ __export(htmx_exports, {
 });
 module.exports = __toCommonJS(htmx_exports);
 var import_render = require("./render");
+var import_hook = require("./hook");
 const useHtmx = (opts = {}) => {
   if (import_render.internal.htmx)
     return;
   import_render.internal.htmx = true;
   opts.src ??= "//unpkg.com/htmx.org";
-  import_render.options.initHead += `<script src="${opts.src}"></script>`;
+  (0, import_hook.createHookLib)(opts);
 };
 const htmx = (opts = {}) => {
-  useHtmx(opts);
-  return void 0;
+  import_render.internal.htmx = true;
+  return (rev, next) => {
+    opts.src ??= "//unpkg.com/htmx.org";
+    (0, import_hook.createHookLib)(opts, rev);
+    return next();
+  };
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

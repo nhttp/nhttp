@@ -1,8 +1,10 @@
 import {
   Helmet,
   n,
+  options,
   toStyle
 } from "./index.js";
+import { toAttr } from "./render.js";
 const now = Date.now();
 const hook = {
   ctx_i: 0,
@@ -40,7 +42,7 @@ const useBody = () => useRequestEvent()?.body;
 const useResponse = () => useRequestEvent()?.response;
 const useRequest = () => useRequestEvent()?.request;
 const cst = {};
-function useScript(fn, params, options = {}) {
+function useScript(fn, params, options2 = {}) {
   const rev = useRequestEvent();
   if (rev !== void 0) {
     let js_string = "";
@@ -49,14 +51,14 @@ function useScript(fn, params, options = {}) {
     } else if (typeof fn === "function") {
       js_string = fn.toString();
     } else {
-      return useScript(params, fn, options);
+      return useScript(params, fn, options2);
     }
     const i = hook.js_i;
     const app = rev.__app();
     const id = `${now}${i}`;
     const path = `/__JS__/${id}.js`;
     hook.js_i--;
-    const inline = options.inline;
+    const inline = options2.inline;
     const toScript = () => {
       const src = `(${js_string})`;
       const arr = src.split(/\n/);
@@ -77,11 +79,11 @@ ${str}
         return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id});`;
       });
     }
-    const isWrite = options.writeToHelmet ?? true;
-    const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
-    options.position = void 0;
-    options.inline = void 0;
-    options.type ??= "application/javascript";
+    const isWrite = options2.writeToHelmet ?? true;
+    const pos = options2.position === "head" ? "writeHeadTag" : "writeFooterTag";
+    options2.position = void 0;
+    options2.inline = void 0;
+    options2.type ??= "application/javascript";
     const last = Helmet[pos]?.() ?? [];
     const out = {};
     const init = params !== void 0 ? n("script", {
@@ -96,7 +98,7 @@ ${str}
           ...last,
           init,
           n("script", {
-            ...options,
+            ...options2,
             dangerouslySetInnerHTML: {
               __html: out.source
             }
@@ -104,9 +106,9 @@ ${str}
         ].filter(Boolean);
       }
     } else {
-      options.src = path;
+      options2.src = path;
       if (isWrite) {
-        Helmet[pos] = () => [...last, init, n("script", options)].filter(
+        Helmet[pos] = () => [...last, init, n("script", options2)].filter(
           Boolean
         );
         out.path = path;
@@ -132,9 +134,20 @@ function useStyle(css) {
   ];
 }
 const useId = () => `:${hook.id--}`;
+const createHookLib = (opts = {}, rev) => {
+  const script = `<script${toAttr(opts)}></script>`;
+  if (rev !== void 0) {
+    rev.__init_head ??= "";
+    rev.__init_head += script;
+    return;
+  }
+  options.initHead ??= "";
+  options.initHead += script;
+};
 export {
   RequestEventContext,
   createContext,
+  createHookLib,
   useBody,
   useContext,
   useId,

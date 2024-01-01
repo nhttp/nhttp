@@ -46,17 +46,18 @@ const install = (config = {}, isProduction) => {
 };
 install();
 const useTwindStream = (opts) => {
-  if (import_render.internal.twindStream)
-    return;
-  import_render.internal.twindStream = true;
   const writeStream = import_render.options.onRenderStream;
   import_render.options.onRenderStream = (stream, rev) => {
     return writeStream(stream.pipeThrough(new import_readableStream.default(opts)), rev);
   };
+  return writeStream;
 };
 const twindStream = (opts) => {
-  useTwindStream(opts);
-  return void 0;
+  return async (_rev, next) => {
+    const last = useTwindStream(opts);
+    await next();
+    import_render.options.onRenderStream = last;
+  };
 };
 var twind_stream_default = useTwindStream;
 // Annotate the CommonJS export names for ESM import in node:

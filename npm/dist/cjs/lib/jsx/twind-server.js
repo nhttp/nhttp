@@ -45,17 +45,18 @@ const install = (config = {}, isProduction) => {
 };
 install();
 const useTwindServer = (opts) => {
-  if (import_render.internal.twindServer)
-    return;
-  import_render.internal.twindServer = true;
   const writeHtml = import_render.options.onRenderHtml;
   import_render.options.onRenderHtml = (html, rev) => {
     return writeHtml((0, import_core.inline)(html, opts), rev);
   };
+  return writeHtml;
 };
 const twindServer = (opts) => {
-  useTwindServer(opts);
-  return void 0;
+  return async (_rev, next) => {
+    const last = useTwindServer(opts);
+    await next();
+    import_render.options.onRenderHtml = last;
+  };
 };
 var twind_server_default = useTwindServer;
 // Annotate the CommonJS export names for ESM import in node:

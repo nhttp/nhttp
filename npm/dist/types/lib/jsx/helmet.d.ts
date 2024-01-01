@@ -46,7 +46,6 @@ type FCHelmet = ((props: JSXProps<{
     writeFooterTag?: () => JSX.Element[];
     writeHtmlAttr?: () => NJSX.HTMLAttributes;
     writeBodyAttr?: () => NJSX.HTMLAttributes;
-    hasHeader?: boolean;
     reset: () => void;
 };
 /**

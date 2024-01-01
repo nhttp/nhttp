@@ -1,7 +1,5 @@
-import { type Handler } from "../deps";
-type Options = {
-    src?: string;
-};
+import type { NJSX } from "./types";
+import type { Handler } from "../deps";
 /**
  * useHtmx.
  * @example
@@ -12,7 +10,7 @@ type Options = {
  *
  * app.engine(renderToHtml);
  */
-export declare const useHtmx: (opts?: Options) => void;
+export declare const useHtmx: (opts?: NJSX.ScriptHTMLAttributes) => void;
 /**
  * htmx.
  * @example
@@ -23,5 +21,4 @@ export declare const useHtmx: (opts?: Options) => void;
  *
  * app.use(htmx());
  */
-export declare const htmx: (opts?: Options) => Handler;
-export {};
+export declare const htmx: (opts?: NJSX.ScriptHTMLAttributes) => Handler;

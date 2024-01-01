@@ -14,8 +14,7 @@ const options = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
   onRenderStream: (stream) => stream,
-  useHook: true,
-  initHead: ""
+  useHook: true
 };
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
@@ -34,12 +33,20 @@ const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   wbr: true
 });
 const isArray = Array.isArray;
+function toInitHead(a, b) {
+  if (a !== void 0 && b !== void 0)
+    return b + a;
+  return a || b;
+}
 const mutateAttr = {
   acceptCharset: "accept-charset",
   httpEquiv: "http-equiv",
   htmlFor: "for",
   className: "class"
 };
+function withAt(k) {
+  return k.startsWith("at-") ? "@" + k.slice(3) : k;
+}
 const toAttr = (props = {}) => {
   let attr = "";
   for (const k in props) {
@@ -47,7 +54,7 @@ const toAttr = (props = {}) => {
     if (val == null || val === false || k === dangerHTML || k === "children" || typeof val === "function") {
       continue;
     }
-    const key = mutateAttr[k] ?? k.toLowerCase();
+    const key = mutateAttr[k] ?? withAt(k.toLowerCase());
     if (val === true) {
       attr += ` ${key}`;
     } else {
@@ -58,15 +65,17 @@ const toAttr = (props = {}) => {
   }
   return attr;
 };
-async function writeHtml(body, write) {
+async function writeHtml(body, write, initHead) {
   const { footer, attr, head } = Helmet.rewind();
   write(options.docType ?? "<!DOCTYPE html>");
   write(
     `<html${toAttr({ lang: "en", ...attr.html })}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`
   );
+  if (initHead !== void 0)
+    write(initHead);
   if (head.length > 0)
     write(await renderToString(head));
-  write(`${options.initHead}</head><body${toAttr(attr.body)}>${body}`);
+  write(`</head><body${toAttr(attr.body)}>${body}`);
   if (sus.i > 0) {
     for (let i = 0; i < sus.i; i++) {
       const elem = sus.arr[i];
@@ -163,12 +172,16 @@ const renderToHtml = async (elem, rev) => {
     elem = RequestEventContext({ rev, children: elem });
   }
   const body = await options.onRenderElement(elem, rev);
-  if (internal.htmx !== void 0 && rev.request.headers.has("HX-Request")) {
+  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
     Helmet.reset();
     return body;
   }
   let html = "";
-  await writeHtml(body, (s) => html += s);
+  await writeHtml(
+    body,
+    (s) => html += s,
+    toInitHead(rev.__init_head, options.initHead)
+  );
   return await options.onRenderHtml(html, rev);
 };
 const encoder = new TextEncoder();
@@ -177,6 +190,7 @@ const renderToReadableStream = async (elem, rev) => {
     Helmet.reset();
     return await options.onRenderElement(elem, rev);
   }
+  const initHead = toInitHead(rev.__init_head, options.initHead);
   const stream = await options.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
@@ -188,7 +202,8 @@ const renderToReadableStream = async (elem, rev) => {
           const body = await options.onRenderElement(elem2, rev);
           await writeHtml(
             body,
-            (str) => ctrl.enqueue(encoder.encode(str))
+            (str) => ctrl.enqueue(encoder.encode(str)),
+            initHead
           );
         };
         try {
@@ -232,6 +247,7 @@ export {
   renderToHtml,
   renderToReadableStream,
   renderToString,
+  toAttr,
   toStyle,
   writeHtml
 };
