@@ -16,9 +16,16 @@ import {
   s_response,
   s_route,
   s_search,
+  s_undefined,
   s_url,
 } from "./symbol.ts";
-import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types.ts";
+import type {
+  FetchHandler,
+  MatchRoute,
+  TObject,
+  TRet,
+  TSendBody,
+} from "./types.ts";
 import { getUrl, toPathx } from "./utils.ts";
 import { HttpError } from "./error.ts";
 import { HttpResponse } from "./http_response.ts";
@@ -27,10 +34,14 @@ import { getReqCookies } from "./cookie.ts";
 
 type TInfo<T> = {
   conn: T;
-  env: TObject;
   context: TObject;
 };
-
+export interface RequestEvent extends NHTTP.RequestEvent {
+  /**
+   * send data to log. `requires logger middlewares`
+   */
+  log: (data: TRet) => void;
+}
 export class RequestEvent<O extends TObject = TObject> {
   constructor(
     /**
@@ -88,7 +99,6 @@ export class RequestEvent<O extends TObject = TObject> {
     const info = this.request._info;
     return {
       conn: <TRet> info?.conn ?? {},
-      env: info?.conn ?? {},
       context: info?.ctx ?? {},
     };
   }
@@ -316,6 +326,12 @@ export class RequestEvent<O extends TObject = TObject> {
    */
   requestEvent = (): RequestEvent => this;
   /**
+   * force returning undefined without `408`.
+   */
+  undefined = (): void => {
+    this[s_undefined] = true;
+  };
+  /**
    * clone new Request.
    * @example
    * const request = rev.newRequest;
@@ -335,10 +351,7 @@ export class RequestEvent<O extends TObject = TObject> {
     });
     return this[s_new_req] = new Request(this.request.url, init);
   }
-  /**
-   * send data to log. `requires logger middlewares`
-   */
-  log!: (data: TRet) => void;
+
   [deno_inspect](inspect: TRet, opts: TRet) {
     const ret = revInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;
