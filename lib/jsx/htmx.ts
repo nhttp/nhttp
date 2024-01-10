@@ -1,25 +1,17 @@
-import { internal } from "./render.ts";
 import type { NJSX } from "./types.ts";
 import type { Handler } from "../deps.ts";
-import { createHookLib } from "./hook.ts";
-/**
- * useHtmx.
- * @example
- *
- * useHtmx();
- *
- * const app = nhttp();
- *
- * app.engine(renderToHtml);
- */
-export const useHtmx = (
-  opts: NJSX.ScriptHTMLAttributes = {},
-) => {
-  if (internal.htmx) return;
-  internal.htmx = true;
-  opts.src ??= "//unpkg.com/htmx.org";
-  createHookLib(opts);
-};
+import { createHookScript } from "./hook.ts";
+
+declare global {
+  namespace NHTTP {
+    interface RequestEvent {
+      /**
+       * isHtmx. check if `HX-Request`.
+       */
+      isHtmx: boolean;
+    }
+  }
+}
 
 /**
  * htmx.
@@ -32,10 +24,10 @@ export const useHtmx = (
  * app.use(htmx());
  */
 export const htmx = (opts: NJSX.ScriptHTMLAttributes = {}): Handler => {
-  internal.htmx = true;
+  opts.src ??= "//unpkg.com/htmx.org";
   return (rev, next) => {
-    opts.src ??= "//unpkg.com/htmx.org";
-    createHookLib(opts, rev);
+    rev.isHtmx = rev.headers.has("hx-request");
+    createHookScript(opts, rev);
     return next();
   };
 };
