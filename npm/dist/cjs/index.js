@@ -596,6 +596,21 @@ var Router = class {
     return this;
   }
   /**
+   * add method handlers (app or router).
+   * @example
+   * app.add("GET", "/", ...handlers);
+   * app.add(["GET", "POST"], "/", ...handlers);
+   */
+  add(method, path, ...handlers) {
+    if (isArray(method)) {
+      method.forEach((m) => {
+        this.on(m, path, ...handlers);
+      });
+      return this;
+    }
+    return this.on(method, path, ...handlers);
+  }
+  /**
    * method GET (app or router)
    * @example
    * app.get("/", ...handlers);
@@ -999,6 +1014,7 @@ var s_init = Symbol("res_init");
 var s_method = Symbol("method");
 var s_new_req = Symbol("new_req");
 var s_ori_url = Symbol("ori_url");
+var s_undefined = Symbol("undefined");
 
 // npm/src/src/cookie.ts
 function serializeCookie(name, value, cookie = {}) {
@@ -1266,15 +1282,6 @@ var HttpResponse = class {
     );
   }
   /**
-   * render `requires app.engine configs`
-   * @example
-   * await response.render("index", {
-   *   key: "value"
-   * });
-   * await response.render(<h1>Hello Jsx</h1>);
-   */
-  render;
-  /**
    * shorthand for send html body
    * @example
    * response.html("<h1>Hello World</h1>");
@@ -1425,7 +1432,6 @@ var RequestEvent = class {
     const info = this.request._info;
     return {
       conn: info?.conn ?? {},
-      env: info?.conn ?? {},
       context: info?.ctx ?? {}
     };
   }
@@ -1643,6 +1649,12 @@ var RequestEvent = class {
    */
   requestEvent = () => this;
   /**
+   * force returning undefined without `408`.
+   */
+  undefined = () => {
+    this[s_undefined] = true;
+  };
+  /**
    * clone new Request.
    * @example
    * const request = rev.newRequest;
@@ -1663,10 +1675,6 @@ var RequestEvent = class {
     });
     return this[s_new_req] = new Request(this.request.url, init);
   }
-  /**
-   * send data to log. `requires logger middlewares`
-   */
-  log;
   [deno_inspect](inspect2, opts) {
     const ret = revInspect(this);
     return `${this.constructor.name} ${inspect2(ret, opts)}`;
@@ -1711,6 +1719,8 @@ function createRequest(handle, url, init = {}) {
 
 // npm/src/src/nhttp_util.ts
 var awaiter = (rev) => {
+  if (rev[s_undefined])
+    return;
   let t;
   const sleep = (ms) => {
     return new Promise((ok) => {

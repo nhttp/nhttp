@@ -75,6 +75,14 @@ const csrf = (opts = {}) => {
   const ignoreMethods = opts.ignoreMethods ?? ["GET", "HEAD", "OPTIONS", "TRACE"];
   const algo = opts.algo ?? "SHA1";
   return (rev, next) => {
+    let origin = [];
+    if (opts.origin !== false) {
+      if (opts.origin === true || opts.origin == null)
+        opts.origin = [];
+      else if (typeof opts.origin === "string")
+        opts.origin = [opts.origin];
+      origin = [new URL(rev.request.url).origin].concat(opts.origin);
+    }
     rev.csrfToken = () => {
       let secret = opts.secret ?? rand();
       if (typeof secret === "function")
@@ -91,14 +99,16 @@ const csrf = (opts = {}) => {
     rev.csrfVerify = () => {
       if (ignoreMethods.includes(rev.method))
         return true;
-      const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
-      if (value == null)
-        return true;
-      return verify(
-        cookie ? rev.cookies[cname] : opts.secret,
-        value,
-        algo
-      );
+      return origin.includes(rev.headers.get("origin") ?? "") || (() => {
+        const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
+        if (value == null)
+          return true;
+        return verify(
+          cookie ? rev.cookies[cname] : opts.secret,
+          value,
+          algo
+        );
+      })();
     };
     if (autoVerify) {
       if (rev.csrfVerify())

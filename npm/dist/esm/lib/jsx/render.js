@@ -1,20 +1,15 @@
-import { Helmet } from "./helmet.js";
+import { Helmet, HELMET_FLAG } from "./helmet.js";
 import {
   dangerHTML,
-  n,
-  RequestEventContext
+  elemToRevContext
 } from "./index.js";
 import { isValidElement } from "./is-valid-element.js";
-const sus = {
-  i: 0,
-  arr: []
-};
 const internal = {};
 const options = {
   onRenderHtml: (html) => html,
   onRenderElement: renderToString,
   onRenderStream: (stream) => stream,
-  useHook: true
+  requestEventContext: true
 };
 const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   area: true,
@@ -47,14 +42,23 @@ const mutateAttr = {
 function withAt(k) {
   return k.startsWith("at-") ? "@" + k.slice(3) : k;
 }
-const toAttr = (props = {}) => {
-  let attr = "";
+function mutateProps(props = {}) {
+  const obj = {};
   for (const k in props) {
-    let val = props[k];
+    const val = props[k];
     if (val == null || val === false || k === dangerHTML || k === "children" || typeof val === "function") {
       continue;
     }
     const key = mutateAttr[k] ?? withAt(k.toLowerCase());
+    obj[key] = val;
+  }
+  return obj;
+}
+const toAttr = (p = {}) => {
+  const props = mutateProps(p);
+  let attr = "";
+  for (const key in props) {
+    let val = props[key];
     if (val === true) {
       attr += ` ${key}`;
     } else {
@@ -65,35 +69,11 @@ const toAttr = (props = {}) => {
   }
   return attr;
 };
-async function writeHtml(body, write, initHead) {
-  const { footer, attr, head } = Helmet.rewind();
-  write(options.docType ?? "<!DOCTYPE html>");
-  write(
-    `<html${toAttr({ lang: "en", ...attr.html })}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`
-  );
-  if (initHead !== void 0)
-    write(initHead);
-  if (head.length > 0)
-    write(await renderToString(head));
-  write(`</head><body${toAttr(attr.body)}>${body}`);
-  if (sus.i > 0) {
-    for (let i = 0; i < sus.i; i++) {
-      const elem = sus.arr[i];
-      write(`<template id="__t__:${i}">`);
-      write(await renderToString(elem));
-      write(`</template>`);
-      write(
-        `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${i}");var r=$("__s__:${i}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
-      );
-    }
-    write(await renderToString(Helmet.rewind().footer));
-    sus.i = 0;
-    sus.arr = [];
-  } else if (footer.length > 0) {
-    write(await renderToString(footer));
-  }
-  write("</body></html>");
-}
+const toHtml = async (body, initHead = "") => {
+  const { head, footer, attr } = Helmet.rewind();
+  attr.html.lang ??= "en";
+  return (options.docType ?? "<!DOCTYPE html>") + `<html${toAttr(attr.html)}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">` + initHead + (head.length > 0 ? await renderToString(head) : "") + `</head><body${toAttr(attr.body)}>${body}` + (footer.length > 0 ? await renderToString(footer) : "") + "</body></html>";
+};
 const REG_HTML = /["'&<>]/;
 function escapeHtml(str, force) {
   return internal.precompile && !force || !REG_HTML.test(str) ? str : (() => {
@@ -137,6 +117,49 @@ function toStyle(val) {
     ""
   );
 }
+function helmetToClient({ head, footer }) {
+  let has, head_src = "", body_src = "";
+  const toAttr2 = (props = {}, name) => {
+    let str = "";
+    for (const k in props) {
+      let v = props[k];
+      if (v === true) {
+        str += `${name}.setAttribute("${k}", "");`;
+      } else {
+        if (k === "style" && typeof v === "object")
+          v = toStyle(v);
+        str += `${name}.setAttribute("${k}", "${escapeHtml(String(v))}");`;
+      }
+    }
+    return str;
+  };
+  const pushScript = (elems, name) => {
+    let src = "var d=document;function $(s){return d.querySelector(s)};";
+    has ??= true;
+    src += `function c(n){return d.createElement(n)};`;
+    if (name === "head") {
+      elems = elems.filter((el) => el.type !== "meta");
+      src += `var t=$("title");if(t)d.head.removeChild(t);`;
+    }
+    src += `d.${name}.childNodes.forEach(function(c){if(c.hasAttribute&&c.hasAttribute("${HELMET_FLAG}")){d.${name}.removeChild(c)}});`;
+    elems.forEach((elem, i) => {
+      const child = elem.props?.children?.[0];
+      const props = mutateProps(elem.props);
+      src += `var $${i}=c("${elem.type}");`;
+      if (child) {
+        src += `$${i}.append("${child}");`;
+      }
+      src += toAttr2(props, `$${i}`);
+      src += `d.${name}.appendChild($${i});`;
+    });
+    return `(function(){${src}})();`;
+  };
+  if (head.length > 0)
+    head_src = pushScript(head, "head");
+  if (footer.length > 0)
+    body_src = pushScript(footer, "body");
+  return has ? head_src + body_src : void 0;
+}
 async function renderToString(elem) {
   if (elem == null || typeof elem === "boolean")
     return "";
@@ -161,93 +184,40 @@ async function renderToString(elem) {
   if (type in voidTags)
     return `<${type}${attributes}>`;
   if (props?.[dangerHTML] != null) {
+    if (type === "")
+      return props[dangerHTML].__html;
     return `<${type}${attributes}>${props[dangerHTML].__html}</${type}>`;
   }
-  return `<${type}${attributes}>${await renderToString(
-    props?.["children"]
-  )}</${type}>`;
+  const child = await renderToString(props?.["children"]);
+  if (type === "")
+    return child;
+  return `<${type}${attributes}>${child}</${type}>`;
 }
 const renderToHtml = async (elem, rev) => {
-  if (options.useHook) {
-    elem = RequestEventContext({ rev, children: elem });
-  }
+  elem = await elemToRevContext(elem, rev);
   const body = await options.onRenderElement(elem, rev);
-  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
-    Helmet.reset();
-    return body;
+  if (rev.isHtmx) {
+    const client = helmetToClient(Helmet.rewind());
+    return `${body}${client !== void 0 ? `<script>${client}</script>` : ""}`;
   }
-  let html = "";
-  await writeHtml(
+  const html = await toHtml(
     body,
-    (s) => html += s,
     toInitHead(rev.__init_head, options.initHead)
   );
   return await options.onRenderHtml(html, rev);
 };
-const encoder = new TextEncoder();
-const renderToReadableStream = async (elem, rev) => {
-  if (internal.htmx !== void 0 && rev.request.headers.has("hx-request")) {
-    Helmet.reset();
-    return await options.onRenderElement(elem, rev);
-  }
-  const initHead = toInitHead(rev.__init_head, options.initHead);
-  const stream = await options.onRenderStream(
-    new ReadableStream({
-      async start(ctrl) {
-        const writeStream = async (child) => {
-          const elem2 = options.useHook ? RequestEventContext({
-            rev,
-            children: child
-          }) : child;
-          const body = await options.onRenderElement(elem2, rev);
-          await writeHtml(
-            body,
-            (str) => ctrl.enqueue(encoder.encode(str)),
-            initHead
-          );
-        };
-        try {
-          await writeStream(elem);
-        } catch (error) {
-          if (options.onErrorStream) {
-            await writeStream(
-              await options.onErrorStream({ error })
-            );
-          } else {
-            ctrl.enqueue(encoder.encode(error));
-          }
-        }
-        ctrl.close();
-      }
-    }),
-    rev
-  );
-  return stream;
-};
 renderToHtml.check = isValidElement;
-renderToReadableStream.check = isValidElement;
-const Suspense = (props) => {
-  const i = sus.i;
-  const id = `__s__:${i}`;
-  sus.arr[i] = props.children;
-  sus.i++;
-  return n(
-    "div",
-    { id },
-    typeof props.fallback === "function" ? props.fallback({}) : props.fallback
-  );
-};
 export {
-  Suspense,
   escapeHtml,
+  helmetToClient,
   internal,
   isValidElement,
   mutateAttr,
   options,
   renderToHtml,
-  renderToReadableStream,
   renderToString,
   toAttr,
-  toStyle,
-  writeHtml
+  toHtml,
+  toInitHead,
+  toStyle
 };

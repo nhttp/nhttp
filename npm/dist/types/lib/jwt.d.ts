@@ -1,7 +1,17 @@
 import jwts from "jwt-simple";
-import { Handler, HttpError, RequestEvent, TRet } from "./deps";
+import { Handler, HttpError, RequestEvent, TObject, TRet } from "./deps";
 import { NextFunction } from "../mod";
 import { TDecorator } from "./controller";
+declare global {
+    namespace NHTTP {
+        interface RequestEvent {
+            /**
+             * auth. result from `jwt` middleware.
+             */
+            auth: TObject;
+        }
+    }
+}
 declare class UnauthorizedError extends HttpError {
     constructor(message?: string);
 }

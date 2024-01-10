@@ -17,9 +17,21 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var helmet_exports = {};
 __export(helmet_exports, {
-  Helmet: () => Helmet
+  HELMET_FLAG: () => HELMET_FLAG,
+  Helmet: () => Helmet,
+  toFlag: () => toFlag
 });
 module.exports = __toCommonJS(helmet_exports);
+const HELMET_FLAG = "data-nh";
+const toFlag = (elems) => {
+  return elems.map((el) => {
+    if (el.type !== "title" && el.type !== "meta") {
+      el.props ??= {};
+      el.props[HELMET_FLAG] ??= "true";
+    }
+    return el;
+  });
+};
 function toHelmet(elems) {
   const helmet = [];
   let hasBase = false;
@@ -77,9 +89,9 @@ Helmet.rewind = (elem) => {
     body: elem
   };
   if (Helmet.writeHeadTag)
-    data.head = Helmet.writeHeadTag();
+    data.head = toFlag(Helmet.writeHeadTag());
   if (Helmet.writeFooterTag)
-    data.footer = Helmet.writeFooterTag();
+    data.footer = toFlag(Helmet.writeFooterTag());
   if (Helmet.writeHtmlAttr)
     data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr)
@@ -90,5 +102,7 @@ Helmet.rewind = (elem) => {
 Helmet.render = () => "";
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  Helmet
+  HELMET_FLAG,
+  Helmet,
+  toFlag
 });

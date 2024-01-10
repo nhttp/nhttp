@@ -1,16 +1,16 @@
-import { createHookLib } from "./hook.js";
+import { createHookScript } from "./hook.js";
 import { internal } from "./render.js";
 const useTwind = (opts = {}) => {
   if (internal.twind)
     return;
   internal.twind = true;
   opts.src ??= "//cdn.twind.style";
-  createHookLib(opts);
+  createHookScript(opts);
 };
 const twind = (opts = {}) => {
+  opts.src ??= "//cdn.twind.style";
   return (rev, next) => {
-    opts.src ??= "//cdn.twind.style";
-    createHookLib(opts, rev);
+    createHookScript(opts, rev);
     return next();
   };
 };

@@ -2,7 +2,7 @@
   "name": "nhttp-land",
   "description": "An Simple web-framework for Deno and Friends",
   "author": "Herudi",
-  "version": "1.3.19",
+  "version": "1.3.20",
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "types": "./dist/types/index.d.ts",
@@ -159,6 +159,11 @@
       "import": "./dist/esm/lib/jsx/index.js",
       "require": "./dist/cjs/lib/jsx/index.js"
     },
+    "./jsx/stream": {
+      "types": "./dist/types/lib/jsx/stream.d.ts",
+      "import": "./dist/esm/lib/jsx/stream.js",
+      "require": "./dist/cjs/lib/jsx/stream.js"
+    },
     "./jsx/twind": {
       "types": "./dist/types/lib/jsx/twind.d.ts",
       "import": "./dist/esm/lib/jsx/twind.js",
@@ -244,6 +249,9 @@
       ],
       "jsx": [
         "./dist/types/lib/jsx/index.d.ts"
+      ],
+      "jsx/stream": [
+        "./dist/types/lib/jsx/stream.d.ts"
       ],
       "jsx/twind": [
         "./dist/types/lib/jsx/twind.d.ts"

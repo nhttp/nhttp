@@ -17,29 +17,19 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var htmx_exports = {};
 __export(htmx_exports, {
-  htmx: () => htmx,
-  useHtmx: () => useHtmx
+  htmx: () => htmx
 });
 module.exports = __toCommonJS(htmx_exports);
-var import_render = require("./render");
 var import_hook = require("./hook");
-const useHtmx = (opts = {}) => {
-  if (import_render.internal.htmx)
-    return;
-  import_render.internal.htmx = true;
-  opts.src ??= "//unpkg.com/htmx.org";
-  (0, import_hook.createHookLib)(opts);
-};
 const htmx = (opts = {}) => {
-  import_render.internal.htmx = true;
+  opts.src ??= "//unpkg.com/htmx.org";
   return (rev, next) => {
-    opts.src ??= "//unpkg.com/htmx.org";
-    (0, import_hook.createHookLib)(opts, rev);
+    rev.isHtmx = rev.headers.has("hx-request");
+    (0, import_hook.createHookScript)(opts, rev);
     return next();
   };
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  htmx,
-  useHtmx
+  htmx
 });

@@ -2,6 +2,8 @@ import type { NJSX } from "./types";
 import type { Handler } from "../deps";
 /**
  * useTwind.
+ * @deprecated
+ * use `app.use(twind());` instead.
  * @example
  *
  * useTwind();

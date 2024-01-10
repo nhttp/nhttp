@@ -1,11 +1,16 @@
-import { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types";
+import type { FetchHandler, MatchRoute, TObject, TRet, TSendBody } from "./types";
 import { HttpResponse } from "./http_response";
 import { deno_inspect, node_inspect } from "./inspect";
 type TInfo<T> = {
     conn: T;
-    env: TObject;
     context: TObject;
 };
+export interface RequestEvent extends NHTTP.RequestEvent {
+    /**
+     * send data to log. `requires logger middlewares`
+     */
+    log: (data: TRet) => void;
+}
 export declare class RequestEvent<O extends TObject = TObject> {
     /**
      * Original {@linkcode Request}.
@@ -179,15 +184,15 @@ export declare class RequestEvent<O extends TObject = TObject> {
      */
     requestEvent: () => RequestEvent;
     /**
+     * force returning undefined without `408`.
+     */
+    undefined: () => void;
+    /**
      * clone new Request.
      * @example
      * const request = rev.newRequest;
      */
     get newRequest(): Request;
-    /**
-     * send data to log. `requires logger middlewares`
-     */
-    log: (data: TRet) => void;
     [deno_inspect](inspect: TRet, opts: TRet): string;
     [node_inspect](depth: number, opts: TRet, inspect: TRet): string;
     [k: string | symbol]: TRet;

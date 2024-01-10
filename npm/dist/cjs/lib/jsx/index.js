@@ -21,7 +21,6 @@ __export(jsx_exports, {
   Client: () => Client,
   Fragment: () => Fragment,
   Helmet: () => import_helmet2.Helmet,
-  Suspense: () => import_render.Suspense,
   dangerHTML: () => dangerHTML,
   escapeHtml: () => import_render.escapeHtml,
   h: () => n,
@@ -29,7 +28,6 @@ __export(jsx_exports, {
   n: () => n,
   options: () => import_render.options,
   renderToHtml: () => import_render.renderToHtml,
-  renderToReadableStream: () => import_render.renderToReadableStream,
   renderToString: () => import_render.renderToString,
   toStyle: () => import_render.toStyle
 });
@@ -40,6 +38,7 @@ var import_helmet2 = require("./helmet");
 __reExport(jsx_exports, require("./hook"), module.exports);
 __reExport(jsx_exports, require("./types"), module.exports);
 __reExport(jsx_exports, require("./htmx"), module.exports);
+__reExport(jsx_exports, require("./stream"), module.exports);
 const dangerHTML = "dangerouslySetInnerHTML";
 const Fragment = ({ children }) => children;
 function n(type, props, ...children) {
@@ -71,7 +70,6 @@ const Client = (props) => {
   Client,
   Fragment,
   Helmet,
-  Suspense,
   dangerHTML,
   escapeHtml,
   h,
@@ -79,10 +77,10 @@ const Client = (props) => {
   n,
   options,
   renderToHtml,
-  renderToReadableStream,
   renderToString,
   toStyle,
   ...require("./hook"),
   ...require("./types"),
-  ...require("./htmx")
+  ...require("./htmx"),
+  ...require("./stream")
 });

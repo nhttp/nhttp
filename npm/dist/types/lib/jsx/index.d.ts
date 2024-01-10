@@ -14,11 +14,12 @@ declare global {
         }
     }
 }
-export { escapeHtml, isValidElement, options, type RenderHTML, renderToHtml, renderToReadableStream, renderToString, Suspense, type TOptionsRender, toStyle, } from "./render";
+export { escapeHtml, isValidElement, options, type RenderHTML, renderToHtml, renderToString, type TOptionsRender, toStyle, } from "./render";
 export { Helmet, type HelmetRewind } from "./helmet";
 export * from "./hook";
 export * from "./types";
 export * from "./htmx";
+export * from "./stream";
 export type EObject = {};
 type Merge<A, B> = {
     [K in keyof (A & B)]: (K extends keyof B ? B[K] : (K extends keyof A ? A[K] : never));

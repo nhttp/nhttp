@@ -1,5 +1,5 @@
 import type { RequestEvent, TObject, TRet } from "../deps";
-import { FC, JSXNode, type NJSX } from "./index";
+import { FC, HelmetRewind, JSXNode, type NJSX } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
 export type TOptionsRender = {
@@ -47,21 +47,23 @@ export type TOptionsRender = {
      */
     docType?: string;
     /**
-     * use hook. default to `true`.
+     * use context requestEvent. default to `true`.
      */
-    useHook: boolean;
+    requestEventContext: boolean;
     initHead?: string;
 };
 export declare const internal: TObject;
 export declare const options: TOptionsRender;
+export declare function toInitHead(a: string | undefined, b: string | undefined): string;
 export declare const mutateAttr: Record<string, string>;
-export declare const toAttr: (props?: TRet) => string;
-export declare function writeHtml(body: string, write: (data: string) => void, initHead?: string): Promise<void>;
+export declare const toAttr: (p?: TRet) => string;
+export declare const toHtml: (body: string, initHead?: string) => Promise<string>;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
 export declare function toStyle(val: NJSX.CSSProperties): string;
+export declare function helmetToClient({ head, footer }: HelmetRewind): string;
 /**
  * renderToString.
  * @example
@@ -82,38 +84,3 @@ export declare function renderToString(elem: JSXNode<TRet>): Promise<string>;
  * ```
  */
 export declare const renderToHtml: RenderHTML;
-/**
- * render to ReadableStream in `app.engine`.
- * @example
- * ```tsx
- * const app = nhttp();
- *
- * app.engine(renderToReadableStream);
- *
- * app.get("/", () => {
- *   return <h1>hello</h1>;
- * });
- * ```
- */
-export declare const renderToReadableStream: RenderHTML;
-/**
- * `DON'T USE IT`. Suspense for renderToReadableStream.
- * @unsupported
- * - Helmet
- * - Twind
- * @example
- * ```tsx
- * app.engine(renderToReadableStream);
- *
- * app.get("/", () => {
- *   return (
- *     <Suspense fallback={<span>loading...</span>}>
- *       <Home/>
- *     </Suspense>
- *   )
- * })
- * ```
- */
-export declare const Suspense: FC<{
-    fallback: JSX.Element | FC;
-}>;
