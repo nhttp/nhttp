@@ -476,6 +476,12 @@ Deno.test("nhttp", async (t) => {
     const res = await app.req("/").res();
     assertEquals(res.status, 500);
   });
+  await t.step("undefined awaiter", async () => {
+    const app = nhttp();
+    app.get("/", (rev) => rev.undefined());
+    const res = await app.req("/").res();
+    assertEquals(res, undefined);
+  });
   await t.step("onNext awaiter", async () => {
     const app = nhttp();
     app.use((_, next) => {

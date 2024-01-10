@@ -1,16 +1,15 @@
 import type { NJSX } from "./types";
 import type { Handler } from "../deps";
-/**
- * useHtmx.
- * @example
- *
- * useHtmx();
- *
- * const app = nhttp();
- *
- * app.engine(renderToHtml);
- */
-export declare const useHtmx: (opts?: NJSX.ScriptHTMLAttributes) => void;
+declare global {
+    namespace NHTTP {
+        interface RequestEvent {
+            /**
+             * isHtmx. check if `HX-Request`.
+             */
+            isHtmx: boolean;
+        }
+    }
+}
 /**
  * htmx.
  * @example

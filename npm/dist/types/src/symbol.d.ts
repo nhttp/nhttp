@@ -14,3 +14,4 @@ export declare const s_init: unique symbol;
 export declare const s_method: unique symbol;
 export declare const s_new_req: unique symbol;
 export declare const s_ori_url: unique symbol;
+export declare const s_undefined: unique symbol;

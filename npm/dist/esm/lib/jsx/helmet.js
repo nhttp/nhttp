@@ -1,3 +1,13 @@
+const HELMET_FLAG = "data-nh";
+const toFlag = (elems) => {
+  return elems.map((el) => {
+    if (el.type !== "title" && el.type !== "meta") {
+      el.props ??= {};
+      el.props[HELMET_FLAG] ??= "true";
+    }
+    return el;
+  });
+};
 function toHelmet(elems) {
   const helmet = [];
   let hasBase = false;
@@ -55,9 +65,9 @@ Helmet.rewind = (elem) => {
     body: elem
   };
   if (Helmet.writeHeadTag)
-    data.head = Helmet.writeHeadTag();
+    data.head = toFlag(Helmet.writeHeadTag());
   if (Helmet.writeFooterTag)
-    data.footer = Helmet.writeFooterTag();
+    data.footer = toFlag(Helmet.writeFooterTag());
   if (Helmet.writeHtmlAttr)
     data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr)
@@ -67,5 +77,7 @@ Helmet.rewind = (elem) => {
 };
 Helmet.render = () => "";
 export {
-  Helmet
+  HELMET_FLAG,
+  Helmet,
+  toFlag
 };

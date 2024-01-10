@@ -72,6 +72,8 @@ export const ANY_METHODS = [
   "OPTIONS",
   "HEAD",
 ] as const;
+
+type TMethod = typeof ANY_METHODS[number];
 /**
  * Router
  * @example
@@ -159,6 +161,25 @@ export default class Router<
     fns = this.midds.concat(fns);
     this.c_routes.push({ method, path, fns, pmidds: this.pmidds });
     return this;
+  }
+  /**
+   * add method handlers (app or router).
+   * @example
+   * app.add("GET", "/", ...handlers);
+   * app.add(["GET", "POST"], "/", ...handlers);
+   */
+  add<T extends unknown = unknown>(
+    method: TMethod | TMethod[],
+    path: string | RegExp,
+    ...handlers: Handlers<T, Rev>
+  ) {
+    if (isArray(method)) {
+      method.forEach((m) => {
+        this.on<T>(m, path, ...handlers);
+      });
+      return this;
+    }
+    return this.on<T>(method, path, ...handlers);
   }
   /**
    * method GET (app or router)

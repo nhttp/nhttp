@@ -32,6 +32,10 @@ export type CSRFOptions = {
      * algorithm when creating CSRF. default to `SHA1`.
      */
     algo?: "MD5" | "SHA" | "SHA1" | "SHA256" | "SHA512";
+    /**
+     * config origin. default to `true`.
+     */
+    origin?: string | string[] | boolean;
 };
 /**
  * Cross-Site Request Forgery (CSRF) protected middleware.

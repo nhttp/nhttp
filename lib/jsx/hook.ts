@@ -7,7 +7,6 @@ import {
 } from "../deps.ts";
 import {
   type EObject,
-  type FC,
   Helmet,
   type JSXElement,
   type JSXProps,
@@ -16,20 +15,23 @@ import {
   options,
   toStyle,
 } from "./index.ts";
-import { toAttr } from "./render.ts";
+import { renderToString, toAttr } from "./render.ts";
 
 const now = Date.now();
 type TValue = string | number | TRet;
 type TContext = {
-  Provider: (props: JSXProps<{ value?: TValue }>) => JSXElement | null;
-  i: number;
+  Provider: (props: JSXProps<{ value?: TValue }>) => Promise<TRet>;
+  getValue: <T>() => T;
 };
-const hook = {
-  ctx_i: 0,
-  ctx: [] as TValue,
-  js_i: 0,
-  id: 0,
-};
+export const s_int = Symbol("internal_hook");
+const isArray = Array.isArray;
+let HAS_CHECK_HOOK: boolean;
+export function checkHook(elem: TRet) {
+  return HAS_CHECK_HOOK ??= (() => {
+    if (isArray(elem)) elem = elem[0];
+    return options.requestEventContext && elem?.__n__ !== void 0;
+  })();
+}
 /**
  * createContext.
  * @example
@@ -48,13 +50,29 @@ const hook = {
 export function createContext<T extends unknown = unknown>(
   initValue?: T,
 ): TContext {
-  const i = hook.ctx_i++;
+  const arr = [] as TRet[];
+  let idx = 0;
+  const reset = (last: number, i = 0, len = arr.length) => {
+    while (i < len) {
+      if (arr[i].i === last) {
+        arr.splice(i, 1);
+        break;
+      }
+      i++;
+    }
+    if (arr.length === 0) idx = 0;
+  };
   return {
-    Provider({ value, children }) {
-      hook.ctx[i] = value !== void 0 ? value : initValue;
-      return children as JSXElement;
+    getValue: () => arr[arr.length - 1]?.v?.(),
+    async Provider({ value, children }) {
+      const i = idx--;
+      arr.push({ i, v: () => value ?? initValue });
+      const child = await renderToString(children);
+      reset(i);
+      return n("", {
+        dangerouslySetInnerHTML: { __html: child },
+      });
     },
-    i,
   };
 }
 /**
@@ -78,19 +96,19 @@ export function createContext<T extends unknown = unknown>(
  * ```
  */
 export function useContext<T extends unknown = unknown>(context: TContext): T {
-  return hook.ctx[context.i];
+  return context.getValue();
 }
 
-const RevContext = createContext();
-export const RequestEventContext: FC<{ rev: RequestEvent }> = (props) => {
-  const elem = RevContext.Provider({
-    value: props.rev,
-    children: props.children,
-  });
-  hook.js_i = 0;
-  hook.id = 0;
+export const RevContext = createContext();
+export function elemToRevContext(
+  elem: TRet,
+  rev: RequestEvent,
+): Promise<JSXElement> {
+  if (checkHook(elem)) {
+    return RevContext.Provider({ value: rev, children: elem });
+  }
   return elem;
-};
+}
 /**
  * useRequestEvent. server-side only.
  * @example
@@ -104,6 +122,17 @@ export const RequestEventContext: FC<{ rev: RequestEvent }> = (props) => {
 export const useRequestEvent = <T extends EObject = EObject>(): RequestEvent<
   T
 > => useContext(RevContext);
+export const useInternalHook = (
+  rev?: RequestEvent,
+): { id: number; js_id: number; sus: TRet[]; sus_id: number } => {
+  rev ??= useRequestEvent();
+  return rev[s_int] ??= {
+    id: 0,
+    js_id: 0,
+    sus: [],
+    sus_id: 0,
+  };
+};
 /**
  * useParams. server-side only.
  * @example
@@ -226,6 +255,7 @@ export function useScript<T>(
   options: AttrScript = {},
 ) {
   const rev = useRequestEvent();
+  const hook = useInternalHook(rev);
   if (rev !== void 0) {
     let js_string = "";
     if (typeof fn === "string") {
@@ -235,11 +265,11 @@ export function useScript<T>(
     } else {
       return useScript(params as TRet, fn, options);
     }
-    const i = hook.js_i;
+    const i = hook.js_id;
     const app = rev.__app() as NHttp;
     const id = `${now}${i}`;
     const path = `/__JS__/${id}.js`;
-    hook.js_i--;
+    hook.js_id--;
     const inline = options.inline;
     const toScript = () => {
       const src = `(${js_string})`;
@@ -345,9 +375,9 @@ export function useStyle(css: Record<string, NJSX.CSSProperties> | string) {
 /**
  * generate unique ID.
  */
-export const useId = () => `:${hook.id--}`;
+export const useId = () => `:${useInternalHook().id--}`;
 
-export const createHookLib = (
+export const createHookScript = (
   opts: NJSX.ScriptHTMLAttributes = {},
   rev?: RequestEvent,
 ) => {

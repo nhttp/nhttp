@@ -29,12 +29,12 @@ const useTwind = (opts = {}) => {
     return;
   import_render.internal.twind = true;
   opts.src ??= "//cdn.twind.style";
-  (0, import_hook.createHookLib)(opts);
+  (0, import_hook.createHookScript)(opts);
 };
 const twind = (opts = {}) => {
+  opts.src ??= "//cdn.twind.style";
   return (rev, next) => {
-    opts.src ??= "//cdn.twind.style";
-    (0, import_hook.createHookLib)(opts, rev);
+    (0, import_hook.createHookScript)(opts, rev);
     return next();
   };
 };

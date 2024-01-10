@@ -5,6 +5,7 @@ export type TRouter = {
     base?: string;
 };
 export declare const ANY_METHODS: readonly ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"];
+type TMethod = typeof ANY_METHODS[number];
 /**
  * Router
  * @example
@@ -31,6 +32,13 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.on("GET", "/", ...handlers);
      */
     on<T extends unknown = unknown>(method: string, path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
+    /**
+     * add method handlers (app or router).
+     * @example
+     * app.add("GET", "/", ...handlers);
+     * app.add(["GET", "POST"], "/", ...handlers);
+     */
+    add<T extends unknown = unknown>(method: TMethod | TMethod[], path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     /**
      * method GET (app or router)
      * @example
@@ -93,3 +101,4 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
     connect<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
     find(method: string, path: string, setParam: (obj: TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
 }
+export {};

@@ -7,6 +7,14 @@ export type TRet = any;
 export type EObject = {};
 export type TObject = { [k: string]: TRet };
 declare global {
+  namespace NHTTP {
+    interface RequestEvent {
+      [k: string]: TRet;
+    }
+    interface HttpResponse {
+      [k: string]: TRet;
+    }
+  }
   interface Request {
     _info?: { conn?: TRet; ctx?: TRet };
   }

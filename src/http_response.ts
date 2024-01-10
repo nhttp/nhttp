@@ -3,7 +3,7 @@ import { serializeCookie } from "./cookie.ts";
 import { HttpError } from "./error.ts";
 import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
-import { Cookie, TObject, TRet, TSendBody } from "./types.ts";
+import type { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 const TYPE = "content-type";
 export type ResInit = {
   headers?: TObject;
@@ -16,7 +16,22 @@ type RetHeaders = {
   delete: (key: string) => void;
   toJSON: () => TObject;
 };
-
+/* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
+export interface HttpResponse extends NHTTP.HttpResponse {
+  /**
+   * render `requires app.engine configs`
+   * @example
+   * await response.render("index", {
+   *   key: "value"
+   * });
+   * await response.render(<h1>Hello Jsx</h1>);
+   */
+  render: (
+    fileOrElem: TRet,
+    params?: TObject,
+    ...args: TRet
+  ) => Promise<void>;
+}
 export class HttpResponse {
   constructor(
     /**
@@ -180,19 +195,7 @@ export class HttpResponse {
         (charset ? "; charset=" + charset : ""),
     );
   }
-  /**
-   * render `requires app.engine configs`
-   * @example
-   * await response.render("index", {
-   *   key: "value"
-   * });
-   * await response.render(<h1>Hello Jsx</h1>);
-   */
-  render!: (
-    fileOrElem: TRet,
-    params?: TObject,
-    ...args: TRet
-  ) => Promise<void>;
+
   /**
    * shorthand for send html body
    * @example

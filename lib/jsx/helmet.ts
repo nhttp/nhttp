@@ -1,5 +1,17 @@
 import type { TRet } from "../deps.ts";
-import { type JSXElement, type JSXProps, type NJSX } from "./index.ts";
+import { type JSXProps, type NJSX } from "./index.ts";
+
+export const HELMET_FLAG = "data-nh";
+
+export const toFlag = (elems: JSX.Element[]) => {
+  return elems.map((el: TRet) => {
+    if (el.type !== "title" && el.type !== "meta") {
+      el.props ??= {};
+      el.props[HELMET_FLAG] ??= "true";
+    }
+    return el;
+  });
+};
 
 export type HelmetRewind = {
   head: JSX.Element[];
@@ -10,12 +22,13 @@ export type HelmetRewind = {
   };
   body?: JSX.Element;
 };
+
 function toHelmet(elems: JSX.Element[]) {
   const helmet: JSX.Element[] = [];
   let hasBase = false;
   let hasTitle = false;
   for (let i = elems.length - 1; i >= 0; i -= 1) {
-    const elem = elems[i] as JSXElement;
+    const elem = elems[i] as TRet;
     if (elem.type === "base") {
       if (hasBase) continue;
       hasBase = true;
@@ -118,8 +131,8 @@ Helmet.rewind = (elem) => {
     footer: [],
     body: elem,
   } as HelmetRewind;
-  if (Helmet.writeHeadTag) data.head = Helmet.writeHeadTag();
-  if (Helmet.writeFooterTag) data.footer = Helmet.writeFooterTag();
+  if (Helmet.writeHeadTag) data.head = toFlag(Helmet.writeHeadTag());
+  if (Helmet.writeFooterTag) data.footer = toFlag(Helmet.writeFooterTag());
   if (Helmet.writeHtmlAttr) data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr) data.attr.body = Helmet.writeBodyAttr();
   Helmet.reset();

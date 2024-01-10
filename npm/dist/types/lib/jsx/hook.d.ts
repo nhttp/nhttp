@@ -1,12 +1,14 @@
 import { type HttpResponse, type RequestEvent, type TObject, type TRet } from "../deps";
-import { type EObject, type FC, type JSXElement, type JSXProps, type NJSX } from "./index";
+import { type EObject, type JSXElement, type JSXProps, type NJSX } from "./index";
 type TValue = string | number | TRet;
 type TContext = {
     Provider: (props: JSXProps<{
         value?: TValue;
-    }>) => JSXElement | null;
-    i: number;
+    }>) => Promise<TRet>;
+    getValue: <T>() => T;
 };
+export declare const s_int: unique symbol;
+export declare function checkHook(elem: TRet): boolean;
 /**
  * createContext.
  * @example
@@ -44,9 +46,8 @@ export declare function createContext<T extends unknown = unknown>(initValue?: T
  * ```
  */
 export declare function useContext<T extends unknown = unknown>(context: TContext): T;
-export declare const RequestEventContext: FC<{
-    rev: RequestEvent;
-}>;
+export declare const RevContext: TContext;
+export declare function elemToRevContext(elem: TRet, rev: RequestEvent): Promise<JSXElement>;
 /**
  * useRequestEvent. server-side only.
  * @example
@@ -58,6 +59,12 @@ export declare const RequestEventContext: FC<{
  * ```
  */
 export declare const useRequestEvent: <T extends EObject = EObject>() => RequestEvent<T>;
+export declare const useInternalHook: (rev?: RequestEvent) => {
+    id: number;
+    js_id: number;
+    sus: TRet[];
+    sus_id: number;
+};
 /**
  * useParams. server-side only.
  * @example
@@ -185,5 +192,5 @@ export declare function useStyle(css: Record<string, NJSX.CSSProperties> | strin
  * generate unique ID.
  */
 export declare const useId: () => string;
-export declare const createHookLib: (opts?: NJSX.ScriptHTMLAttributes, rev?: RequestEvent) => void;
+export declare const createHookScript: (opts?: NJSX.ScriptHTMLAttributes, rev?: RequestEvent) => void;
 export {};

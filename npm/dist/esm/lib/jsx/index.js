@@ -4,15 +4,14 @@ import {
   isValidElement,
   options,
   renderToHtml,
-  renderToReadableStream,
   renderToString,
-  Suspense,
   toStyle
 } from "./render.js";
 import { Helmet as Helmet2 } from "./helmet.js";
 export * from "./hook.js";
 export * from "./types.js";
 export * from "./htmx.js";
+export * from "./stream.js";
 const dangerHTML = "dangerouslySetInnerHTML";
 const Fragment = ({ children }) => children;
 function n(type, props, ...children) {
@@ -43,7 +42,6 @@ export {
   Client,
   Fragment,
   Helmet2 as Helmet,
-  Suspense,
   dangerHTML,
   escapeHtml,
   n as h,
@@ -51,7 +49,6 @@ export {
   n,
   options,
   renderToHtml,
-  renderToReadableStream,
   renderToString,
   toStyle
 };

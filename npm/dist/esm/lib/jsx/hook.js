@@ -4,38 +4,65 @@ import {
   options,
   toStyle
 } from "./index.js";
-import { toAttr } from "./render.js";
+import { renderToString, toAttr } from "./render.js";
 const now = Date.now();
-const hook = {
-  ctx_i: 0,
-  ctx: [],
-  js_i: 0,
-  id: 0
-};
+const s_int = Symbol("internal_hook");
+const isArray = Array.isArray;
+let HAS_CHECK_HOOK;
+function checkHook(elem) {
+  return HAS_CHECK_HOOK ??= (() => {
+    if (isArray(elem))
+      elem = elem[0];
+    return options.requestEventContext && elem?.__n__ !== void 0;
+  })();
+}
 function createContext(initValue) {
-  const i = hook.ctx_i++;
+  const arr = [];
+  let idx = 0;
+  const reset = (last, i = 0, len = arr.length) => {
+    while (i < len) {
+      if (arr[i].i === last) {
+        arr.splice(i, 1);
+        break;
+      }
+      i++;
+    }
+    if (arr.length === 0)
+      idx = 0;
+  };
   return {
-    Provider({ value, children }) {
-      hook.ctx[i] = value !== void 0 ? value : initValue;
-      return children;
-    },
-    i
+    getValue: () => arr[arr.length - 1]?.v?.(),
+    async Provider({ value, children }) {
+      const i = idx--;
+      arr.push({ i, v: () => value ?? initValue });
+      const child = await renderToString(children);
+      reset(i);
+      return n("", {
+        dangerouslySetInnerHTML: { __html: child }
+      });
+    }
   };
 }
 function useContext(context) {
-  return hook.ctx[context.i];
+  return context.getValue();
 }
 const RevContext = createContext();
-const RequestEventContext = (props) => {
-  const elem = RevContext.Provider({
-    value: props.rev,
-    children: props.children
-  });
-  hook.js_i = 0;
-  hook.id = 0;
+function elemToRevContext(elem, rev) {
+  if (checkHook(elem)) {
+    return RevContext.Provider({ value: rev, children: elem });
+  }
   return elem;
-};
+}
 const useRequestEvent = () => useContext(RevContext);
+const useInternalHook = (rev) => {
+  rev ??= useRequestEvent();
+  return rev[s_int] ??= {
+    id: 0,
+    js_id: 0,
+    sus: [],
+    sus_id: 0
+  };
+};
 const useParams = () => useRequestEvent()?.params;
 const useQuery = () => useRequestEvent()?.query;
 const useBody = () => useRequestEvent()?.body;
@@ -44,6 +71,7 @@ const useRequest = () => useRequestEvent()?.request;
 const cst = {};
 function useScript(fn, params, options2 = {}) {
   const rev = useRequestEvent();
+  const hook = useInternalHook(rev);
   if (rev !== void 0) {
     let js_string = "";
     if (typeof fn === "string") {
@@ -53,11 +81,11 @@ function useScript(fn, params, options2 = {}) {
     } else {
       return useScript(params, fn, options2);
     }
-    const i = hook.js_i;
+    const i = hook.js_id;
     const app = rev.__app();
     const id = `${now}${i}`;
     const path = `/__JS__/${id}.js`;
-    hook.js_i--;
+    hook.js_id--;
     const inline = options2.inline;
     const toScript = () => {
       const src = `(${js_string})`;
@@ -133,8 +161,8 @@ function useStyle(css) {
     n("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } })
   ];
 }
-const useId = () => `:${hook.id--}`;
-const createHookLib = (opts = {}, rev) => {
+const useId = () => `:${useInternalHook().id--}`;
+const createHookScript = (opts = {}, rev) => {
   const script = `<script${toAttr(opts)}></script>`;
   if (rev !== void 0) {
     rev.__init_head ??= "";
@@ -145,12 +173,16 @@ const createHookLib = (opts = {}, rev) => {
   options.initHead += script;
 };
 export {
-  RequestEventContext,
+  RevContext,
+  checkHook,
   createContext,
-  createHookLib,
+  createHookScript,
+  elemToRevContext,
+  s_int,
   useBody,
   useContext,
   useId,
+  useInternalHook,
   useParams,
   useQuery,
   useRequest,

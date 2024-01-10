@@ -1,5 +1,5 @@
 import { deno_inspect, node_inspect } from "./inspect";
-import { Cookie, TObject, TRet, TSendBody } from "./types";
+import type { Cookie, TObject, TRet, TSendBody } from "./types";
 export type ResInit = {
     headers?: TObject;
     status?: number;
@@ -10,6 +10,17 @@ type RetHeaders = {
     delete: (key: string) => void;
     toJSON: () => TObject;
 };
+export interface HttpResponse extends NHTTP.HttpResponse {
+    /**
+     * render `requires app.engine configs`
+     * @example
+     * await response.render("index", {
+     *   key: "value"
+     * });
+     * await response.render(<h1>Hello Jsx</h1>);
+     */
+    render: (fileOrElem: TRet, params?: TObject, ...args: TRet) => Promise<void>;
+}
 export declare class HttpResponse {
     /**
      * send response body
@@ -117,15 +128,6 @@ export declare class HttpResponse {
      * response.type("html", "utf-8").send("<h1>hello, world</h1>");
      */
     type(contentType: string, charset?: string): this;
-    /**
-     * render `requires app.engine configs`
-     * @example
-     * await response.render("index", {
-     *   key: "value"
-     * });
-     * await response.render(<h1>Hello Jsx</h1>);
-     */
-    render: (fileOrElem: TRet, params?: TObject, ...args: TRet) => Promise<void>;
     /**
      * shorthand for send html body
      * @example

@@ -23,9 +23,7 @@ export {
   options,
   type RenderHTML,
   renderToHtml,
-  renderToReadableStream,
   renderToString,
-  Suspense,
   type TOptionsRender,
   toStyle,
 } from "./render.ts";
@@ -33,6 +31,7 @@ export { Helmet, type HelmetRewind } from "./helmet.ts";
 export * from "./hook.ts";
 export * from "./types.ts";
 export * from "./htmx.ts";
+export * from "./stream.ts";
 // deno-lint-ignore ban-types
 export type EObject = {};
 type Merge<A, B> = {

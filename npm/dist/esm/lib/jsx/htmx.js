@@ -1,21 +1,12 @@
-import { internal } from "./render.js";
-import { createHookLib } from "./hook.js";
-const useHtmx = (opts = {}) => {
-  if (internal.htmx)
-    return;
-  internal.htmx = true;
-  opts.src ??= "//unpkg.com/htmx.org";
-  createHookLib(opts);
-};
+import { createHookScript } from "./hook.js";
 const htmx = (opts = {}) => {
-  internal.htmx = true;
+  opts.src ??= "//unpkg.com/htmx.org";
   return (rev, next) => {
-    opts.src ??= "//unpkg.com/htmx.org";
-    createHookLib(opts, rev);
+    rev.isHtmx = rev.headers.has("hx-request");
+    createHookScript(opts, rev);
     return next();
   };
 };
 export {
-  htmx,
-  useHtmx
+  htmx
 };

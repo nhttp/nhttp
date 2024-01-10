@@ -1,5 +1,7 @@
 import type { TRet } from "../deps";
 import { type JSXProps, type NJSX } from "./index";
+export declare const HELMET_FLAG = "data-nh";
+export declare const toFlag: (elems: JSX.Element[]) => any[];
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];

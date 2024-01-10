@@ -17,12 +17,16 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var hook_exports = {};
 __export(hook_exports, {
-  RequestEventContext: () => RequestEventContext,
+  RevContext: () => RevContext,
+  checkHook: () => checkHook,
   createContext: () => createContext,
-  createHookLib: () => createHookLib,
+  createHookScript: () => createHookScript,
+  elemToRevContext: () => elemToRevContext,
+  s_int: () => s_int,
   useBody: () => useBody,
   useContext: () => useContext,
   useId: () => useId,
+  useInternalHook: () => useInternalHook,
   useParams: () => useParams,
   useQuery: () => useQuery,
   useRequest: () => useRequest,
@@ -35,36 +39,63 @@ module.exports = __toCommonJS(hook_exports);
 var import_index = require("./index");
 var import_render = require("./render");
 const now = Date.now();
-const hook = {
-  ctx_i: 0,
-  ctx: [],
-  js_i: 0,
-  id: 0
-};
+const s_int = Symbol("internal_hook");
+const isArray = Array.isArray;
+let HAS_CHECK_HOOK;
+function checkHook(elem) {
+  return HAS_CHECK_HOOK ??= (() => {
+    if (isArray(elem))
+      elem = elem[0];
+    return import_index.options.requestEventContext && elem?.__n__ !== void 0;
+  })();
+}
 function createContext(initValue) {
-  const i = hook.ctx_i++;
+  const arr = [];
+  let idx = 0;
+  const reset = (last, i = 0, len = arr.length) => {
+    while (i < len) {
+      if (arr[i].i === last) {
+        arr.splice(i, 1);
+        break;
+      }
+      i++;
+    }
+    if (arr.length === 0)
+      idx = 0;
+  };
   return {
-    Provider({ value, children }) {
-      hook.ctx[i] = value !== void 0 ? value : initValue;
-      return children;
-    },
-    i
+    getValue: () => arr[arr.length - 1]?.v?.(),
+    async Provider({ value, children }) {
+      const i = idx--;
+      arr.push({ i, v: () => value ?? initValue });
+      const child = await (0, import_render.renderToString)(children);
+      reset(i);
+      return (0, import_index.n)("", {
+        dangerouslySetInnerHTML: { __html: child }
+      });
+    }
   };
 }
 function useContext(context) {
-  return hook.ctx[context.i];
+  return context.getValue();
 }
 const RevContext = createContext();
-const RequestEventContext = (props) => {
-  const elem = RevContext.Provider({
-    value: props.rev,
-    children: props.children
-  });
-  hook.js_i = 0;
-  hook.id = 0;
+function elemToRevContext(elem, rev) {
+  if (checkHook(elem)) {
+    return RevContext.Provider({ value: rev, children: elem });
+  }
   return elem;
-};
+}
 const useRequestEvent = () => useContext(RevContext);
+const useInternalHook = (rev) => {
+  rev ??= useRequestEvent();
+  return rev[s_int] ??= {
+    id: 0,
+    js_id: 0,
+    sus: [],
+    sus_id: 0
+  };
+};
 const useParams = () => useRequestEvent()?.params;
 const useQuery = () => useRequestEvent()?.query;
 const useBody = () => useRequestEvent()?.body;
@@ -73,6 +104,7 @@ const useRequest = () => useRequestEvent()?.request;
 const cst = {};
 function useScript(fn, params, options2 = {}) {
   const rev = useRequestEvent();
+  const hook = useInternalHook(rev);
   if (rev !== void 0) {
     let js_string = "";
     if (typeof fn === "string") {
@@ -82,11 +114,11 @@ function useScript(fn, params, options2 = {}) {
     } else {
       return useScript(params, fn, options2);
     }
-    const i = hook.js_i;
+    const i = hook.js_id;
     const app = rev.__app();
     const id = `${now}${i}`;
     const path = `/__JS__/${id}.js`;
-    hook.js_i--;
+    hook.js_id--;
     const inline = options2.inline;
     const toScript = () => {
       const src = `(${js_string})`;
@@ -162,8 +194,8 @@ function useStyle(css) {
     (0, import_index.n)("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } })
   ];
 }
-const useId = () => `:${hook.id--}`;
-const createHookLib = (opts = {}, rev) => {
+const useId = () => `:${useInternalHook().id--}`;
+const createHookScript = (opts = {}, rev) => {
   const script = `<script${(0, import_render.toAttr)(opts)}></script>`;
   if (rev !== void 0) {
     rev.__init_head ??= "";
@@ -175,12 +207,16 @@ const createHookLib = (opts = {}, rev) => {
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  RequestEventContext,
+  RevContext,
+  checkHook,
   createContext,
-  createHookLib,
+  createHookScript,
+  elemToRevContext,
+  s_int,
   useBody,
   useContext,
   useId,
+  useInternalHook,
   useParams,
   useQuery,
   useRequest,
