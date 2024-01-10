@@ -1,9 +1,11 @@
 import type { NJSX } from "./types.ts";
 import type { Handler } from "../deps.ts";
-import { createHookLib } from "./hook.ts";
+import { createHookScript } from "./hook.ts";
 import { internal } from "./render.ts";
 /**
  * useTwind.
+ * @deprecated
+ * use `app.use(twind());` instead.
  * @example
  *
  * useTwind();
@@ -18,7 +20,7 @@ export const useTwind = (
   if (internal.twind) return;
   internal.twind = true;
   opts.src ??= "//cdn.twind.style";
-  createHookLib(opts);
+  createHookScript(opts);
 };
 /**
  * twind.
@@ -31,9 +33,9 @@ export const useTwind = (
  * app.use(twind());
  */
 export const twind = (opts: NJSX.ScriptHTMLAttributes = {}): Handler => {
+  opts.src ??= "//cdn.twind.style";
   return (rev, next) => {
-    opts.src ??= "//cdn.twind.style";
-    createHookLib(opts, rev);
+    createHookScript(opts, rev);
     return next();
   };
 };

@@ -112,6 +112,10 @@ export type CSRFOptions = {
     | "SHA1"
     | "SHA256"
     | "SHA512";
+  /**
+   * config origin. default to `true`.
+   */
+  origin?: string | string[] | boolean;
 };
 const message = "Failed to verify csrf";
 /**
@@ -146,6 +150,12 @@ export const csrf = (opts: CSRFOptions = {}): Handler => {
     ["GET", "HEAD", "OPTIONS", "TRACE"];
   const algo = opts.algo ?? "SHA1";
   return (rev, next) => {
+    let origin = [] as string[];
+    if (opts.origin !== false) {
+      if (opts.origin === true || opts.origin == null) opts.origin = [];
+      else if (typeof opts.origin === "string") opts.origin = [opts.origin];
+      origin = [new URL(rev.request.url).origin].concat(opts.origin);
+    }
     rev.csrfToken = () => {
       let secret = opts.secret ?? rand();
       if (typeof secret === "function") secret = secret();
@@ -160,13 +170,15 @@ export const csrf = (opts: CSRFOptions = {}): Handler => {
     };
     rev.csrfVerify = () => {
       if (ignoreMethods.includes(rev.method)) return true;
-      const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
-      if (value == null) return true;
-      return verify(
-        cookie ? rev.cookies[cname] : opts.secret,
-        value,
-        algo,
-      );
+      return origin.includes(rev.headers.get("origin") ?? "") || (() => {
+        const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
+        if (value == null) return true;
+        return verify(
+          cookie ? rev.cookies[cname] : opts.secret,
+          value,
+          algo,
+        );
+      })();
     };
     if (autoVerify) {
       if (rev.csrfVerify()) return next();

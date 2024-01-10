@@ -31,9 +31,25 @@ Deno.test("router", async (t) => {
       assertEquals(rev.path, rev.__path);
       return new Response("hello");
     });
+    router.add("GET", "/add", () => {});
+    router.add(["GET", "PUT"], "/add-multi", () => {});
     router.get("/:name", () => {});
     const arr = router.c_routes;
     assertEquals(Array.isArray(arr), true);
     assertEquals(arr.find((el) => el.path == "/hello")?.fns.length, 1);
+    assertEquals(
+      arr.find((el) => el.path == "/add" && el.method === "GET")?.fns.length,
+      1,
+    );
+    assertEquals(
+      arr.find((el) => el.path == "/add-multi" && el.method === "GET")?.fns
+        .length,
+      1,
+    );
+    assertEquals(
+      arr.find((el) => el.path == "/add-multi" && el.method === "PUT")?.fns
+        .length,
+      1,
+    );
   });
 });

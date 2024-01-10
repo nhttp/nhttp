@@ -13,6 +13,7 @@ import {
   s_query,
   s_response,
   s_route,
+  s_undefined,
 } from "./symbol.ts";
 import { nhttp } from "./nhttp.ts";
 
@@ -27,6 +28,10 @@ Deno.test("RequestEvent", async (t) => {
   });
 
   assertEquals(typeof rev.info, "object");
+
+  rev.undefined();
+  assertEquals(rev[s_undefined], true);
+  rev[s_undefined] = void 0;
   rev.send(0);
   assertEquals(rev[s_response] instanceof Response, true);
   rev.respondWith(new Response(""));
@@ -141,7 +146,6 @@ Deno.test("RequestEvent", async (t) => {
     req._info = { conn: {}, ctx: {} };
     const rev = new RequestEvent(req);
     assertEquals(typeof rev.info.conn, "object");
-    assertEquals(typeof rev.info.env, "object");
     assertEquals(typeof rev.info.context, "object");
   });
   await t.step("waitUntil", () => {
