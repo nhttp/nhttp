@@ -16,6 +16,7 @@ type RetHeaders = {
   delete: (key: string) => void;
   toJSON: () => TObject;
 };
+/* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
 export interface HttpResponse extends NHTTP.HttpResponse {
   /**
    * render `requires app.engine configs`

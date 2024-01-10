@@ -36,6 +36,7 @@ type TInfo<T> = {
   conn: T;
   context: TObject;
 };
+/* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
 export interface RequestEvent extends NHTTP.RequestEvent {
   /**
    * send data to log. `requires logger middlewares`
