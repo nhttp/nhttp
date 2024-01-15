@@ -4,9 +4,9 @@ declare global {
     namespace NHTTP {
         interface RequestEvent {
             /**
-             * isHtmx. check if `HX-Request`.
+             * hxRequest. check if `HX-Request`.
              */
-            isHtmx: boolean;
+            hxRequest: boolean;
         }
     }
 }

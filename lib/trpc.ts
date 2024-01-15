@@ -6,7 +6,7 @@ import {
 import { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
 type TAnyRouter = TRet;
-interface TOpts<TRouter extends AnyRouter> {
+export interface TrpcOptions<TRouter extends AnyRouter> {
   /**
    * @deprecated
    * Use `endpoint` instead.
@@ -31,7 +31,7 @@ interface TOpts<TRouter extends AnyRouter> {
  * app.use(trpc({ router: appRouter, endpoint: "/trpc" }));
  */
 export const trpc = <TRouter extends AnyRouter>(
-  opts: TOpts<TRouter>,
+  opts: TrpcOptions<TRouter>,
 ): Handler => {
   return async (rev, next) => {
     try {

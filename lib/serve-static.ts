@@ -1,7 +1,7 @@
 import { decURIComponent, NextFunction, RequestEvent, TRet } from "./deps.ts";
 import { sendFile as sendFileEtag, TOptsSendFile } from "./etag.ts";
 
-interface StaticOptions extends TOptsSendFile {
+export interface ServeStaticOptions extends TOptsSendFile {
   index?: string;
   redirect?: boolean;
   prefix?: string;
@@ -19,7 +19,7 @@ export const sendFile = sendFileEtag;
  * // or
  * // app.use("/assets", serveStatic("./my_dir"));
  */
-export function serveStatic(dir: string | URL, opts: StaticOptions = {}) {
+export function serveStatic(dir: string | URL, opts: ServeStaticOptions = {}) {
   opts.index ??= "index.html";
   opts.redirect ??= true;
   opts.etag ??= false;

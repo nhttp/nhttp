@@ -1,4 +1,4 @@
-import { Helmet, HELMET_FLAG } from "./helmet.js";
+import { Helmet } from "./helmet.js";
 import {
   dangerHTML,
   elemToRevContext
@@ -69,9 +69,7 @@ const toAttr = (p = {}) => {
   }
   return attr;
 };
-const toHtml = async (body, initHead = "") => {
-  const { head, footer, attr } = Helmet.rewind();
-  attr.html.lang ??= "en";
+const toHtml = async (body, { head, footer, attr }, initHead = "") => {
   return (options.docType ?? "<!DOCTYPE html>") + `<html${toAttr(attr.html)}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">` + initHead + (head.length > 0 ? await renderToString(head) : "") + `</head><body${toAttr(attr.body)}>${body}` + (footer.length > 0 ? await renderToString(footer) : "") + "</body></html>";
 };
 const REG_HTML = /["'&<>]/;
@@ -117,49 +115,6 @@ function toStyle(val) {
     ""
   );
 }
-function helmetToClient({ head, footer }) {
-  let has, head_src = "", body_src = "";
-  const toAttr2 = (props = {}, name) => {
-    let str = "";
-    for (const k in props) {
-      let v = props[k];
-      if (v === true) {
-        str += `${name}.setAttribute("${k}", "");`;
-      } else {
-        if (k === "style" && typeof v === "object")
-          v = toStyle(v);
-        str += `${name}.setAttribute("${k}", "${escapeHtml(String(v))}");`;
-      }
-    }
-    return str;
-  };
-  const pushScript = (elems, name) => {
-    let src = "var d=document;function $(s){return d.querySelector(s)};";
-    has ??= true;
-    src += `function c(n){return d.createElement(n)};`;
-    if (name === "head") {
-      elems = elems.filter((el) => el.type !== "meta");
-      src += `var t=$("title");if(t)d.head.removeChild(t);`;
-    }
-    src += `d.${name}.childNodes.forEach(function(c){if(c.hasAttribute&&c.hasAttribute("${HELMET_FLAG}")){d.${name}.removeChild(c)}});`;
-    elems.forEach((elem, i) => {
-      const child = elem.props?.children?.[0];
-      const props = mutateProps(elem.props);
-      src += `var $${i}=c("${elem.type}");`;
-      if (child) {
-        src += `$${i}.append("${child}");`;
-      }
-      src += toAttr2(props, `$${i}`);
-      src += `d.${name}.appendChild($${i});`;
-    });
-    return `(function(){${src}})();`;
-  };
-  if (head.length > 0)
-    head_src = pushScript(head, "head");
-  if (footer.length > 0)
-    body_src = pushScript(footer, "body");
-  return has ? head_src + body_src : void 0;
-}
 async function renderToString(elem) {
   if (elem == null || typeof elem === "boolean")
     return "";
@@ -193,23 +148,30 @@ async function renderToString(elem) {
     return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
+function bodyWithTitle(body, title) {
+  if (title !== void 0) {
+    return `${body}<script>document.title="${escapeHtml(title)}";</script>`;
+  }
+  return body;
+}
 const renderToHtml = async (elem, rev) => {
   elem = await elemToRevContext(elem, rev);
   const body = await options.onRenderElement(elem, rev);
-  if (rev.isHtmx) {
-    const client = helmetToClient(Helmet.rewind());
-    return `${body}${client !== void 0 ? `<script>${client}</script>` : ""}`;
-  }
+  const rewind = Helmet.rewind();
+  rewind.attr.html.lang ??= "en";
+  if (rev.hxRequest)
+    return bodyWithTitle(body, rewind.title);
   const html = await toHtml(
     body,
+    rewind,
     toInitHead(rev.__init_head, options.initHead)
   );
   return await options.onRenderHtml(html, rev);
 };
 renderToHtml.check = isValidElement;
 export {
+  bodyWithTitle,
   escapeHtml,
-  helmetToClient,
   internal,
   isValidElement,
   mutateAttr,

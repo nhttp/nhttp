@@ -1,5 +1,9 @@
-import { type TwindConfig, TwindUserConfig } from "@twind/core";
+import { type InlineOptions, type TwindConfig, TwindUserConfig } from "@twind/core";
 import type { Handler } from "../deps";
+export type { InlineOptions };
+export declare function onRenderElement({ htmx, ...opts }?: InlineOptions & {
+    htmx?: boolean;
+}): (elem: JSX.Element, rev: import("../deps").RequestEvent<import("../deps").TObject>) => string | Promise<string>;
 /**
  * Core install twind.
  * @example
@@ -16,7 +20,7 @@ export declare const install: (config?: TwindConfig | TwindUserConfig, isProduct
  *
  * app.engine(renderToHtml);
  */
-export declare const useTwindServer: (opts?: InlineOptions) => (html: string, rev: import("../deps").RequestEvent<import("../deps").TObject>) => string | Promise<string>;
+export declare const useTwindServer: ({ htmx, ...opts }?: any) => void;
 /**
  * twindServer.
  * @example

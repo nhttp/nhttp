@@ -8,7 +8,7 @@ export * from "https://esm.sh/v132/class-validator@0.14.0";
 
 type Class = { new (...args: TRet[]): TRet };
 
-type TOptions = ValidatorOptions & {
+export type ClassValidatorOptions = ValidatorOptions & {
   plainToClass?: (...args: TRet) => TRet;
   onError?: (err: TRet, rev: RequestEvent) => TRet;
 };
@@ -22,7 +22,7 @@ export function validate<
   T extends Class = Class,
 >(
   cls: T,
-  opts: TOptions = {},
+  opts: ClassValidatorOptions = {},
   target = <S> "body",
 ): Handler<{ [k in S]: InstanceType<T> }> {
   return async (rev, next) => {
@@ -51,7 +51,7 @@ export function validate<
  */
 export function Validate(
   cls: Class,
-  opts: TOptions = {},
+  opts: ClassValidatorOptions = {},
   target = "body",
 ): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {

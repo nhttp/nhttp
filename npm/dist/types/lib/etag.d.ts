@@ -8,12 +8,13 @@ export interface TOptsSendFile {
 }
 export declare function getContentType(path: string): string;
 export declare function sendFile(rev: RequestEvent, pathFile: string, opts?: TOptsSendFile): Promise<any>;
+export type EtagOptions = {
+    weak?: boolean;
+};
 /**
  * Etag middleware.
  * @example
  * app.use(etag());
  */
-export declare const etag: (opts?: {
-    weak?: boolean;
-}) => Handler;
+export declare const etag: (opts?: EtagOptions) => Handler;
 export default etag;

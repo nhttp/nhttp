@@ -31,7 +31,7 @@ __export(csrf_exports, {
   default: () => csrf_default
 });
 module.exports = __toCommonJS(csrf_exports);
-var import_node_crypto = __toESM(require("node:crypto"));
+var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_deps = require("./deps");
 const rand = () => `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`.replace(".", "");
 const CHARS = [

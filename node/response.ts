@@ -1,13 +1,24 @@
 import { TRet } from "../index.ts";
 import { NodeHeaders } from "./headers.ts";
-import { s_body, s_def, s_headers, s_init, s_inspect } from "./symbol.ts";
+import {
+  s_body,
+  s_body_clone,
+  s_def,
+  s_headers,
+  s_init,
+  s_inspect,
+} from "./symbol.ts";
 
 const C_TYPE = "Content-Type";
 const JSON_TYPE = "application/json";
 
 export class NodeResponse {
   _nres = 1;
-  constructor(body?: BodyInit | null, init?: ResponseInit) {
+  constructor(
+    body?: BodyInit | null,
+    init?: ResponseInit,
+    public resClone?: Response,
+  ) {
     this[s_body] = body;
     this[s_init] = init;
   }
@@ -39,6 +50,7 @@ export class NodeResponse {
     return new NodeResponse(JSON.stringify(data), init);
   }
   private get res(): Response {
+    if (this.resClone !== void 0) return this.resClone;
     return this[s_def] ??= new (<TRet> globalThis).NativeResponse(
       this[s_body],
       this[s_init],
@@ -72,7 +84,8 @@ export class NodeResponse {
     return this.res.bodyUsed;
   }
   clone(): Response {
-    return new NodeResponse(this[s_body], this[s_init]);
+    this[s_body_clone] = this.res.clone().body;
+    return new NodeResponse(this[s_body], this[s_init], this.res.clone());
   }
   arrayBuffer() {
     return this.res.arrayBuffer();

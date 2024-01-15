@@ -1,31 +1,19 @@
+import TwindStream from "https://esm.sh/v132/@twind/with-react@1.1.3/readableStream";
+import { options } from "./render.ts";
+import type { Handler, TRet } from "../deps.ts";
 import {
   type InlineOptions,
-  install as installOri,
-  type TwindConfig,
-  TwindUserConfig,
-} from "https://esm.sh/v132/@twind/core@1.1.3";
-import TwindStream from "https://esm.sh/v132/@twind/with-react@1.1.3/readableStream";
-import presetAutoprefix from "https://esm.sh/v132/@twind/preset-autoprefix@1.0.7";
-import presetTailwind from "https://esm.sh/v132/@twind/preset-tailwind@1.1.4";
-import { options } from "./render.ts";
-import type { Handler } from "../deps.ts";
+  install,
+  onRenderElement,
+} from "./twind-server.ts";
 
 /**
  * Core install twind.
  * @example
  * install(config);
  */
-export const install = (
-  config: TwindConfig | TwindUserConfig = {},
-  isProduction?: boolean,
-) => {
-  return installOri({
-    presets: [presetAutoprefix(), presetTailwind()],
-    ...config,
-  } as TwindUserConfig, isProduction);
-};
 install();
-
+export { install };
 /**
  * useTwindStream.
  * @example
@@ -37,13 +25,14 @@ install();
  * app.engine(renderToReadableStream);
  */
 export const useTwindStream = (
-  opts?: InlineOptions,
-) => {
+  { htmx, ...opts }: InlineOptions & { htmx?: boolean } = {},
+): void => {
   const writeStream = options.onRenderStream;
   options.onRenderStream = (stream, rev) => {
     return writeStream(stream.pipeThrough(new TwindStream(opts)), rev);
   };
-  return writeStream;
+  const writeElem = onRenderElement({ htmx, ...opts });
+  return { writeStream, writeElem } as TRet;
 };
 
 /**
@@ -58,9 +47,10 @@ export const useTwindStream = (
  */
 export const twindStream = (opts?: InlineOptions): Handler => {
   return async (_rev, next) => {
-    const last = useTwindStream(opts);
+    const { writeStream, writeElem } = useTwindStream(opts) as TRet;
     await next();
-    options.onRenderStream = last;
+    options.onRenderStream = writeStream;
+    options.onRenderElement = writeElem;
   };
 };
 

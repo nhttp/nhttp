@@ -57,19 +57,19 @@ export declare const options: TOptionsRender;
 export declare function toInitHead(a: string | undefined, b: string | undefined): string;
 export declare const mutateAttr: Record<string, string>;
 export declare const toAttr: (p?: TRet) => string;
-export declare const toHtml: (body: string, initHead?: string) => Promise<string>;
+export declare const toHtml: (body: string, { head, footer, attr }: HelmetRewind, initHead?: string) => Promise<string>;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
 export declare function toStyle(val: NJSX.CSSProperties): string;
-export declare function helmetToClient({ head, footer }: HelmetRewind): string;
 /**
  * renderToString.
  * @example
  * const str = await renderToString(<App />);
  */
 export declare function renderToString(elem: JSXNode<TRet>): Promise<string>;
+export declare function bodyWithTitle(body: string, title?: string): string;
 /**
  * render to html in `app.engine`.
  * @example

@@ -27,10 +27,8 @@ var import_hook = require("./hook");
 var import_index = require("./index");
 var import_render = require("./render");
 const encoder = new TextEncoder();
-async function toStream(body, write, rev, initHead) {
+async function toStream(body, { footer, attr, head }, write, rev, initHead) {
   const hook = (0, import_index.useInternalHook)(rev);
-  const { footer, attr, head } = import_helmet.Helmet.rewind();
-  attr.html.lang ??= "en";
   write(import_render.options.docType ?? "<!DOCTYPE html>");
   write(
     `<html${(0, import_render.toAttr)(attr.html)}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`
@@ -86,17 +84,17 @@ const renderToReadableStream = async (elem, rev) => {
           } catch {
           }
         };
+        const rewind = import_helmet.Helmet.rewind();
+        rewind.attr.html.lang ??= "en";
         const writeStream = async (elem2) => {
           const body = await import_render.options.onRenderElement(elem2, rev);
-          if (rev.isHtmx) {
-            const client = (0, import_render.helmetToClient)(import_helmet.Helmet.rewind());
-            enqueue(
-              `${body}${client !== void 0 ? `<script>${client}</script>` : ""}`
-            );
+          if (rev.hxRequest) {
+            enqueue((0, import_render.bodyWithTitle)(body, rewind.title));
           } else {
             await toStream(
               body,
-              (str) => enqueue(str),
+              rewind,
+              enqueue,
               rev,
               initHead
             );

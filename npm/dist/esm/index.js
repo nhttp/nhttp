@@ -1862,12 +1862,10 @@ var NHttp = class extends Router {
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
-            const res = await render(body, rev);
+            body = await render(body, rev);
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            rev[s_response] = new Response(res, rev[s_init]);
-          } else {
-            await send(body, lose);
           }
+          await send(body, lose);
         };
       }
       rev.response.render = (elem, params, ...args) => {
@@ -2081,6 +2079,7 @@ nhttp.Router = function(opts = {}) {
 
 // npm/src/node/symbol.ts
 var s_body2 = Symbol("input_body");
+var s_body_clone = Symbol("input_body_clone");
 var s_init2 = Symbol("init");
 var s_def = Symbol("default");
 var s_body_used = Symbol("req_body_used");
@@ -2287,11 +2286,12 @@ var NodeRequest = class _NodeRequest {
 var C_TYPE2 = "Content-Type";
 var JSON_TYPE2 = "application/json";
 var NodeResponse = class _NodeResponse {
-  _nres = 1;
-  constructor(body, init) {
+  constructor(body, init, resClone) {
+    this.resClone = resClone;
     this[s_body2] = body;
     this[s_init2] = init;
   }
+  _nres = 1;
   static error() {
     return globalThis.NativeResponse.error();
   }
@@ -2314,6 +2314,8 @@ var NodeResponse = class _NodeResponse {
     return new _NodeResponse(JSON.stringify(data), init);
   }
   get res() {
+    if (this.resClone !== void 0)
+      return this.resClone;
     return this[s_def] ??= new globalThis.NativeResponse(
       this[s_body2],
       this[s_init2]
@@ -2347,7 +2349,8 @@ var NodeResponse = class _NodeResponse {
     return this.res.bodyUsed;
   }
   clone() {
-    return new _NodeResponse(this[s_body2], this[s_init2]);
+    this[s_body_clone] = this.res.clone().body;
+    return new _NodeResponse(this[s_body2], this[s_init2], this.res.clone());
   }
   arrayBuffer() {
     return this.res.arrayBuffer();
@@ -2419,6 +2422,9 @@ async function sendStream(resWeb, res, ori = false) {
     return;
   }
   if (resWeb[s_body2] instanceof ReadableStream) {
+    if (resWeb[s_body2].locked && resWeb[s_body_clone] !== void 0) {
+      resWeb[s_body2] = resWeb[s_body_clone];
+    }
     for await (const chunk of resWeb[s_body2])
       res.write(chunk);
     res.end();
@@ -2457,8 +2463,12 @@ function handleResWeb(resWeb, res) {
         }
       }
     }
-    if (resWeb[s_init2].status)
+    if (resWeb[s_init2].status !== void 0) {
       res.statusCode = resWeb[s_init2].status;
+    }
+    if (resWeb[s_init2].statusText !== void 0) {
+      res.statusMessage = resWeb[s_init2].statusText;
+    }
   }
   if (resWeb[s_headers2]) {
     resWeb[s_headers2].forEach((val, key) => {

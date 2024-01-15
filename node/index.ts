@@ -3,7 +3,7 @@ import { TRet } from "../index.ts";
 import { FetchHandler, ListenOptions } from "../src/types.ts";
 import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
-import { s_body, s_headers, s_init } from "./symbol.ts";
+import { s_body, s_body_clone, s_headers, s_init } from "./symbol.ts";
 export function mutateResponse() {
   if ((<TRet> globalThis).NativeResponse === undefined) {
     (<TRet> globalThis).NativeResponse = Response;
@@ -39,6 +39,9 @@ async function sendStream(resWeb: TRet, res: TRet, ori = false) {
     return;
   }
   if (resWeb[s_body] instanceof ReadableStream) {
+    if (resWeb[s_body].locked && resWeb[s_body_clone] !== void 0) {
+      resWeb[s_body] = resWeb[s_body_clone];
+    }
     for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
     res.end();
     return;
@@ -83,7 +86,12 @@ function handleResWeb(resWeb: TRet, res: TRet) {
         }
       }
     }
-    if (resWeb[s_init].status) res.statusCode = resWeb[s_init].status;
+    if (resWeb[s_init].status !== void 0) {
+      res.statusCode = resWeb[s_init].status;
+    }
+    if (resWeb[s_init].statusText !== void 0) {
+      res.statusMessage = resWeb[s_init].statusText;
+    }
   }
   if (resWeb[s_headers]) {
     (<Headers> resWeb[s_headers]).forEach((val, key) => {

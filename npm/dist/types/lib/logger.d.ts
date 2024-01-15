@@ -1,5 +1,5 @@
 import type { Handler, TRet } from "./deps";
-type Log = {
+export type Log = {
     timing: string;
     route: string | RegExp;
     method: string;

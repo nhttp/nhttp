@@ -1,5 +1,5 @@
 import type { Handler, RequestEvent } from "./deps";
-type TOptions = {
+export type CorsOptions = {
     origin?: string | string[] | boolean | ((rev: RequestEvent) => Promise<boolean | string> | boolean | string);
     credentials?: boolean;
     allowHeaders?: string | string[];
@@ -19,5 +19,5 @@ type TOptions = {
  * @example
  * app.use(cors());
  */
-export declare const cors: (opts?: TOptions) => Handler;
+export declare const cors: (opts?: CorsOptions) => Handler;
 export default cors;

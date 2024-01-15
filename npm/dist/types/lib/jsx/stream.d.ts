@@ -1,7 +1,7 @@
 import { type RequestEvent } from "../deps";
-import { FC } from "./index";
+import { FC, HelmetRewind } from "./index";
 import { type RenderHTML } from "./render";
-export declare function toStream(body: string, write: (data: string) => void, rev: RequestEvent, initHead?: string): Promise<void>;
+export declare function toStream(body: string, { footer, attr, head }: HelmetRewind, write: (data: string) => void, rev: RequestEvent, initHead?: string): Promise<void>;
 /**
  * render to ReadableStream in `app.engine`.
  * @example
