@@ -1,6 +1,6 @@
 import type { Handler, RequestEvent, TRet } from "./deps.ts";
 
-type TOptions = {
+export type CorsOptions = {
   origin?:
     | string
     | string[]
@@ -24,7 +24,7 @@ type TOptions = {
  * @example
  * app.use(cors());
  */
-export const cors = (opts: TOptions = {}): Handler => {
+export const cors = (opts: CorsOptions = {}): Handler => {
   opts.optionsStatus ??= 204;
   opts.preflightNext ??= false;
   opts.allowMethods ??= "GET,HEAD,PUT,PATCH,POST,DELETE";

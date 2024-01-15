@@ -108,6 +108,8 @@ export { n as h };
 
 /**
  * Client interactive.
+ * @deprecated
+ * use Helmet instead.
  * @example
  * ```jsx
  * const Home = () => {
@@ -137,4 +139,50 @@ export const Client: FC<{
     ),
     n(props.type ?? "div", { id: props.id }, props.children),
   ]);
+};
+
+/**
+ * Script Component.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <>
+ *       <Helmet>
+ *          <Script>{`console.log("hello")`}</Script>
+ *       </Helmet>
+ *       <h1>hello</h1>
+ *     </>
+ *   )
+ * }
+ * ```
+ */
+export const Script: FC<NJSX.ScriptHTMLAttributes & { children?: string }> = (
+  { children, ...props },
+) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("script", props);
+};
+
+/**
+ * Style Component.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <>
+ *       <Helmet>
+ *          <Style>{`.title{color:blue}`}</Style>
+ *       </Helmet>
+ *       <h1 className="title">hello</h1>
+ *     </>
+ *   )
+ * }
+ * ```
+ */
+export const Style: FC<NJSX.StyleHTMLAttributes & { children?: string }> = (
+  { children, ...props },
+) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("style", props);
 };

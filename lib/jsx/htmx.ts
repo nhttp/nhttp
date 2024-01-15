@@ -6,9 +6,9 @@ declare global {
   namespace NHTTP {
     interface RequestEvent {
       /**
-       * isHtmx. check if `HX-Request`.
+       * hxRequest. check if `HX-Request`.
        */
-      isHtmx: boolean;
+      hxRequest: boolean;
     }
   }
 }
@@ -26,7 +26,7 @@ declare global {
 export const htmx = (opts: NJSX.ScriptHTMLAttributes = {}): Handler => {
   opts.src ??= "//unpkg.com/htmx.org";
   return (rev, next) => {
-    rev.isHtmx = rev.headers.has("hx-request");
+    rev.hxRequest = rev.headers.has("hx-request");
     createHookScript(opts, rev);
     return next();
   };

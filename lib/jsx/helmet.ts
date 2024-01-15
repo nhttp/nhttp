@@ -1,18 +1,6 @@
 import type { TRet } from "../deps.ts";
 import { type JSXProps, type NJSX } from "./index.ts";
 
-export const HELMET_FLAG = "data-nh";
-
-export const toFlag = (elems: JSX.Element[]) => {
-  return elems.map((el: TRet) => {
-    if (el.type !== "title" && el.type !== "meta") {
-      el.props ??= {};
-      el.props[HELMET_FLAG] ??= "true";
-    }
-    return el;
-  });
-};
-
 export type HelmetRewind = {
   head: JSX.Element[];
   footer: JSX.Element[];
@@ -21,13 +9,14 @@ export type HelmetRewind = {
     html: NJSX.HTMLAttributes;
   };
   body?: JSX.Element;
+  title?: string;
 };
 
 function toHelmet(elems: JSX.Element[]) {
   const helmet: JSX.Element[] = [];
   let hasBase = false;
   let hasTitle = false;
-  for (let i = elems.length - 1; i >= 0; i -= 1) {
+  for (let i = 0; i < elems.length; i++) {
     const elem = elems[i] as TRet;
     if (elem.type === "base") {
       if (hasBase) continue;
@@ -35,10 +24,11 @@ function toHelmet(elems: JSX.Element[]) {
     } else if (elem.type === "title") {
       if (hasTitle) continue;
       hasTitle = true;
+      Helmet.title = elem.props.children[0];
     }
     helmet.push(elem);
   }
-  return helmet.reverse();
+  return helmet;
 }
 // shiming for support preact/react.
 type FCHelmet =
@@ -82,6 +72,7 @@ type FCHelmet =
     writeFooterTag?: () => JSX.Element[];
     writeHtmlAttr?: () => NJSX.HTMLAttributes;
     writeBodyAttr?: () => NJSX.HTMLAttributes;
+    title?: string;
     reset: () => void;
   };
 
@@ -123,6 +114,7 @@ Helmet.reset = () => {
   Helmet.writeFooterTag = void 0;
   Helmet.writeHtmlAttr = void 0;
   Helmet.writeBodyAttr = void 0;
+  Helmet.title = void 0;
 };
 Helmet.rewind = (elem) => {
   const data = {
@@ -131,10 +123,11 @@ Helmet.rewind = (elem) => {
     footer: [],
     body: elem,
   } as HelmetRewind;
-  if (Helmet.writeHeadTag) data.head = toFlag(Helmet.writeHeadTag());
-  if (Helmet.writeFooterTag) data.footer = toFlag(Helmet.writeFooterTag());
+  if (Helmet.writeHeadTag) data.head = Helmet.writeHeadTag();
+  if (Helmet.writeFooterTag) data.footer = Helmet.writeFooterTag();
   if (Helmet.writeHtmlAttr) data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr) data.attr.body = Helmet.writeBodyAttr();
+  if (Helmet.title !== void 0) data.title = Helmet.title;
   Helmet.reset();
   return data;
 };

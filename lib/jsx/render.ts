@@ -1,5 +1,5 @@
 import type { RequestEvent, TObject, TRet } from "../deps.ts";
-import { Helmet, HELMET_FLAG } from "./helmet.ts";
+import { Helmet } from "./helmet.ts";
 import {
   dangerHTML,
   elemToRevContext,
@@ -135,9 +135,11 @@ export const toAttr = (p: TRet = {}) => {
   }
   return attr;
 };
-export const toHtml = async (body: string, initHead = "") => {
-  const { head, footer, attr } = Helmet.rewind();
-  attr.html.lang ??= "en";
+export const toHtml = async (
+  body: string,
+  { head, footer, attr }: HelmetRewind,
+  initHead = "",
+) => {
   return (
     (options.docType ?? "<!DOCTYPE html>") +
     `<html${toAttr(attr.html)}>` +
@@ -200,50 +202,6 @@ export function toStyle(val: NJSX.CSSProperties) {
     "",
   );
 }
-export function helmetToClient(
-  { head, footer }: HelmetRewind,
-) {
-  let has, head_src = "", body_src = "";
-  const toAttr = (props: TRet = {}, name: string) => {
-    let str = "";
-    for (const k in props) {
-      let v = props[k];
-      if (v === true) {
-        str += `${name}.setAttribute("${k}", "");`;
-      } else {
-        if (k === "style" && typeof v === "object") v = toStyle(v);
-        str += `${name}.setAttribute("${k}", "${escapeHtml(String(v))}");`;
-      }
-    }
-    return str;
-  };
-  const pushScript = (elems: TRet[], name: "head" | "body") => {
-    let src = "var d=document;function $(s){return d.querySelector(s)};";
-    has ??= true;
-    src += `function c(n){return d.createElement(n)};`;
-    if (name === "head") {
-      // skip send meta to client. cause for SEO SSR.
-      elems = elems.filter((el: TRet) => el.type !== "meta");
-      src += `var t=$("title");if(t)d.head.removeChild(t);`;
-    }
-    src +=
-      `d.${name}.childNodes.forEach(function(c){if(c.hasAttribute&&c.hasAttribute("${HELMET_FLAG}")){d.${name}.removeChild(c)}});`;
-    elems.forEach((elem, i) => {
-      const child = elem.props?.children?.[0];
-      const props = mutateProps(elem.props);
-      src += `var $${i}=c("${elem.type}");`;
-      if (child) {
-        src += `$${i}.append("${child}");`;
-      }
-      src += toAttr(props, `$${i}`);
-      src += `d.${name}.appendChild($${i});`;
-    });
-    return `(function(){${src}})();`;
-  };
-  if (head.length > 0) head_src = pushScript(head, "head");
-  if (footer.length > 0) body_src = pushScript(footer, "body");
-  return has ? (head_src + body_src) : void 0;
-}
 /**
  * renderToString.
  * @example
@@ -277,6 +235,12 @@ export async function renderToString(elem: TRet): Promise<string> {
   if (type === "") return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
+export function bodyWithTitle(body: string, title?: string) {
+  if (title !== void 0) {
+    return `${body}<script>document.title="${escapeHtml(title)}";</script>`;
+  }
+  return body;
+}
 /**
  * render to html in `app.engine`.
  * @example
@@ -293,12 +257,12 @@ export async function renderToString(elem: TRet): Promise<string> {
 export const renderToHtml: RenderHTML = async (elem, rev) => {
   elem = await elemToRevContext(elem, rev);
   const body = await options.onRenderElement(elem, rev);
-  if (rev.isHtmx) {
-    const client = helmetToClient(Helmet.rewind());
-    return `${body}${client !== void 0 ? `<script>${client}</script>` : ""}`;
-  }
+  const rewind = Helmet.rewind();
+  rewind.attr.html.lang ??= "en";
+  if (rev.hxRequest) return bodyWithTitle(body, rewind.title);
   const html = await toHtml(
     body,
+    rewind,
     toInitHead(rev.__init_head, options.initHead),
   );
   return await options.onRenderHtml(html, rev);
