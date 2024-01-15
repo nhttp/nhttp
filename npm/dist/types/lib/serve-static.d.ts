@@ -1,6 +1,6 @@
 import { NextFunction, RequestEvent, TRet } from "./deps";
 import { sendFile as sendFileEtag, TOptsSendFile } from "./etag";
-interface StaticOptions extends TOptsSendFile {
+export interface ServeStaticOptions extends TOptsSendFile {
     index?: string;
     redirect?: boolean;
     prefix?: string;
@@ -18,5 +18,5 @@ export declare const sendFile: typeof sendFileEtag;
  * // or
  * // app.use("/assets", serveStatic("./my_dir"));
  */
-export declare function serveStatic(dir: string | URL, opts?: StaticOptions): (rev: RequestEvent, next: NextFunction) => Promise<any>;
+export declare function serveStatic(dir: string | URL, opts?: ServeStaticOptions): (rev: RequestEvent, next: NextFunction) => Promise<any>;
 export default serveStatic;

@@ -1,8 +1,11 @@
 import { Helmet } from "./helmet.js";
 import { elemToRevContext } from "./hook.js";
-import { n, useInternalHook } from "./index.js";
 import {
-  helmetToClient,
+  n,
+  useInternalHook
+} from "./index.js";
+import {
+  bodyWithTitle,
   isValidElement,
   options,
   renderToString,
@@ -10,10 +13,8 @@ import {
   toInitHead
 } from "./render.js";
 const encoder = new TextEncoder();
-async function toStream(body, write, rev, initHead) {
+async function toStream(body, { footer, attr, head }, write, rev, initHead) {
   const hook = useInternalHook(rev);
-  const { footer, attr, head } = Helmet.rewind();
-  attr.html.lang ??= "en";
   write(options.docType ?? "<!DOCTYPE html>");
   write(
     `<html${toAttr(attr.html)}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`
@@ -69,17 +70,17 @@ const renderToReadableStream = async (elem, rev) => {
           } catch {
           }
         };
+        const rewind = Helmet.rewind();
+        rewind.attr.html.lang ??= "en";
         const writeStream = async (elem2) => {
           const body = await options.onRenderElement(elem2, rev);
-          if (rev.isHtmx) {
-            const client = helmetToClient(Helmet.rewind());
-            enqueue(
-              `${body}${client !== void 0 ? `<script>${client}</script>` : ""}`
-            );
+          if (rev.hxRequest) {
+            enqueue(bodyWithTitle(body, rewind.title));
           } else {
             await toStream(
               body,
-              (str) => enqueue(str),
+              rewind,
+              enqueue,
               rev,
               initHead
             );

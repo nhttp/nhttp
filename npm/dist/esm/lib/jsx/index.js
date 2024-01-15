@@ -38,10 +38,20 @@ const Client = (props) => {
     n(props.type ?? "div", { id: props.id }, props.children)
   ]);
 };
+const Script = ({ children, ...props }) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("script", props);
+};
+const Style = ({ children, ...props }) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("style", props);
+};
 export {
   Client,
   Fragment,
   Helmet2 as Helmet,
+  Script,
+  Style,
   dangerHTML,
   escapeHtml,
   n as h,

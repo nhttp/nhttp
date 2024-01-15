@@ -200,12 +200,10 @@ export class NHttp<
           if (check(body)) {
             rev[s_init] ??= {};
             rev[s_init].headers ??= {};
-            const res = await render(body, rev);
+            body = await render(body, rev);
             rev[s_init].headers["content-type"] ??= HTML_TYPE;
-            rev[s_response] = new Response(res, rev[s_init]);
-          } else {
-            await send(body, lose);
           }
+          await send(body, lose);
         };
       }
       rev.response.render = (elem, params, ...args) => {

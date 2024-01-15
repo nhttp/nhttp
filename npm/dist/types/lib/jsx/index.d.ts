@@ -58,6 +58,8 @@ export declare namespace n {
 export { n as h };
 /**
  * Client interactive.
+ * @deprecated
+ * use Helmet instead.
  * @example
  * ```jsx
  * const Home = () => {
@@ -74,4 +76,42 @@ export declare const Client: FC<{
     footer?: boolean;
     id?: string;
     type?: string;
+}>;
+/**
+ * Script Component.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <>
+ *       <Helmet>
+ *          <Script>{`console.log("hello")`}</Script>
+ *       </Helmet>
+ *       <h1>hello</h1>
+ *     </>
+ *   )
+ * }
+ * ```
+ */
+export declare const Script: FC<NJSX.ScriptHTMLAttributes & {
+    children?: string;
+}>;
+/**
+ * Style Component.
+ * @example
+ * ```jsx
+ * const Home = () => {
+ *   return (
+ *     <>
+ *       <Helmet>
+ *          <Style>{`.title{color:blue}`}</Style>
+ *       </Helmet>
+ *       <h1 className="title">hello</h1>
+ *     </>
+ *   )
+ * }
+ * ```
+ */
+export declare const Style: FC<NJSX.StyleHTMLAttributes & {
+    children?: string;
 }>;

@@ -28,35 +28,29 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var twind_stream_exports = {};
 __export(twind_stream_exports, {
   default: () => twind_stream_default,
-  install: () => install,
+  install: () => import_twind_server.install,
   twindStream: () => twindStream,
   useTwindStream: () => useTwindStream
 });
 module.exports = __toCommonJS(twind_stream_exports);
-var import_core = require("@twind/core");
-var import_readableStream = __toESM(require("@twind/with-react/readableStream"));
-var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"));
-var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"));
+var import_readableStream = __toESM(require("@twind/with-react/readableStream"), 1);
 var import_render = require("./render");
-const install = (config = {}, isProduction) => {
-  return (0, import_core.install)({
-    presets: [(0, import_preset_autoprefix.default)(), (0, import_preset_tailwind.default)()],
-    ...config
-  }, isProduction);
-};
-install();
-const useTwindStream = (opts) => {
+var import_twind_server = require("./twind-server");
+(0, import_twind_server.install)();
+const useTwindStream = ({ htmx, ...opts } = {}) => {
   const writeStream = import_render.options.onRenderStream;
   import_render.options.onRenderStream = (stream, rev) => {
     return writeStream(stream.pipeThrough(new import_readableStream.default(opts)), rev);
   };
-  return writeStream;
+  const writeElem = (0, import_twind_server.onRenderElement)({ htmx, ...opts });
+  return { writeStream, writeElem };
 };
 const twindStream = (opts) => {
   return async (_rev, next) => {
-    const last = useTwindStream(opts);
+    const { writeStream, writeElem } = useTwindStream(opts);
     await next();
-    import_render.options.onRenderStream = last;
+    import_render.options.onRenderStream = writeStream;
+    import_render.options.onRenderElement = writeElem;
   };
 };
 var twind_stream_default = useTwindStream;

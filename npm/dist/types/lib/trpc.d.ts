@@ -1,7 +1,7 @@
 import { AnyRouter, inferRouterContext } from "@trpc/server";
 import { Handler, NextFunction, RequestEvent, TRet } from "./deps";
 type TAnyRouter = TRet;
-interface TOpts<TRouter extends AnyRouter> {
+export interface TrpcOptions<TRouter extends AnyRouter> {
     /**
      * @deprecated
      * Use `endpoint` instead.
@@ -21,5 +21,5 @@ interface TOpts<TRouter extends AnyRouter> {
  * @example
  * app.use(trpc({ router: appRouter, endpoint: "/trpc" }));
  */
-export declare const trpc: <TRouter extends AnyRouter>(opts: TOpts<TRouter>) => Handler;
+export declare const trpc: <TRouter extends AnyRouter>(opts: TrpcOptions<TRouter>) => Handler;
 export default trpc;

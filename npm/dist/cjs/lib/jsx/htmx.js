@@ -24,7 +24,7 @@ var import_hook = require("./hook");
 const htmx = (opts = {}) => {
   opts.src ??= "//unpkg.com/htmx.org";
   return (rev, next) => {
-    rev.isHtmx = rev.headers.has("hx-request");
+    rev.hxRequest = rev.headers.has("hx-request");
     (0, import_hook.createHookScript)(opts, rev);
     return next();
   };

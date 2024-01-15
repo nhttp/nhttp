@@ -1,7 +1,5 @@
 import type { TRet } from "../deps";
 import { type JSXProps, type NJSX } from "./index";
-export declare const HELMET_FLAG = "data-nh";
-export declare const toFlag: (elems: JSX.Element[]) => any[];
 export type HelmetRewind = {
     head: JSX.Element[];
     footer: JSX.Element[];
@@ -10,6 +8,7 @@ export type HelmetRewind = {
         html: NJSX.HTMLAttributes;
     };
     body?: JSX.Element;
+    title?: string;
 };
 type FCHelmet = ((props: JSXProps<{
     footer?: boolean;
@@ -48,6 +47,7 @@ type FCHelmet = ((props: JSXProps<{
     writeFooterTag?: () => JSX.Element[];
     writeHtmlAttr?: () => NJSX.HTMLAttributes;
     writeBodyAttr?: () => NJSX.HTMLAttributes;
+    title?: string;
     reset: () => void;
 };
 /**

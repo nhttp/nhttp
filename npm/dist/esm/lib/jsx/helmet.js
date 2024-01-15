@@ -1,18 +1,8 @@
-const HELMET_FLAG = "data-nh";
-const toFlag = (elems) => {
-  return elems.map((el) => {
-    if (el.type !== "title" && el.type !== "meta") {
-      el.props ??= {};
-      el.props[HELMET_FLAG] ??= "true";
-    }
-    return el;
-  });
-};
 function toHelmet(elems) {
   const helmet = [];
   let hasBase = false;
   let hasTitle = false;
-  for (let i = elems.length - 1; i >= 0; i -= 1) {
+  for (let i = 0; i < elems.length; i++) {
     const elem = elems[i];
     if (elem.type === "base") {
       if (hasBase)
@@ -22,10 +12,11 @@ function toHelmet(elems) {
       if (hasTitle)
         continue;
       hasTitle = true;
+      Helmet.title = elem.props.children[0];
     }
     helmet.push(elem);
   }
-  return helmet.reverse();
+  return helmet;
 }
 const isArray = Array.isArray;
 const Helmet = ({ children, footer }) => {
@@ -56,6 +47,7 @@ Helmet.reset = () => {
   Helmet.writeFooterTag = void 0;
   Helmet.writeHtmlAttr = void 0;
   Helmet.writeBodyAttr = void 0;
+  Helmet.title = void 0;
 };
 Helmet.rewind = (elem) => {
   const data = {
@@ -65,19 +57,19 @@ Helmet.rewind = (elem) => {
     body: elem
   };
   if (Helmet.writeHeadTag)
-    data.head = toFlag(Helmet.writeHeadTag());
+    data.head = Helmet.writeHeadTag();
   if (Helmet.writeFooterTag)
-    data.footer = toFlag(Helmet.writeFooterTag());
+    data.footer = Helmet.writeFooterTag();
   if (Helmet.writeHtmlAttr)
     data.attr.html = Helmet.writeHtmlAttr();
   if (Helmet.writeBodyAttr)
     data.attr.body = Helmet.writeBodyAttr();
+  if (Helmet.title !== void 0)
+    data.title = Helmet.title;
   Helmet.reset();
   return data;
 };
 Helmet.render = () => "";
 export {
-  HELMET_FLAG,
-  Helmet,
-  toFlag
+  Helmet
 };

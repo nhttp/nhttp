@@ -21,6 +21,8 @@ __export(jsx_exports, {
   Client: () => Client,
   Fragment: () => Fragment,
   Helmet: () => import_helmet2.Helmet,
+  Script: () => Script,
+  Style: () => Style,
   dangerHTML: () => dangerHTML,
   escapeHtml: () => import_render.escapeHtml,
   h: () => n,
@@ -65,11 +67,21 @@ const Client = (props) => {
     n(props.type ?? "div", { id: props.id }, props.children)
   ]);
 };
+const Script = ({ children, ...props }) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("script", props);
+};
+const Style = ({ children, ...props }) => {
+  props.dangerouslySetInnerHTML = { __html: children ?? "" };
+  return n("style", props);
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Client,
   Fragment,
   Helmet,
+  Script,
+  Style,
   dangerHTML,
   escapeHtml,
   h,

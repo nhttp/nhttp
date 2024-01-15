@@ -29,14 +29,28 @@ var twind_server_exports = {};
 __export(twind_server_exports, {
   default: () => twind_server_default,
   install: () => install,
+  onRenderElement: () => onRenderElement,
   twindServer: () => twindServer,
   useTwindServer: () => useTwindServer
 });
 module.exports = __toCommonJS(twind_server_exports);
 var import_core = require("@twind/core");
-var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"));
-var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"));
+var import_preset_autoprefix = __toESM(require("@twind/preset-autoprefix"), 1);
+var import_preset_tailwind = __toESM(require("@twind/preset-tailwind"), 1);
 var import_render = require("./render");
+function onRenderElement({ htmx, ...opts } = {}) {
+  const hxRequest = htmx ?? true;
+  const writeElem = import_render.options.onRenderElement;
+  import_render.options.onRenderElement = async (elem, rev) => {
+    let str = await writeElem(elem, rev);
+    if (hxRequest && rev.hxRequest) {
+      const { html, css } = (0, import_core.extract)(str, opts.tw);
+      str = `<style>${css}</style>${html}`;
+    }
+    return str;
+  };
+  return writeElem;
+}
 const install = (config = {}, isProduction) => {
   return (0, import_core.install)({
     presets: [(0, import_preset_autoprefix.default)(), (0, import_preset_tailwind.default)()],
@@ -44,24 +58,31 @@ const install = (config = {}, isProduction) => {
   }, isProduction);
 };
 install();
-const useTwindServer = (opts) => {
+const useTwindServer = ({ htmx, ...opts } = {}) => {
+  const hxRequest = htmx ?? true;
   const writeHtml = import_render.options.onRenderHtml;
+  const writeElem = onRenderElement({ htmx: hxRequest, ...opts });
   import_render.options.onRenderHtml = (html, rev) => {
-    return writeHtml((0, import_core.inline)(html, opts), rev);
+    return writeHtml(
+      hxRequest && rev.hxRequest ? html : (0, import_core.inline)(html, opts),
+      rev
+    );
   };
-  return writeHtml;
+  return { writeHtml, writeElem };
 };
 const twindServer = (opts) => {
   return async (_rev, next) => {
-    const last = useTwindServer(opts);
+    const { writeElem, writeHtml } = useTwindServer(opts);
     await next();
-    import_render.options.onRenderHtml = last;
+    import_render.options.onRenderHtml = writeHtml;
+    import_render.options.onRenderElement = writeElem;
   };
 };
 var twind_server_default = useTwindServer;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   install,
+  onRenderElement,
   twindServer,
   useTwindServer
 });

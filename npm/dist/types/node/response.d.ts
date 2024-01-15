@@ -1,8 +1,9 @@
 import { TRet } from "../index";
 import { s_inspect } from "./symbol";
 export declare class NodeResponse {
+    resClone?: Response;
     _nres: number;
-    constructor(body?: BodyInit | null, init?: ResponseInit);
+    constructor(body?: BodyInit | null, init?: ResponseInit, resClone?: Response);
     static error(): Response;
     static redirect(url: string | URL, status?: number): Response;
     static json(data: unknown, init?: ResponseInit): Response;
