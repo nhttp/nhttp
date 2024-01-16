@@ -17,7 +17,7 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var render_exports = {};
 __export(render_exports, {
-  bodyWithTitle: () => bodyWithTitle,
+  bodyWithHelmet: () => bodyWithHelmet,
   escapeHtml: () => escapeHtml,
   internal: () => internal,
   isValidElement: () => import_is_valid_element.isValidElement,
@@ -178,11 +178,14 @@ async function renderToString(elem) {
     return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
-function bodyWithTitle(body, title) {
+async function bodyWithHelmet(body, { title, footer }) {
+  let src = "";
   if (title !== void 0) {
-    return `${body}<script>document.title="${escapeHtml(title)}";</script>`;
+    src += `<script>document.title="${escapeHtml(title)}";</script>`;
   }
-  return body;
+  if (footer.length > 0)
+    src += await renderToString(footer);
+  return body + src;
 }
 const renderToHtml = async (elem, rev) => {
   elem = await (0, import_index.elemToRevContext)(elem, rev);
@@ -190,7 +193,7 @@ const renderToHtml = async (elem, rev) => {
   const rewind = import_helmet.Helmet.rewind();
   rewind.attr.html.lang ??= "en";
   if (rev.hxRequest)
-    return bodyWithTitle(body, rewind.title);
+    return await bodyWithHelmet(body, rewind);
   const html = await toHtml(
     body,
     rewind,
@@ -201,7 +204,7 @@ const renderToHtml = async (elem, rev) => {
 renderToHtml.check = import_is_valid_element.isValidElement;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  bodyWithTitle,
+  bodyWithHelmet,
   escapeHtml,
   internal,
   isValidElement,

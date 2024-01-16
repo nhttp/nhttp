@@ -69,7 +69,7 @@ export declare function toStyle(val: NJSX.CSSProperties): string;
  * const str = await renderToString(<App />);
  */
 export declare function renderToString(elem: JSXNode<TRet>): Promise<string>;
-export declare function bodyWithTitle(body: string, title?: string): string;
+export declare function bodyWithHelmet(body: string, { title, footer }: HelmetRewind): Promise<string>;
 /**
  * render to html in `app.engine`.
  * @example

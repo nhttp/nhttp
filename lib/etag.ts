@@ -147,11 +147,11 @@ export const etag = (
       };
       const res = await next();
       if (rev.__stopEtag) return;
-      const ab = await res.clone().arrayBuffer();
-      if (ab.byteLength === 0) return;
       const type = res.headers.get(H_TYPE);
       let etag = res.headers.get("etag");
       if (etag === null) {
+        const ab = await res.clone().arrayBuffer();
+        if (ab.byteLength === 0) return;
         const hash = await cHash(ab);
         etag = weak ? `W/"${hash}"` : `"${hash}"`;
       }

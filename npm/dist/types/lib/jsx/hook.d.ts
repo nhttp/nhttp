@@ -119,20 +119,12 @@ interface AttrScript extends NJSX.ScriptHTMLAttributes {
      */
     position?: "head" | "footer";
     /**
-     * inline script. default to `false`
-     */
-    inline?: boolean;
-    /**
      * write script to Helmet. default to `true`
      */
     writeToHelmet?: boolean;
 }
-type OutScript = {
-    path?: string;
-    source?: string;
-};
 /**
- * useScript. simple client-script from server-side.
+ * useScript. add client script to the markup.
  * @example
  * ```tsx
  * // without params
@@ -162,10 +154,10 @@ type OutScript = {
  * }
  * ```
  */
-export declare function useScript<T>(params: T, js_string: string, options?: AttrScript): OutScript;
-export declare function useScript<T>(params: T, fn: (params: T) => void | Promise<void>, options?: AttrScript): OutScript;
-export declare function useScript<T>(fn: (params: T) => void | Promise<void>, params?: T, options?: AttrScript): OutScript;
-export declare function useScript<T>(js_string: string, params?: T, options?: AttrScript): OutScript;
+export declare function useScript<T>(params: T, js_string: string, options?: AttrScript): string;
+export declare function useScript<T>(params: T, fn: (params: T) => void | Promise<void>, options?: AttrScript): string;
+export declare function useScript<T>(fn: (params: T) => void | Promise<void>, params?: T, options?: AttrScript): string;
+export declare function useScript<T>(js_string: string, params?: T, options?: AttrScript): string;
 /**
  * useStyle. server-side only.
  * @example
@@ -187,7 +179,9 @@ export declare function useScript<T>(js_string: string, params?: T, options?: At
  * }
  * ```
  */
-export declare function useStyle(css: Record<string, NJSX.CSSProperties> | string): void;
+export declare function useStyle(css: Record<string, NJSX.CSSProperties> | string, options?: {
+    position?: "head" | "footer";
+}): void;
 /**
  * generate unique ID.
  */

@@ -5,7 +5,6 @@ import {
   toStyle
 } from "./index.js";
 import { renderToString, toAttr } from "./render.js";
-const now = Date.now();
 const s_int = Symbol("internal_hook");
 const isArray = Array.isArray;
 let HAS_CHECK_HOOK;
@@ -68,83 +67,48 @@ const useQuery = () => useRequestEvent()?.query;
 const useBody = () => useRequestEvent()?.body;
 const useResponse = () => useRequestEvent()?.response;
 const useRequest = () => useRequestEvent()?.request;
-const cst = {};
 function useScript(fn, params, options2 = {}) {
-  const rev = useRequestEvent();
-  const hook = useInternalHook(rev);
-  if (rev !== void 0) {
-    let js_string = "";
-    if (typeof fn === "string") {
-      js_string = fn;
-    } else if (typeof fn === "function") {
-      js_string = fn.toString();
-    } else {
-      return useScript(params, fn, options2);
-    }
-    const i = hook.js_id;
-    const app = rev.__app();
-    const id = `${now}${i}`;
-    const path = `/__JS__/${id}.js`;
-    hook.js_id--;
-    const inline = options2.inline;
-    const toScript = () => {
-      const src = `(${js_string})`;
-      const arr = src.split(/\n/);
-      return arr.map(
-        (str) => str.includes("//") || str.includes("*") ? `
-${str}
-` : str.replace(/\s\s+/g, " ")
-      ).join("");
-    };
-    if (cst[path] === void 0 && !inline) {
-      cst[path] = true;
-      app.get(`${path}`, ({ response }) => {
-        response.type("js");
-        response.setHeader(
-          "cache-control",
-          "public, max-age=31536000, immutable"
-        );
-        return (cst[path + "_sc"] ??= toScript()) + `(window.__INIT_${id});`;
-      });
-    }
-    const isWrite = options2.writeToHelmet ?? true;
-    const pos = options2.position === "head" ? "writeHeadTag" : "writeFooterTag";
-    options2.position = void 0;
-    options2.inline = void 0;
-    options2.type ??= "application/javascript";
-    const last = Helmet[pos]?.() ?? [];
-    const out = {};
-    const init = params !== void 0 ? n("script", {
-      dangerouslySetInnerHTML: {
-        __html: `window.__INIT_${id}=${JSON.stringify(params)}`
-      }
-    }) : void 0;
-    if (inline) {
-      out.source = toScript();
-      if (isWrite) {
-        Helmet[pos] = () => [
-          ...last,
-          init,
-          n("script", {
-            ...options2,
-            dangerouslySetInnerHTML: {
-              __html: out.source
-            }
-          })
-        ].filter(Boolean);
-      }
-    } else {
-      options2.src = path;
-      if (isWrite) {
-        Helmet[pos] = () => [...last, init, n("script", options2)].filter(
-          Boolean
-        );
-        out.path = path;
-      }
-    }
-    return out;
+  let js_string = "";
+  if (typeof fn === "string") {
+    js_string = fn;
+  } else if (typeof fn === "function") {
+    js_string = fn.toString();
+  } else {
+    return useScript(params, fn, options2);
   }
-  return {};
+  options2.writeToHelmet ??= true;
+  const { position, writeToHelmet: isWrite, ...rest } = options2;
+  const toScript = () => {
+    const src2 = `(${js_string})`;
+    const arr = src2.split(/\n/);
+    let str = "", i = 0;
+    while (i < arr.length) {
+      const line = arr[i];
+      if (line.includes("//") || line.includes("*"))
+        str += `
+${line}
+`;
+      else
+        str += line.replace(/\s\s+/g, " ");
+      i++;
+    }
+    return str;
+  };
+  const pos = position === "head" ? "writeHeadTag" : "writeFooterTag";
+  const last = Helmet[pos]?.() ?? [];
+  const src = toScript() + `(${JSON.stringify(params ?? {})});`;
+  if (isWrite) {
+    Helmet[pos] = () => [
+      ...last,
+      n("script", {
+        ...rest,
+        dangerouslySetInnerHTML: {
+          __html: src
+        }
+      })
+    ];
+  }
+  return src;
 }
 const cssToString = (css) => {
   let str = "";
@@ -153,15 +117,19 @@ const cssToString = (css) => {
   }
   return str;
 };
-function useStyle(css) {
+function useStyle(css, options2 = {}) {
+  const rev = useRequestEvent();
+  if (rev.hxRequest)
+    options2.position = "footer";
   const str = typeof css === "string" ? css : cssToString(css);
-  const last = Helmet.writeHeadTag?.() ?? [];
-  Helmet.writeHeadTag = () => [
+  const pos = options2.position === "footer" ? "writeFooterTag" : "writeHeadTag";
+  const last = Helmet[pos]?.() ?? [];
+  Helmet[pos] = () => [
     ...last,
     n("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } })
   ];
 }
-const useId = () => `:${useInternalHook().id--}`;
+const useId = () => performance.now().toString(36).replace(".", "").slice(3);
 const createHookScript = (opts = {}, rev) => {
   const script = `<script${toAttr(opts)}></script>`;
   if (rev !== void 0) {

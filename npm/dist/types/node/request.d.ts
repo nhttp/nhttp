@@ -2,8 +2,10 @@ import { TRet } from "../index";
 import { s_inspect } from "./symbol";
 export declare class NodeRequest {
     raw?: TRet;
+    reqClone?: Request;
     constructor(input: RequestInfo, init?: RequestInit);
     constructor(input: RequestInfo, init?: RequestInit, raw?: TRet);
+    constructor(input: RequestInfo, init?: RequestInit, raw?: TRet, reqClone?: Request);
     private get rawBody();
     private get req();
     get cache(): RequestCache;

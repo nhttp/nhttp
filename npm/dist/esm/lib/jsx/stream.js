@@ -5,7 +5,7 @@ import {
   useInternalHook
 } from "./index.js";
 import {
-  bodyWithTitle,
+  bodyWithHelmet,
   isValidElement,
   options,
   renderToString,
@@ -70,12 +70,12 @@ const renderToReadableStream = async (elem, rev) => {
           } catch {
           }
         };
-        const rewind = Helmet.rewind();
-        rewind.attr.html.lang ??= "en";
         const writeStream = async (elem2) => {
           const body = await options.onRenderElement(elem2, rev);
+          const rewind = Helmet.rewind();
+          rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
-            enqueue(bodyWithTitle(body, rewind.title));
+            enqueue(await bodyWithHelmet(body, rewind));
           } else {
             await toStream(
               body,

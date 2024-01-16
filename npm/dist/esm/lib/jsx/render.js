@@ -148,11 +148,14 @@ async function renderToString(elem) {
     return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
-function bodyWithTitle(body, title) {
+async function bodyWithHelmet(body, { title, footer }) {
+  let src = "";
   if (title !== void 0) {
-    return `${body}<script>document.title="${escapeHtml(title)}";</script>`;
+    src += `<script>document.title="${escapeHtml(title)}";</script>`;
   }
-  return body;
+  if (footer.length > 0)
+    src += await renderToString(footer);
+  return body + src;
 }
 const renderToHtml = async (elem, rev) => {
   elem = await elemToRevContext(elem, rev);
@@ -160,7 +163,7 @@ const renderToHtml = async (elem, rev) => {
   const rewind = Helmet.rewind();
   rewind.attr.html.lang ??= "en";
   if (rev.hxRequest)
-    return bodyWithTitle(body, rewind.title);
+    return await bodyWithHelmet(body, rewind);
   const html = await toHtml(
     body,
     rewind,
@@ -170,7 +173,7 @@ const renderToHtml = async (elem, rev) => {
 };
 renderToHtml.check = isValidElement;
 export {
-  bodyWithTitle,
+  bodyWithHelmet,
   escapeHtml,
   internal,
   isValidElement,
