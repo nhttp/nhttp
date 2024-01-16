@@ -22,7 +22,18 @@ function reqBody(
 export class NodeRequest {
   constructor(input: RequestInfo, init?: RequestInit);
   constructor(input: RequestInfo, init?: RequestInit, raw?: TRet);
-  constructor(input: RequestInfo, init?: RequestInit, public raw?: TRet) {
+  constructor(
+    input: RequestInfo,
+    init?: RequestInit,
+    raw?: TRet,
+    reqClone?: Request,
+  );
+  constructor(
+    input: RequestInfo,
+    init?: RequestInit,
+    public raw?: TRet,
+    public reqClone?: Request,
+  ) {
     this[s_body] = input;
     this[s_init] = init;
   }
@@ -37,10 +48,11 @@ export class NodeRequest {
         /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
         // @ts-ignore: Buffer for nodejs
         .on("end", () => resolve(Buffer.concat(chunks)))
-        .on("error", (err: Error) => reject(err));
+        .on("error", reject);
     });
   }
   private get req(): Request {
+    if (this.reqClone !== void 0) return this.reqClone;
     return this[s_def] ??= new (<TRet> globalThis).NativeRequest(
       this[s_body],
       this[s_init],
@@ -89,12 +101,12 @@ export class NodeRequest {
     return this.req.url;
   }
   clone(): Request {
-    const req = new NodeRequest(
+    return new NodeRequest(
       this[s_body],
       this[s_init],
       this.raw,
-    );
-    return req as unknown as Request;
+      this.req.clone(),
+    ) as TRet;
   }
   get body() {
     if (this.raw) {
