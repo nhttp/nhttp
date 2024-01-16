@@ -9,7 +9,7 @@ import {
   useInternalHook,
 } from "./index.ts";
 import {
-  bodyWithTitle,
+  bodyWithHelmet,
   isValidElement,
   options,
   type RenderHTML,
@@ -99,12 +99,12 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
             ctrl.enqueue(encoder.encode(data));
           } catch { /* noop */ }
         };
-        const rewind = Helmet.rewind();
-        rewind.attr.html.lang ??= "en";
         const writeStream = async (elem: JSXElement) => {
           const body = await options.onRenderElement(elem, rev);
+          const rewind = Helmet.rewind();
+          rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
-            enqueue(bodyWithTitle(body, rewind.title));
+            enqueue(await bodyWithHelmet(body, rewind));
           } else {
             await toStream(
               body,
