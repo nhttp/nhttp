@@ -84,12 +84,12 @@ const renderToReadableStream = async (elem, rev) => {
           } catch {
           }
         };
-        const rewind = import_helmet.Helmet.rewind();
-        rewind.attr.html.lang ??= "en";
         const writeStream = async (elem2) => {
           const body = await import_render.options.onRenderElement(elem2, rev);
+          const rewind = import_helmet.Helmet.rewind();
+          rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
-            enqueue((0, import_render.bodyWithTitle)(body, rewind.title));
+            enqueue(await (0, import_render.bodyWithHelmet)(body, rewind));
           } else {
             await toStream(
               body,

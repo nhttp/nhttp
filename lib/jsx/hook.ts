@@ -1,6 +1,5 @@
 import {
   type HttpResponse,
-  type NHttp,
   type RequestEvent,
   type TObject,
   type TRet,
@@ -17,7 +16,6 @@ import {
 } from "./index.ts";
 import { renderToString, toAttr } from "./render.ts";
 
-const now = Date.now();
 type TValue = string | number | TRet;
 type TContext = {
   Provider: (props: JSXProps<{ value?: TValue }>) => Promise<TRet>;
@@ -181,25 +179,18 @@ export const useBody = <T = TObject>(): T => useRequestEvent()?.body as T;
  */
 export const useResponse = (): HttpResponse => useRequestEvent()?.response;
 export const useRequest = (): Request => useRequestEvent()?.request;
-
 interface AttrScript extends NJSX.ScriptHTMLAttributes {
   /**
    * position. default to `footer`
    */
   position?: "head" | "footer";
   /**
-   * inline script. default to `false`
-   */
-  inline?: boolean;
-  /**
    * write script to Helmet. default to `true`
    */
   writeToHelmet?: boolean;
 }
-type OutScript = { path?: string; source?: string };
-const cst = {} as Record<string, string | boolean>;
 /**
- * useScript. simple client-script from server-side.
+ * useScript. add client script to the markup.
  * @example
  * ```tsx
  * // without params
@@ -233,107 +224,64 @@ export function useScript<T>(
   params: T,
   js_string: string,
   options?: AttrScript,
-): OutScript;
+): string;
 export function useScript<T>(
   params: T,
   fn: (params: T) => void | Promise<void>,
   options?: AttrScript,
-): OutScript;
+): string;
 export function useScript<T>(
   fn: (params: T) => void | Promise<void>,
   params?: T,
   options?: AttrScript,
-): OutScript;
+): string;
 export function useScript<T>(
   js_string: string,
   params?: T,
   options?: AttrScript,
-): OutScript;
+): string;
 export function useScript<T>(
   fn: ((params: T) => void | Promise<void>) | string | T,
   params?: T | ((params: T) => void | Promise<void>) | string,
   options: AttrScript = {},
 ) {
-  const rev = useRequestEvent();
-  const hook = useInternalHook(rev);
-  if (rev !== void 0) {
-    let js_string = "";
-    if (typeof fn === "string") {
-      js_string = fn;
-    } else if (typeof fn === "function") {
-      js_string = fn.toString();
-    } else {
-      return useScript(params as TRet, fn, options);
-    }
-    const i = hook.js_id;
-    const app = rev.__app() as NHttp;
-    const id = `${now}${i}`;
-    const path = `/__JS__/${id}.js`;
-    hook.js_id--;
-    const inline = options.inline;
-    const toScript = () => {
-      const src = `(${js_string})`;
-      const arr = src.split(/\n/);
-      return arr.map((str) =>
-        str.includes("//") || str.includes("*")
-          ? `\n${str}\n`
-          : str.replace(/\s\s+/g, " ")
-      ).join("");
-    };
-    if (cst[path] === void 0 && !inline) {
-      cst[path] = true;
-      app.get(`${path}`, ({ response }) => {
-        response.type("js");
-        response.setHeader(
-          "cache-control",
-          "public, max-age=31536000, immutable",
-        );
-        return ((cst[path + "_sc"] as string) ??= toScript()) +
-          `(window.__INIT_${id});`;
-      });
-    }
-    const isWrite = options.writeToHelmet ?? true;
-    const pos = options.position === "head" ? "writeHeadTag" : "writeFooterTag";
-    options.position = void 0;
-    options.inline = void 0;
-    options.type ??= "application/javascript";
-    const last = Helmet[pos]?.() ?? [];
-    const out = {} as OutScript;
-    const init = params !== void 0
-      ? n("script", {
-        dangerouslySetInnerHTML: {
-          __html: `window.__INIT_${id}=${JSON.stringify(params)}`,
-        },
-      })
-      : void 0;
-    if (inline) {
-      out.source = toScript();
-      if (isWrite) {
-        Helmet[pos] = () =>
-          [
-            ...last,
-            init as JSXElement<EObject>,
-            n("script", {
-              ...options,
-              dangerouslySetInnerHTML: {
-                __html: out.source as string,
-              },
-            }),
-          ].filter(Boolean);
-      }
-    } else {
-      options.src = path;
-      if (isWrite) {
-        Helmet[pos] = () =>
-          [...last, init as JSXElement<EObject>, n("script", options)].filter(
-            Boolean,
-          );
-        out.path = path;
-      }
-    }
-    return out;
+  let js_string = "";
+  if (typeof fn === "string") {
+    js_string = fn;
+  } else if (typeof fn === "function") {
+    js_string = fn.toString();
+  } else {
+    return useScript(params as TRet, fn, options);
   }
-  return {};
+  options.writeToHelmet ??= true;
+  const { position, writeToHelmet: isWrite, ...rest } = options;
+  const toScript = () => {
+    const src = `(${js_string})`;
+    const arr = src.split(/\n/);
+    let str = "", i = 0;
+    while (i < arr.length) {
+      const line = arr[i];
+      if (line.includes("//") || line.includes("*")) str += `\n${line}\n`;
+      else str += line.replace(/\s\s+/g, " ");
+      i++;
+    }
+    return str;
+  };
+  const pos = position === "head" ? "writeHeadTag" : "writeFooterTag";
+  const last = Helmet[pos]?.() ?? [];
+  const src = toScript() + `(${JSON.stringify(params ?? {})});`;
+  if (isWrite) {
+    Helmet[pos] = () => [
+      ...last,
+      n("script", {
+        ...rest,
+        dangerouslySetInnerHTML: {
+          __html: src,
+        },
+      }),
+    ];
+  }
+  return src;
 }
 
 const cssToString = (css: Record<string, NJSX.CSSProperties>) => {
@@ -364,18 +312,26 @@ const cssToString = (css: Record<string, NJSX.CSSProperties>) => {
  * }
  * ```
  */
-export function useStyle(css: Record<string, NJSX.CSSProperties> | string) {
+export function useStyle(
+  css: Record<string, NJSX.CSSProperties> | string,
+  options: { position?: "head" | "footer" } = {},
+) {
+  const rev = useRequestEvent();
+  if (rev.hxRequest) options.position = "footer";
   const str = typeof css === "string" ? css : cssToString(css);
-  const last = Helmet.writeHeadTag?.() ?? [];
-  Helmet.writeHeadTag = () => [
+  const pos = options.position === "footer" ? "writeFooterTag" : "writeHeadTag";
+  const last = Helmet[pos]?.() ?? [];
+  Helmet[pos] = () => [
     ...last,
     n("style", { type: "text/css", dangerouslySetInnerHTML: { __html: str } }),
   ];
 }
+
 /**
  * generate unique ID.
  */
-export const useId = () => `:${useInternalHook().id--}`;
+export const useId = () =>
+  performance.now().toString(36).replace(".", "").slice(3);
 
 export const createHookScript = (
   opts: NJSX.ScriptHTMLAttributes = {},

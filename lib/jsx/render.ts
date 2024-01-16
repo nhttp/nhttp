@@ -235,11 +235,16 @@ export async function renderToString(elem: TRet): Promise<string> {
   if (type === "") return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
-export function bodyWithTitle(body: string, title?: string) {
+export async function bodyWithHelmet(
+  body: string,
+  { title, footer }: HelmetRewind,
+) {
+  let src = "";
   if (title !== void 0) {
-    return `${body}<script>document.title="${escapeHtml(title)}";</script>`;
+    src += `<script>document.title="${escapeHtml(title)}";</script>`;
   }
-  return body;
+  if (footer.length > 0) src += await renderToString(footer);
+  return body + src;
 }
 /**
  * render to html in `app.engine`.
@@ -259,7 +264,7 @@ export const renderToHtml: RenderHTML = async (elem, rev) => {
   const body = await options.onRenderElement(elem, rev);
   const rewind = Helmet.rewind();
   rewind.attr.html.lang ??= "en";
-  if (rev.hxRequest) return bodyWithTitle(body, rewind.title);
+  if (rev.hxRequest) return await bodyWithHelmet(body, rewind);
   const html = await toHtml(
     body,
     rewind,

@@ -1079,6 +1079,7 @@ function revInspect(rev) {
     search: rev.search,
     send: rev.send,
     url: rev.url,
+    undefined: rev.undefined,
     waitUntil: rev.waitUntil
   });
 }
@@ -1857,7 +1858,6 @@ var NHttp = class extends Router {
     return this.use((rev, next) => {
       if (check !== void 0) {
         const send = rev.send.bind(rev);
-        rev.__app = () => this;
         rev.send = async (body, lose) => {
           if (check(body)) {
             rev[s_init] ??= {};
@@ -2115,8 +2115,9 @@ function reqBody(url, body, raw) {
   });
 }
 var NodeRequest = class _NodeRequest {
-  constructor(input, init, raw) {
+  constructor(input, init, raw, reqClone) {
     this.raw = raw;
+    this.reqClone = reqClone;
     this[s_body2] = input;
     this[s_init2] = init;
   }
@@ -2130,10 +2131,12 @@ var NodeRequest = class _NodeRequest {
       return typeError(mnotbody);
     return new Promise((resolve, reject) => {
       const chunks = [];
-      this.raw.req.on("data", (buf) => chunks.push(buf)).on("end", () => resolve(Buffer.concat(chunks))).on("error", (err) => reject(err));
+      this.raw.req.on("data", (buf) => chunks.push(buf)).on("end", () => resolve(Buffer.concat(chunks))).on("error", reject);
     });
   }
   get req() {
+    if (this.reqClone !== void 0)
+      return this.reqClone;
     return this[s_def] ??= new globalThis.NativeRequest(
       this[s_body2],
       this[s_init2]
@@ -2182,12 +2185,12 @@ var NodeRequest = class _NodeRequest {
     return this.req.url;
   }
   clone() {
-    const req = new _NodeRequest(
+    return new _NodeRequest(
       this[s_body2],
       this[s_init2],
-      this.raw
+      this.raw,
+      this.req.clone()
     );
-    return req;
   }
   get body() {
     if (this.raw) {
@@ -2349,7 +2352,9 @@ var NodeResponse = class _NodeResponse {
     return this.res.bodyUsed;
   }
   clone() {
-    this[s_body_clone] = this.res.clone().body;
+    if (this[s_body2] instanceof ReadableStream) {
+      this[s_body_clone] = this.res.clone().body;
+    }
     return new _NodeResponse(this[s_body2], this[s_init2], this.res.clone());
   }
   arrayBuffer() {
@@ -2422,7 +2427,7 @@ async function sendStream(resWeb, res, ori = false) {
     return;
   }
   if (resWeb[s_body2] instanceof ReadableStream) {
-    if (resWeb[s_body2].locked && resWeb[s_body_clone] !== void 0) {
+    if (resWeb[s_body2].locked && resWeb[s_body_clone] != null) {
       resWeb[s_body2] = resWeb[s_body_clone];
     }
     for await (const chunk of resWeb[s_body2])
@@ -2447,38 +2452,38 @@ async function sendStream(resWeb, res, ori = false) {
 function handleResWeb(resWeb, res) {
   if (res.writableEnded)
     return;
-  if (resWeb._nres === void 0) {
-    sendStream(resWeb, res, true);
-    return;
-  }
-  if (resWeb[s_init2]) {
-    if (resWeb[s_init2].headers) {
-      if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
-        resWeb[s_init2].headers.forEach((val, key) => {
-          res.setHeader(key, val);
-        });
-      } else {
-        for (const k in resWeb[s_init2].headers) {
-          res.setHeader(k, resWeb[s_init2].headers[k]);
+  if (resWeb._nres) {
+    if (resWeb[s_init2]) {
+      if (resWeb[s_init2].headers) {
+        if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
+          resWeb[s_init2].headers.forEach((val, key) => {
+            res.setHeader(key, val);
+          });
+        } else {
+          for (const k in resWeb[s_init2].headers) {
+            res.setHeader(k, resWeb[s_init2].headers[k]);
+          }
         }
       }
+      if (resWeb[s_init2].status) {
+        res.statusCode = resWeb[s_init2].status;
+      }
+      if (resWeb[s_init2].statusText) {
+        res.statusMessage = resWeb[s_init2].statusText;
+      }
     }
-    if (resWeb[s_init2].status !== void 0) {
-      res.statusCode = resWeb[s_init2].status;
+    if (resWeb[s_headers2]) {
+      resWeb[s_headers2].forEach((val, key) => {
+        res.setHeader(key, val);
+      });
     }
-    if (resWeb[s_init2].statusText !== void 0) {
-      res.statusMessage = resWeb[s_init2].statusText;
+    if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] == null || resWeb[s_body2] instanceof Uint8Array) {
+      res.end(resWeb[s_body2]);
+    } else {
+      sendStream(resWeb, res);
     }
-  }
-  if (resWeb[s_headers2]) {
-    resWeb[s_headers2].forEach((val, key) => {
-      res.setHeader(key, val);
-    });
-  }
-  if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] === void 0 || resWeb[s_body2] === null || resWeb[s_body2] instanceof Uint8Array) {
-    res.end(resWeb[s_body2]);
   } else {
-    sendStream(resWeb, res);
+    sendStream(resWeb, res, true);
   }
 }
 async function asyncHandleResWeb(resWeb, res) {
@@ -2487,7 +2492,7 @@ async function asyncHandleResWeb(resWeb, res) {
 async function handleNode(handler, req, res) {
   const resWeb = handler(
     new NodeRequest(
-      `http://${req.headers.host}${req.url}`,
+      "http://" + req.headers.host + req.url,
       void 0,
       { req, res }
     )

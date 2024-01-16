@@ -39,7 +39,7 @@ async function sendStream(resWeb: TRet, res: TRet, ori = false) {
     return;
   }
   if (resWeb[s_body] instanceof ReadableStream) {
-    if (resWeb[s_body].locked && resWeb[s_body_clone] !== void 0) {
+    if (resWeb[s_body].locked && resWeb[s_body_clone] != null) {
       resWeb[s_body] = resWeb[s_body_clone];
     }
     for await (const chunk of resWeb[s_body] as TRet) res.write(chunk);
@@ -67,56 +67,55 @@ async function sendStream(resWeb: TRet, res: TRet, ori = false) {
 }
 function handleResWeb(resWeb: TRet, res: TRet) {
   if (res.writableEnded) return;
-  if (resWeb._nres === void 0) {
-    sendStream(resWeb, res, true);
-    return;
-  }
-  if (resWeb[s_init]) {
-    if (resWeb[s_init].headers) {
-      if (
-        resWeb[s_init].headers.get &&
-        typeof resWeb[s_init].headers.get === "function"
-      ) {
-        (<Headers> resWeb[s_init].headers).forEach((val, key) => {
-          res.setHeader(key, val);
-        });
-      } else {
-        for (const k in resWeb[s_init].headers) {
-          res.setHeader(k, resWeb[s_init].headers[k]);
+  if (resWeb._nres) {
+    if (resWeb[s_init]) {
+      if (resWeb[s_init].headers) {
+        if (
+          resWeb[s_init].headers.get &&
+          typeof resWeb[s_init].headers.get === "function"
+        ) {
+          (<Headers> resWeb[s_init].headers).forEach((val, key) => {
+            res.setHeader(key, val);
+          });
+        } else {
+          for (const k in resWeb[s_init].headers) {
+            res.setHeader(k, resWeb[s_init].headers[k]);
+          }
         }
       }
+      if (resWeb[s_init].status) {
+        res.statusCode = resWeb[s_init].status;
+      }
+      if (resWeb[s_init].statusText) {
+        res.statusMessage = resWeb[s_init].statusText;
+      }
     }
-    if (resWeb[s_init].status !== void 0) {
-      res.statusCode = resWeb[s_init].status;
+    if (resWeb[s_headers]) {
+      (<Headers> resWeb[s_headers]).forEach((val, key) => {
+        res.setHeader(key, val);
+      });
     }
-    if (resWeb[s_init].statusText !== void 0) {
-      res.statusMessage = resWeb[s_init].statusText;
+    if (
+      typeof resWeb[s_body] === "string" ||
+      resWeb[s_body] == null ||
+      resWeb[s_body] instanceof Uint8Array
+    ) {
+      res.end(resWeb[s_body]);
+    } else {
+      sendStream(resWeb, res);
     }
-  }
-  if (resWeb[s_headers]) {
-    (<Headers> resWeb[s_headers]).forEach((val, key) => {
-      res.setHeader(key, val);
-    });
-  }
-  if (
-    typeof resWeb[s_body] === "string" ||
-    resWeb[s_body] === void 0 ||
-    resWeb[s_body] === null ||
-    resWeb[s_body] instanceof Uint8Array
-  ) {
-    res.end(resWeb[s_body]);
   } else {
-    sendStream(resWeb, res);
+    sendStream(resWeb, res, true);
   }
 }
 
-async function asyncHandleResWeb(resWeb: Promise<TRet>, res: TRet) {
+async function asyncHandleResWeb(resWeb: Promise<Response>, res: TRet) {
   handleResWeb(await resWeb, res);
 }
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
   const resWeb: TRet = handler(
     new NodeRequest(
-      `http://${req.headers.host}${req.url}`,
+      "http://" + req.headers.host + req.url,
       void 0,
       { req, res },
     ) as unknown as Request,

@@ -119,12 +119,12 @@ const etag = (opts = {}) => {
       const res = await next();
       if (rev.__stopEtag)
         return;
-      const ab = await res.clone().arrayBuffer();
-      if (ab.byteLength === 0)
-        return;
       const type = res.headers.get(H_TYPE);
       let etag2 = res.headers.get("etag");
       if (etag2 === null) {
+        const ab = await res.clone().arrayBuffer();
+        if (ab.byteLength === 0)
+          return;
         const hash = await cHash(ab);
         etag2 = weak ? `W/"${hash}"` : `"${hash}"`;
       }

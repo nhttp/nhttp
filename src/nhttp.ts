@@ -195,7 +195,6 @@ export class NHttp<
     return this.use((rev: RequestEvent, next) => {
       if (check !== undefined) {
         const send = rev.send.bind(rev);
-        rev.__app = () => this;
         rev.send = async (body, lose) => {
           if (check(body)) {
             rev[s_init] ??= {};

@@ -84,7 +84,9 @@ export class NodeResponse {
     return this.res.bodyUsed;
   }
   clone(): Response {
-    this[s_body_clone] = this.res.clone().body;
+    if (this[s_body] instanceof ReadableStream) {
+      this[s_body_clone] = this.res.clone().body;
+    }
     return new NodeResponse(this[s_body], this[s_init], this.res.clone());
   }
   arrayBuffer() {

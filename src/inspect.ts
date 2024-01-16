@@ -1,6 +1,6 @@
-import { HttpResponse } from "./http_response.ts";
-import { RequestEvent } from "./request_event.ts";
-import { TObject } from "./types.ts";
+import type { HttpResponse } from "./http_response.ts";
+import type { RequestEvent } from "./request_event.ts";
+import type { TObject } from "./types.ts";
 
 function inspect(target: TObject, obj: TObject) {
   const ret = obj;
@@ -34,6 +34,7 @@ export function revInspect(rev: RequestEvent) {
     search: rev.search,
     send: rev.send,
     url: rev.url,
+    undefined: rev.undefined,
     waitUntil: rev.waitUntil,
   });
 }
