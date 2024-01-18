@@ -120,13 +120,12 @@ export function elemToRevContext(
 export const useRequestEvent = <T extends EObject = EObject>(): RequestEvent<
   T
 > => useContext(RevContext);
+export type InternalHook = { sus: TRet[]; sus_id: number };
 export const useInternalHook = (
   rev?: RequestEvent,
-): { id: number; js_id: number; sus: TRet[]; sus_id: number } => {
+): InternalHook => {
   rev ??= useRequestEvent();
   return rev[s_int] ??= {
-    id: 0,
-    js_id: 0,
     sus: [],
     sus_id: 0,
   };

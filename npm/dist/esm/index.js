@@ -40,7 +40,6 @@ var STATUS_ERROR_LIST = {
   507: "Insufficient Storage",
   511: "Network Authentication Required"
 };
-var ROUTE = {};
 var MIME_LIST = {
   aac: "audio/aac",
   abw: "application/x-abiword",
@@ -452,14 +451,6 @@ function mutatePath(base, str) {
   }
   return { path, ori };
 }
-function addGlobRoute(ori, obj) {
-  ANY_METHODS.forEach((method) => {
-    ROUTE[method] ??= [];
-    const not = !ROUTE[method].find(({ path }) => path === ori);
-    if (not)
-      ROUTE[method].push(obj);
-  });
-}
 var ANY_METHODS = [
   "GET",
   "POST",
@@ -515,9 +506,6 @@ var Router = class {
         });
       } else {
         this.pmidds[idx].fns = this.pmidds[idx].fns.concat(findFns(args));
-      }
-      if (this["handle"]) {
-        addGlobRoute(_path, { path, pattern, wild });
       }
       return this;
     }
@@ -643,7 +631,7 @@ var Router = class {
       return isArray(fns) ? fns : [fns];
     const r = this.route[method]?.find((el) => el.pattern.test(path));
     if (r !== void 0) {
-      setParam(findParams(r, path));
+      setParam(findParams(r, path), r.path);
       if (r.wild === false)
         return r.fns;
       if (r.path !== "*" && r.path !== "/*")
@@ -652,7 +640,7 @@ var Router = class {
     if (this.pmidds !== void 0) {
       const r2 = this.pmidds.find((el) => el.pattern.test(path));
       if (r2 !== void 0) {
-        setParam(findParams(r2, path));
+        setParam(findParams(r2, path), r2.path);
         return this.midds.concat(r2.fns, [notFound]);
       }
     }
@@ -1345,23 +1333,24 @@ var RequestEvent = class {
   get route() {
     if (this[s_route])
       return this[s_route];
-    let path = this.path;
-    if (path !== "/" && path[path.length - 1] === "/") {
-      path = path.slice(0, -1);
-    }
-    const ret = ROUTE[this.method]?.find(
-      (o) => o.pattern?.test(path) || o.path === path
-    );
-    if (ret) {
-      if (!ret.pattern) {
-        Object.assign(ret, toPathx(ret.path, true));
+    let route = this.__routePath;
+    if (route === void 0) {
+      route = this.__path ?? this.path;
+      if (route !== "/" && route[route.length - 1] === "/") {
+        route = route.slice(0, -1);
       }
-      ret.method = this.method;
-      ret.pathname = this.path;
-      ret.query = this.query;
-      ret.params = findParams(ret, path);
     }
-    return this[s_route] ??= ret ?? {};
+    return this[s_route] ??= {
+      path: route,
+      method: this.method,
+      pathname: this.path,
+      query: this.query,
+      params: this.params,
+      get pattern() {
+        return toPathx(this.path, true).pattern;
+      },
+      wild: route.includes("*")
+    };
   }
   /**
    * lookup Object info like `conn / env / context`.
@@ -1770,6 +1759,7 @@ var NHttp = class extends Router {
   on404(fn) {
     const def = this._on404.bind(this);
     this._on404 = (rev) => {
+      rev.route.path = "";
       try {
         rev.response.status(404);
         return fn(
@@ -1824,7 +1814,6 @@ var NHttp = class extends Router {
             fns,
             wild
           });
-          (ROUTE[m] ??= []).push({ path, pattern, wild });
         }
       } else {
         const key = m + path;
@@ -1832,7 +1821,6 @@ var NHttp = class extends Router {
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns.length && fns[0].length ? fns : fns[0];
-          (ROUTE[m] ??= []).push({ path });
         }
         if (path !== "/")
           this.route[key + "/"] = this.route[key];
@@ -1910,7 +1898,10 @@ var NHttp = class extends Router {
     return this.find(
       method,
       url,
-      (obj) => rev.params = obj,
+      (params, routePath) => {
+        rev.params = params;
+        rev.__routePath = routePath;
+      },
       this._on404
     );
   };

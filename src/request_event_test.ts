@@ -2,8 +2,6 @@ import { RequestEvent, toRes } from "./request_event.ts";
 import { assertEquals } from "./deps_test.ts";
 import { TRet } from "./types.ts";
 import { HttpResponse } from "./http_response.ts";
-import { ROUTE } from "./constant.ts";
-import { toPathx } from "./utils.ts";
 import {
   s_body,
   s_cookies,
@@ -12,7 +10,6 @@ import {
   s_params,
   s_query,
   s_response,
-  s_route,
   s_undefined,
 } from "./symbol.ts";
 import { nhttp } from "./nhttp.ts";
@@ -88,28 +85,6 @@ Deno.test("RequestEvent", async (t) => {
   await t.step("original url", () => {
     const rev = new RequestEvent({ url: "/" } as TRet);
     assertEquals(rev.originalUrl, "/");
-  });
-  await t.step("rev.route", () => {
-    const base = "http://127.0.0.1:8000";
-    const arr = [
-      {
-        path: "/hello",
-      },
-      {
-        path: "/hello/:name",
-        ...toPathx("/hello/:name"),
-      },
-    ];
-    ROUTE["GET"] = arr;
-    const rev = new RequestEvent(new Request(base + "/hello"));
-    assertEquals(rev.route.path, "/hello");
-    const rev2 = new RequestEvent(new Request(base + "/hello/john"));
-    assertEquals(rev2.route.path, "/hello/:name");
-    const rev3 = new RequestEvent(new Request(base + "/hello/"));
-    assertEquals(rev3.route.path, "/hello");
-    const rev4 = new RequestEvent(new Request(base + "/hello/test"));
-    rev4[s_route] = {};
-    assertEquals(rev4.route, {} as TRet);
   });
   await t.step("inspect", () => {
     const rev = new RequestEvent(new Request("http://127.0.0.1:8000/"));

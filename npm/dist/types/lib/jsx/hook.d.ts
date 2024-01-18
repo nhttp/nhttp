@@ -59,12 +59,11 @@ export declare function elemToRevContext(elem: TRet, rev: RequestEvent): Promise
  * ```
  */
 export declare const useRequestEvent: <T extends EObject = EObject>() => RequestEvent<T>;
-export declare const useInternalHook: (rev?: RequestEvent) => {
-    id: number;
-    js_id: number;
+export type InternalHook = {
     sus: TRet[];
     sus_id: number;
 };
+export declare const useInternalHook: (rev?: RequestEvent) => InternalHook;
 /**
  * useParams. server-side only.
  * @example

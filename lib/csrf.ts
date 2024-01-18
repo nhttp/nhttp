@@ -7,6 +7,21 @@ import {
   type TRet,
 } from "./deps.ts";
 
+declare global {
+  namespace NHTTP {
+    interface RequestEvent {
+      /**
+       * generate token CSRF.
+       */
+      csrfToken: () => string;
+      /**
+       * verify token CSRF.
+       */
+      csrfVerify: (value?: string) => boolean;
+    }
+  }
+}
+
 const rand = () =>
   `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
     .replace(".", "");
@@ -168,10 +183,10 @@ export const csrf = (opts: CSRFOptions = {}): Handler => {
       }
       return create(secret, opts.salt ?? 8, algo);
     };
-    rev.csrfVerify = () => {
+    rev.csrfVerify = (v?: string) => {
       if (ignoreMethods.includes(rev.method)) return true;
       return origin.includes(rev.headers.get("origin") ?? "") || (() => {
-        const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
+        const value = v ?? opts.getValue?.(rev) ?? getDefaultValue(rev);
         if (value == null) return true;
         return verify(
           cookie ? rev.cookies[cname] : opts.secret,

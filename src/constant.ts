@@ -1,4 +1,3 @@
-import { TObject } from "./types.ts";
 export const JSON_TYPE = "application/json";
 export const HTML_TYPE = "text/html; charset=UTF-8";
 export const C_TYPE = "content-type";
@@ -40,8 +39,6 @@ export const STATUS_ERROR_LIST: Record<number, string> = {
   507: "Insufficient Storage",
   511: "Network Authentication Required",
 };
-
-export const ROUTE = <TObject> {};
 
 export const MIME_LIST: Record<string, string> = {
   aac: "audio/aac",

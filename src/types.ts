@@ -200,6 +200,6 @@ export type MatchRoute = {
   path: string | RegExp;
   pathname: string;
   query: TObject;
-  pattern: RegExp;
+  readonly pattern: RegExp;
   wild: boolean;
 };

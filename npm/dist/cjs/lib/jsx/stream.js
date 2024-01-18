@@ -39,39 +39,47 @@ async function toStream(body, { footer, attr, head }, write, rev, initHead) {
     write(await (0, import_render.renderToString)(head));
   write(`</head><body${(0, import_render.toAttr)(attr.body)}>${body}`);
   if (hook.sus.length > 0) {
-    const toTemplate = async ({ idx, elem }) => {
-      let child;
-      try {
-        child = await (0, import_render.renderToString)(await (0, import_hook.elemToRevContext)(elem, rev));
-      } catch (error) {
-        let err_elem;
-        if (import_render.options.onErrorStream !== void 0) {
-          err_elem = await (0, import_hook.elemToRevContext)(
-            (0, import_index.n)(import_render.options.onErrorStream, { error }),
-            rev
-          );
-        } else {
-          err_elem = String(error);
-        }
-        child = await (0, import_render.renderToString)(err_elem);
-      }
-      return `<template id="__t__:${idx}">` + child + `</template><script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${idx}");var r=$("__s__:${idx}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`;
-    };
-    const elems = hook.sus.map(toTemplate);
-    const len = elems.length;
-    if (len === 1) {
-      write(await elems[0]);
-    } else {
-      const state = { count: 0 };
-      elems.forEach((elem) => elem.then(write).finally(() => state.count++));
-      while (state.count !== len)
-        await Promise.all(elems);
-    }
-    write(await (0, import_render.renderToString)(import_helmet.Helmet.rewind().footer));
+    await handleSuspense(write, rev, hook);
   } else if (footer.length > 0) {
     write(await (0, import_render.renderToString)(footer));
   }
   write("</body></html>");
+}
+async function handleSuspense(write, rev, hook) {
+  if (hook === void 0) {
+    hook = (0, import_index.useInternalHook)(rev);
+    if (hook.sus.length === 0)
+      return;
+  }
+  const toTemplate = async ({ idx, elem }) => {
+    let child;
+    try {
+      child = await (0, import_render.renderToString)(await (0, import_hook.elemToRevContext)(elem, rev));
+    } catch (error) {
+      let err_elem;
+      if (import_render.options.onErrorStream !== void 0) {
+        err_elem = await (0, import_hook.elemToRevContext)(
+          (0, import_index.n)(import_render.options.onErrorStream, { error }),
+          rev
+        );
+      } else {
+        err_elem = String(error);
+      }
+      child = await (0, import_render.renderToString)(err_elem);
+    }
+    return `<template id="__t__:${idx}">` + child + `</template><script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${idx}");var r=$("__s__:${idx}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`;
+  };
+  const elems = hook.sus.map(toTemplate);
+  const len = elems.length;
+  if (len === 1) {
+    write(await elems[0]);
+  } else {
+    const state = { count: 0 };
+    elems.forEach((elem) => elem.then(write).finally(() => state.count++));
+    while (state.count !== len)
+      await Promise.all(elems);
+  }
+  write(await (0, import_render.renderToString)(import_helmet.Helmet.rewind().footer));
 }
 const renderToReadableStream = async (elem, rev) => {
   const initHead = (0, import_render.toInitHead)(rev.__init_head, import_render.options.initHead);
@@ -90,6 +98,7 @@ const renderToReadableStream = async (elem, rev) => {
           rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
             enqueue(await (0, import_render.bodyWithHelmet)(body, rewind));
+            await handleSuspense(enqueue, rev);
           } else {
             await toStream(
               body,

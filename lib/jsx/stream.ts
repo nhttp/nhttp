@@ -1,6 +1,6 @@
 import { type RequestEvent } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
-import { elemToRevContext } from "./hook.ts";
+import { elemToRevContext, InternalHook } from "./hook.ts";
 import {
   FC,
   HelmetRewind,
@@ -38,43 +38,54 @@ export async function toStream(
   if (head.length > 0) write(await renderToString(head));
   write(`</head><body${toAttr(attr.body)}>${body}`);
   if (hook.sus.length > 0) {
-    const toTemplate = async (
-      { idx, elem }: { idx: number; elem: JSXElement },
-    ) => {
-      let child: string;
-      try {
-        child = await renderToString(await elemToRevContext(elem, rev));
-      } catch (error) {
-        let err_elem;
-        if (options.onErrorStream !== void 0) {
-          err_elem = await elemToRevContext(
-            n(options.onErrorStream, { error }),
-            rev,
-          );
-        } else {
-          err_elem = String(error);
-        }
-        child = await renderToString(err_elem);
-      }
-      return (
-        `<template id="__t__:${idx}">` + child + `</template>` +
-        `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${idx}");var r=$("__s__:${idx}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
-      );
-    };
-    const elems = hook.sus.map(toTemplate) as Promise<string>[];
-    const len = elems.length;
-    if (len === 1) {
-      write(await elems[0]);
-    } else {
-      const state = { count: 0 };
-      elems.forEach((elem) => elem.then(write).finally(() => state.count++));
-      while (state.count !== len) await Promise.all(elems);
-    }
-    write(await renderToString(Helmet.rewind().footer));
+    await handleSuspense(write, rev, hook);
   } else if (footer.length > 0) {
     write(await renderToString(footer));
   }
   write("</body></html>");
+}
+async function handleSuspense(
+  write: (str: string) => void,
+  rev: RequestEvent,
+  hook?: InternalHook,
+) {
+  if (hook === void 0) {
+    hook = useInternalHook(rev);
+    if (hook.sus.length === 0) return;
+  }
+  const toTemplate = async (
+    { idx, elem }: { idx: number; elem: JSXElement },
+  ) => {
+    let child: string;
+    try {
+      child = await renderToString(await elemToRevContext(elem, rev));
+    } catch (error) {
+      let err_elem;
+      if (options.onErrorStream !== void 0) {
+        err_elem = await elemToRevContext(
+          n(options.onErrorStream, { error }),
+          rev,
+        );
+      } else {
+        err_elem = String(error);
+      }
+      child = await renderToString(err_elem);
+    }
+    return (
+      `<template id="__t__:${idx}">` + child + `</template>` +
+      `<script>(function(){function $(s){return document.getElementById(s)};var t=$("__t__:${idx}");var r=$("__s__:${idx}");(r.replaceWith||r.replaceNode).bind(r)(t.content);t.remove();})();</script>`
+    );
+  };
+  const elems = hook.sus.map(toTemplate) as Promise<string>[];
+  const len = elems.length;
+  if (len === 1) {
+    write(await elems[0]);
+  } else {
+    const state = { count: 0 };
+    elems.forEach((elem) => elem.then(write).finally(() => state.count++));
+    while (state.count !== len) await Promise.all(elems);
+  }
+  write(await renderToString(Helmet.rewind().footer));
 }
 /**
  * render to ReadableStream in `app.engine`.
@@ -105,6 +116,7 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
           rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
             enqueue(await bodyWithHelmet(body, rewind));
+            await handleSuspense(enqueue, rev);
           } else {
             await toStream(
               body,

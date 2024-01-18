@@ -56,13 +56,13 @@ export declare const internal: TObject;
 export declare const options: TOptionsRender;
 export declare function toInitHead(a: string | undefined, b: string | undefined): string;
 export declare const mutateAttr: Record<string, string>;
-export declare const toAttr: (p?: TRet) => string;
+export declare const toAttr: (props?: TRet) => string;
 export declare const toHtml: (body: string, { head, footer, attr }: HelmetRewind, initHead?: string) => Promise<string>;
 export type RenderHTML = ((...args: TRet) => TRet) & {
     check: (elem: TRet) => boolean;
 };
 export declare function escapeHtml(str: string, force?: boolean): string;
-export declare function toStyle(val: NJSX.CSSProperties): string;
+export declare function toStyle(obj: NJSX.CSSProperties): string;
 /**
  * renderToString.
  * @example

@@ -127,11 +127,11 @@ const csrf = (opts = {}) => {
       }
       return create(secret, opts.salt ?? 8, algo);
     };
-    rev.csrfVerify = () => {
+    rev.csrfVerify = (v) => {
       if (ignoreMethods.includes(rev.method))
         return true;
       return origin.includes(rev.headers.get("origin") ?? "") || (() => {
-        const value = opts.getValue?.(rev) ?? getDefaultValue(rev);
+        const value = v ?? opts.getValue?.(rev) ?? getDefaultValue(rev);
         if (value == null)
           return true;
         return verify(

@@ -1,4 +1,18 @@
 import { type Cookie, type Handler, type RequestEvent, type TRet } from "./deps";
+declare global {
+    namespace NHTTP {
+        interface RequestEvent {
+            /**
+             * generate token CSRF.
+             */
+            csrfToken: () => string;
+            /**
+             * verify token CSRF.
+             */
+            csrfVerify: (value?: string) => boolean;
+        }
+    }
+}
 export type CSRFOptions = {
     /**
      * cookie. default to `false`.
