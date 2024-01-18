@@ -1,5 +1,3 @@
-import { ROUTE } from "./constant.ts";
-import { findParams } from "./router.ts";
 import {
   s_body,
   s_cookies,
@@ -65,23 +63,24 @@ export class RequestEvent<O extends TObject = TObject> {
    */
   get route(): MatchRoute {
     if (this[s_route]) return this[s_route];
-    let path = this.path;
-    if (path !== "/" && path[path.length - 1] === "/") {
-      path = path.slice(0, -1);
-    }
-    const ret = ROUTE[this.method]?.find((o: TObject) =>
-      o.pattern?.test(path) || o.path === path
-    );
-    if (ret) {
-      if (!ret.pattern) {
-        Object.assign(ret, toPathx(ret.path, true));
+    let route = this.__routePath;
+    if (route === void 0) {
+      route = this.__path ?? this.path;
+      if (route !== "/" && route[route.length - 1] === "/") {
+        route = route.slice(0, -1);
       }
-      ret.method = this.method;
-      ret.pathname = this.path;
-      ret.query = this.query;
-      ret.params = findParams(ret, path);
     }
-    return this[s_route] ??= ret ?? {};
+    return this[s_route] ??= {
+      path: route,
+      method: this.method,
+      pathname: this.path,
+      query: this.query,
+      params: this.params,
+      get pattern() {
+        return toPathx(this.path, true).pattern;
+      },
+      wild: route.includes("*"),
+    };
   }
   /**
    * lookup Object info like `conn / env / context`.
