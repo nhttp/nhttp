@@ -25,7 +25,6 @@ import { getError, HttpError } from "./error.ts";
 import { createRequest, RequestEvent, toRes } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
 import { s_init, s_response } from "./symbol.ts";
-import { ROUTE } from "./constant.ts";
 import { oldSchool } from "./http_response.ts";
 import { awaiter, buildListenOptions, onNext } from "./nhttp_util.ts";
 
@@ -102,6 +101,7 @@ export class NHttp<
   ) {
     const def = this._on404.bind(this);
     this._on404 = (rev) => {
+      rev.route.path = "";
       try {
         rev.response.status(404);
         return fn(
@@ -159,7 +159,6 @@ export class NHttp<
             fns,
             wild,
           });
-          (ROUTE[m] ??= []).push({ path, pattern, wild });
         }
       } else {
         const key = m + path;
@@ -167,7 +166,6 @@ export class NHttp<
           this.route[key] = this.route[key].concat(fns);
         } else {
           this.route[key] = fns.length && fns[0].length ? fns : fns[0];
-          (ROUTE[m] ??= []).push({ path });
         }
         if (path !== "/") this.route[key + "/"] = this.route[key];
       }
@@ -247,7 +245,10 @@ export class NHttp<
     return this.find(
       method,
       url,
-      (obj) => (rev.params = obj),
+      (params, routePath) => {
+        rev.params = params;
+        rev.__routePath = routePath;
+      },
       this._on404,
     );
   };

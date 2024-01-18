@@ -89,8 +89,6 @@ const useRequestEvent = () => useContext(RevContext);
 const useInternalHook = (rev) => {
   rev ??= useRequestEvent();
   return rev[s_int] ??= {
-    id: 0,
-    js_id: 0,
     sus: [],
     sus_id: 0
   };

@@ -1,4 +1,3 @@
-import { ROUTE } from "./constant.ts";
 import type { RequestEvent } from "./request_event.ts";
 import type {
   Handler,
@@ -52,14 +51,6 @@ function mutatePath(base: string, str: string) {
     else path += "/*";
   }
   return { path, ori };
-}
-
-function addGlobRoute(ori: string | RegExp | undefined, obj: TObject) {
-  ANY_METHODS.forEach((method) => {
-    ROUTE[method] ??= [];
-    const not = !ROUTE[method].find(({ path }: TRet) => path === ori);
-    if (not) ROUTE[method].push(obj);
-  });
 }
 
 export type TRouter = { base?: string };
@@ -133,9 +124,6 @@ export default class Router<
         });
       } else {
         this.pmidds[idx].fns = this.pmidds[idx].fns.concat(findFns(args));
-      }
-      if ((this as TRet)["handle"]) {
-        addGlobRoute(_path, { path, pattern, wild });
       }
       return this;
     }
@@ -294,21 +282,21 @@ export default class Router<
   find(
     method: string,
     path: string,
-    setParam: (obj: TObject) => void,
+    setParam: (obj: TObject, route_path: string) => void,
     notFound: (rev: Rev, next: NextFunction) => TRet,
   ): Handler<Rev>[] {
     const fns = this.route[method + path];
     if (fns !== void 0) return isArray(fns) ? fns : [fns];
     const r = this.route[method]?.find((el: TObject) => el.pattern.test(path));
     if (r !== void 0) {
-      setParam(findParams(r, path));
+      setParam(findParams(r, path), r.path);
       if (r.wild === false) return r.fns;
       if (r.path !== "*" && r.path !== "/*") return r.fns;
     }
     if (this.pmidds !== void 0) {
       const r = this.pmidds.find((el) => el.pattern.test(path));
       if (r !== void 0) {
-        setParam(findParams(r, path));
+        setParam(findParams(r, path), r.path);
         return this.midds.concat(r.fns, [notFound]);
       }
     }

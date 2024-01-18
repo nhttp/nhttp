@@ -88,6 +88,43 @@ const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   track: true,
   wbr: true,
 });
+const voidNonPx: Record<string, boolean> = Object.assign(Object.create(null), {
+  "animation-iteration-count": true,
+  "border-image-outset": true,
+  "border-image-slice": true,
+  "border-image-width": true,
+  "box-flex": true,
+  "box-flex-group": true,
+  "box-ordinal-group": true,
+  "column-count": true,
+  "fill-opacity": true,
+  "flex": true,
+  "flex-grow": true,
+  "flex-negative": true,
+  "flex-order": true,
+  "flex-positive": true,
+  "flex-shrink": true,
+  "flood-opacity": true,
+  "font-weight": true,
+  "grid-column": true,
+  "grid-row": true,
+  "line-clamp": true,
+  "line-height": true,
+  "opacity": true,
+  "order": true,
+  "orphans": true,
+  "stop-opacity": true,
+  "stroke-dasharray": true,
+  "stroke-dashoffset": true,
+  "stroke-miterlimit": true,
+  "stroke-opacity": true,
+  "stroke-width": true,
+  "tab-size": true,
+  "widows": true,
+  "z-index": true,
+  "zoom": true,
+});
+const KEBAB_CSS = {} as TObject;
 const isArray = Array.isArray;
 export function toInitHead(a: string | undefined, b: string | undefined) {
   if (a !== void 0 && b !== void 0) return b + a;
@@ -103,10 +140,10 @@ export const mutateAttr: Record<string, string> = {
 function withAt(k: string) {
   return k.startsWith("at-") ? "@" + k.slice(3) : k;
 }
-function mutateProps(props: TRet = {}) {
-  const obj = {} as TRet;
+export const toAttr = (props: TRet = {}) => {
+  let attr = "";
   for (const k in props) {
-    const val = props[k];
+    let val = props[k];
     if (
       val == null ||
       val === false ||
@@ -117,15 +154,6 @@ function mutateProps(props: TRet = {}) {
       continue;
     }
     const key = mutateAttr[k] ?? withAt(k.toLowerCase());
-    obj[key] = val;
-  }
-  return obj;
-}
-export const toAttr = (p: TRet = {}) => {
-  const props = mutateProps(p);
-  let attr = "";
-  for (const key in props) {
-    let val = props[key];
     if (val === true) {
       attr += ` ${key}`;
     } else {
@@ -191,16 +219,24 @@ function kebab(camelCase: string) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
 
-export function toStyle(val: NJSX.CSSProperties) {
-  return Object.keys(val).reduce(
-    (a, b) =>
-      a +
-      kebab(b) +
-      ":" +
-      (typeof val[b] === "number" ? val[b] + "px" : val[b]) +
-      ";",
-    "",
-  );
+export function toStyle(obj: NJSX.CSSProperties) {
+  let out = "";
+  for (const k in obj) {
+    const val = obj[k];
+    if (val != null && val !== "") {
+      const name = k[0] === "-" ? k : (KEBAB_CSS[k] ??= kebab(k));
+      let s = ";";
+      if (
+        typeof val === "number" &&
+        !name.startsWith("--") &&
+        !(name in voidNonPx)
+      ) {
+        s = "px;";
+      }
+      out = out + name + ":" + val + s;
+    }
+  }
+  return out || void 0;
 }
 /**
  * renderToString.

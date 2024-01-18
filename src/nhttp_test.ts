@@ -102,6 +102,16 @@ Deno.test("nhttp", async (t) => {
     const noop = await app.handle(myReq());
     assertEquals(noop.status, 408);
   });
+  await t.step("rev.route", async () => {
+    const app = nhttp();
+    app.get("/user", (rev) => {
+      assertEquals(rev.route.path, "/user");
+      assertEquals(rev.route.pattern instanceof RegExp, true);
+      return "user";
+    });
+    const user = await app.req("/user/").text();
+    assertEquals(user, "user");
+  });
   await t.step("engine", async () => {
     const app = nhttp();
     app.engine((tmp, params) => {

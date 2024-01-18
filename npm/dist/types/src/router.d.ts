@@ -99,6 +99,6 @@ export default class Router<Rev extends RequestEvent = RequestEvent> {
      * app.connect("/", ...handlers);
      */
     connect<T extends unknown = unknown>(path: string | RegExp, ...handlers: Handlers<T, Rev>): this;
-    find(method: string, path: string, setParam: (obj: TObject) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
+    find(method: string, path: string, setParam: (obj: TObject, route_path: string) => void, notFound: (rev: Rev, next: NextFunction) => TRet): Handler<Rev>[];
 }
 export {};

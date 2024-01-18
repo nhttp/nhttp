@@ -27,6 +27,43 @@ const voidTags = Object.assign(/* @__PURE__ */ Object.create(null), {
   track: true,
   wbr: true
 });
+const voidNonPx = Object.assign(/* @__PURE__ */ Object.create(null), {
+  "animation-iteration-count": true,
+  "border-image-outset": true,
+  "border-image-slice": true,
+  "border-image-width": true,
+  "box-flex": true,
+  "box-flex-group": true,
+  "box-ordinal-group": true,
+  "column-count": true,
+  "fill-opacity": true,
+  "flex": true,
+  "flex-grow": true,
+  "flex-negative": true,
+  "flex-order": true,
+  "flex-positive": true,
+  "flex-shrink": true,
+  "flood-opacity": true,
+  "font-weight": true,
+  "grid-column": true,
+  "grid-row": true,
+  "line-clamp": true,
+  "line-height": true,
+  "opacity": true,
+  "order": true,
+  "orphans": true,
+  "stop-opacity": true,
+  "stroke-dasharray": true,
+  "stroke-dashoffset": true,
+  "stroke-miterlimit": true,
+  "stroke-opacity": true,
+  "stroke-width": true,
+  "tab-size": true,
+  "widows": true,
+  "z-index": true,
+  "zoom": true
+});
+const KEBAB_CSS = {};
 const isArray = Array.isArray;
 function toInitHead(a, b) {
   if (a !== void 0 && b !== void 0)
@@ -42,23 +79,14 @@ const mutateAttr = {
 function withAt(k) {
   return k.startsWith("at-") ? "@" + k.slice(3) : k;
 }
-function mutateProps(props = {}) {
-  const obj = {};
+const toAttr = (props = {}) => {
+  let attr = "";
   for (const k in props) {
-    const val = props[k];
+    let val = props[k];
     if (val == null || val === false || k === dangerHTML || k === "children" || typeof val === "function") {
       continue;
     }
     const key = mutateAttr[k] ?? withAt(k.toLowerCase());
-    obj[key] = val;
-  }
-  return obj;
-}
-const toAttr = (p = {}) => {
-  const props = mutateProps(p);
-  let attr = "";
-  for (const key in props) {
-    let val = props[key];
     if (val === true) {
       attr += ` ${key}`;
     } else {
@@ -109,11 +137,20 @@ function escapeHtml(str, force) {
 function kebab(camelCase) {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
-function toStyle(val) {
-  return Object.keys(val).reduce(
-    (a, b) => a + kebab(b) + ":" + (typeof val[b] === "number" ? val[b] + "px" : val[b]) + ";",
-    ""
-  );
+function toStyle(obj) {
+  let out = "";
+  for (const k in obj) {
+    const val = obj[k];
+    if (val != null && val !== "") {
+      const name = k[0] === "-" ? k : KEBAB_CSS[k] ??= kebab(k);
+      let s = ";";
+      if (typeof val === "number" && !name.startsWith("--") && !(name in voidNonPx)) {
+        s = "px;";
+      }
+      out = out + name + ":" + val + s;
+    }
+  }
+  return out || void 0;
 }
 async function renderToString(elem) {
   if (elem == null || typeof elem === "boolean")
