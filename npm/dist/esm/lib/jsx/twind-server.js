@@ -13,7 +13,8 @@ function onRenderElement({ htmx, ...opts } = {}) {
     let str = await writeElem(elem, rev);
     if (hxRequest && rev.hxRequest) {
       const { html, css } = extract(str, opts.tw);
-      str = `<style>${css}</style>${html}`;
+      if (css !== "")
+        str = `<style>${css}</style>${html}`;
     }
     return str;
   };

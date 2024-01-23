@@ -38,15 +38,20 @@ let fs_glob;
 let s_glob;
 let c_glob;
 let b_glob;
-const H_TYPE = "content-type";
 const encoder = new TextEncoder();
 const build_date = /* @__PURE__ */ new Date();
+const isDeno = typeof Deno !== "undefined";
 async function cHash(ab) {
-  if (typeof crypto === "undefined")
-    return await oldHash(ab);
-  const buf = await crypto.subtle.digest("SHA-1", ab);
-  const arr = Array.from(new Uint8Array(buf));
-  return arr.map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (ab.byteLength === 0)
+    return "47DEQpj8HBSa+/TImW+5JCeuQeR";
+  let hash = "";
+  if (typeof crypto === "undefined") {
+    hash = await oldHash(ab);
+  } else {
+    const buf = await crypto.subtle.digest("SHA-1", ab);
+    new Uint8Array(buf).forEach((el) => hash += el.toString(16));
+  }
+  return hash;
 }
 function getContentType(path) {
   const iof = path.lastIndexOf(".");
@@ -137,10 +142,11 @@ async function sendFile(rev, pathFile, opts = {}) {
     throw error;
   }
 }
-const etag = (opts = {}) => {
+const etag = ({ weak, clone } = {}) => {
+  weak ??= true;
+  clone ??= isDeno === false;
   return async (rev, next) => {
     if (rev.method === "GET" || rev.method === "HEAD") {
-      const weak = opts.weak !== false;
       const { request, response } = rev;
       const nonMatch = request.headers.get("if-none-match");
       const send = rev.send.bind(rev);
@@ -152,22 +158,27 @@ const etag = (opts = {}) => {
       const res = await next();
       if (rev.__stopEtag)
         return;
-      const type = res.headers.get(H_TYPE);
       let etag2 = res.headers.get("etag");
+      let ab;
       if (etag2 === null) {
-        const ab = await res.clone().arrayBuffer();
-        if (ab.byteLength === 0)
-          return;
+        if (clone)
+          ab = await res.clone().arrayBuffer();
+        else
+          ab = await res.arrayBuffer();
         const hash = await cHash(ab);
         etag2 = weak ? `W/"${hash}"` : `"${hash}"`;
       }
-      if (nonMatch !== null && nonMatch === etag2) {
-        if (type !== null)
-          response.setHeader(H_TYPE, type);
+      const setHeader = () => {
+        res.headers.forEach((v, k) => response.setHeader(k, v));
         response.setHeader("etag", etag2);
+      };
+      if (nonMatch !== null && nonMatch === etag2) {
+        setHeader();
         response.status(304);
-        response.init.statusText = "Not Modified";
         rev.respondWith(new Response(null, response.init));
+      } else if (isDeno && ab !== void 0) {
+        setHeader();
+        rev.respondWith(new Response(ab, response.init));
       } else {
         try {
           res.headers.set("etag", etag2);
@@ -190,7 +201,7 @@ async function getFs() {
   if (s_glob !== void 0)
     return s_glob;
   s_glob = {};
-  if (typeof Deno !== "undefined") {
+  if (isDeno) {
     s_glob.readFile = Deno.readFileSync;
     s_glob.stat = Deno.statSync;
     return s_glob;
