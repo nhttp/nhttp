@@ -159,12 +159,16 @@ export const etag = ({ weak, clone }: EtagOptions = {}): Handler => {
         const hash = await cHash(ab);
         etag = weak ? `W/"${hash}"` : `"${hash}"`;
       }
-      res.headers.forEach((v, k) => response.setHeader(k, v));
-      response.setHeader("etag", etag);
+      const setHeader = () => {
+        res.headers.forEach((v, k) => response.setHeader(k, v));
+        response.setHeader("etag", etag as string);
+      };
       if (nonMatch !== null && nonMatch === etag) {
+        setHeader();
         response.status(304);
         rev.respondWith(new Response(null, response.init));
       } else if (isDeno && ab !== void 0) {
+        setHeader();
         rev.respondWith(new Response(ab, response.init));
       } else {
         try {
