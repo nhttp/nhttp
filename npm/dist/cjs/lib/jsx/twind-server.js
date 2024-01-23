@@ -45,7 +45,8 @@ function onRenderElement({ htmx, ...opts } = {}) {
     let str = await writeElem(elem, rev);
     if (hxRequest && rev.hxRequest) {
       const { html, css } = (0, import_core.extract)(str, opts.tw);
-      str = `<style>${css}</style>${html}`;
+      if (css !== "")
+        str = `<style>${css}</style>${html}`;
     }
     return str;
   };

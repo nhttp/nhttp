@@ -10,11 +10,12 @@ export declare function getContentType(path: string): string;
 export declare function sendFile(rev: RequestEvent, pathFile: string, opts?: TOptsSendFile): Promise<any>;
 export type EtagOptions = {
     weak?: boolean;
+    clone?: boolean;
 };
 /**
  * Etag middleware.
  * @example
  * app.use(etag());
  */
-export declare const etag: (opts?: EtagOptions) => Handler;
+export declare const etag: ({ weak, clone }?: EtagOptions) => Handler;
 export default etag;
