@@ -10,7 +10,6 @@ let fs_glob: TRet;
 let s_glob: TRet;
 let c_glob: TRet;
 let b_glob: TRet;
-const H_TYPE = "content-type";
 
 export interface TOptsSendFile {
   weak?: boolean;
@@ -21,11 +20,17 @@ export interface TOptsSendFile {
 }
 const encoder = new TextEncoder();
 const build_date = new Date();
+const isDeno = typeof Deno !== "undefined";
 async function cHash(ab: Uint8Array | ArrayBuffer) {
-  if (typeof crypto === "undefined") return await oldHash(ab);
-  const buf = await crypto.subtle.digest("SHA-1", ab);
-  const arr = Array.from(new Uint8Array(buf));
-  return arr.map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (ab.byteLength === 0) return "47DEQpj8HBSa+/TImW+5JCeuQeR";
+  let hash = "";
+  if (typeof crypto === "undefined") {
+    hash = await oldHash(ab);
+  } else {
+    const buf = await crypto.subtle.digest("SHA-1", ab);
+    new Uint8Array(buf).forEach((el) => (hash += el.toString(16)));
+  }
+  return hash;
 }
 export function getContentType(path: string) {
   const iof = path.lastIndexOf(".");
@@ -126,18 +131,17 @@ export async function sendFile(
     throw error;
   }
 }
-export type EtagOptions = { weak?: boolean };
+export type EtagOptions = { weak?: boolean; clone?: boolean };
 /**
  * Etag middleware.
  * @example
  * app.use(etag());
  */
-export const etag = (
-  opts: EtagOptions = {},
-): Handler => {
+export const etag = ({ weak, clone }: EtagOptions = {}): Handler => {
+  weak ??= true;
+  clone ??= isDeno === false;
   return async (rev, next) => {
     if (rev.method === "GET" || rev.method === "HEAD") {
-      const weak = opts.weak !== false;
       const { request, response } = rev;
       const nonMatch = request.headers.get("if-none-match");
       const send = rev.send.bind(rev);
@@ -147,20 +151,21 @@ export const etag = (
       };
       const res = await next();
       if (rev.__stopEtag) return;
-      const type = res.headers.get(H_TYPE);
       let etag = res.headers.get("etag");
+      let ab: TRet | undefined;
       if (etag === null) {
-        const ab = await res.clone().arrayBuffer();
-        if (ab.byteLength === 0) return;
+        if (clone) ab = await res.clone().arrayBuffer();
+        else ab = await res.arrayBuffer();
         const hash = await cHash(ab);
         etag = weak ? `W/"${hash}"` : `"${hash}"`;
       }
+      res.headers.forEach((v, k) => response.setHeader(k, v));
+      response.setHeader("etag", etag);
       if (nonMatch !== null && nonMatch === etag) {
-        if (type !== null) response.setHeader(H_TYPE, type);
-        response.setHeader("etag", etag);
         response.status(304);
-        response.init.statusText = "Not Modified";
         rev.respondWith(new Response(null, response.init));
+      } else if (isDeno && ab !== void 0) {
+        rev.respondWith(new Response(ab, response.init));
       } else {
         try {
           res.headers.set("etag", etag);
@@ -181,7 +186,7 @@ async function oldHash(data: Uint8Array | ArrayBuffer) {
 async function getFs() {
   if (s_glob !== void 0) return s_glob;
   s_glob = {};
-  if (typeof Deno !== "undefined") {
+  if (isDeno) {
     s_glob.readFile = Deno.readFileSync;
     s_glob.stat = Deno.statSync;
     return s_glob;
