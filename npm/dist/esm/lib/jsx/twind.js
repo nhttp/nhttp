@@ -4,7 +4,8 @@ const useTwind = (opts = {}) => {
   if (internal.twind)
     return;
   internal.twind = true;
-  opts.src ??= "//cdn.twind.style";
+  opts.src ??= "https://cdn.twind.style";
+  opts.crossOrigin ??= "";
   createHookScript(opts);
 };
 const twind = (opts = {}) => {

@@ -22,7 +22,7 @@ __export(htmx_exports, {
 module.exports = __toCommonJS(htmx_exports);
 var import_hook = require("./hook");
 const htmx = (opts = {}) => {
-  opts.src ??= "//unpkg.com/htmx.org";
+  opts.src ??= "https://unpkg.com/htmx.org@1.9.10";
   return (rev, next) => {
     rev.hxRequest = rev.headers.has("hx-request");
     (0, import_hook.createHookScript)(opts, rev);

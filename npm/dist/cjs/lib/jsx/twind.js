@@ -28,7 +28,8 @@ const useTwind = (opts = {}) => {
   if (import_render.internal.twind)
     return;
   import_render.internal.twind = true;
-  opts.src ??= "//cdn.twind.style";
+  opts.src ??= "https://cdn.twind.style";
+  opts.crossOrigin ??= "";
   (0, import_hook.createHookScript)(opts);
 };
 const twind = (opts = {}) => {

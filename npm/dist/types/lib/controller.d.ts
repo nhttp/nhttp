@@ -3,9 +3,9 @@ export type TDecorator = TRet;
 declare global {
     var NHttpMetadata: TRet;
 }
-type TStatus<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => number;
-type THeaders<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => TObject;
-type TString<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => string;
+type TStatus<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => number | Promise<number>;
+type THeaders<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => TObject | Promise<TObject>;
+type TString<Rev extends RequestEvent = RequestEvent> = (rev: Rev, next: NextFunction) => string | Promise<string>;
 type TMethod = (path?: string | RegExp) => TDecorator;
 export declare function addRoute(className: string, prop: string, handler: Handler, opts: {
     path?: string | RegExp;

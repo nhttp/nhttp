@@ -28,21 +28,21 @@ type TStatus<
 > = (
   rev: Rev,
   next: NextFunction,
-) => number;
+) => number | Promise<number>;
 
 type THeaders<
   Rev extends RequestEvent = RequestEvent,
 > = (
   rev: Rev,
   next: NextFunction,
-) => TObject;
+) => TObject | Promise<TObject>;
 
 type TString<
   Rev extends RequestEvent = RequestEvent,
 > = (
   rev: Rev,
   next: NextFunction,
-) => string;
+) => string | Promise<string>;
 
 type TMethod = (
   path?: string | RegExp,
@@ -96,7 +96,7 @@ export function View(name: string | TString): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
     const viewFn: Handler = async (rev, next) => {
-      const index = typeof name === "function" ? name(rev, next) : name;
+      const index = typeof name === "function" ? await name(rev, next) : name;
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
       const body = await fns[fns.length - 1](rev, next);
       return await rev.response.render(
@@ -112,10 +112,10 @@ export function View(name: string | TString): TDecorator {
 export function Jsx(): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
-    const jsxFn: Handler = (rev, next) => {
+    const jsxFn: Handler = async (rev, next) => {
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
-      const body = fns[fns.length - 1](rev, next);
-      return rev.response.render(body);
+      const body = await fns[fns.length - 1](rev, next);
+      return await rev.response.render(body);
     };
     joinHandlers(className, prop, [jsxFn]);
     return des;
@@ -144,9 +144,9 @@ export function Wares<
 
 export function Status(status: number | TStatus): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const statusFn: Handler = (rev, next) => {
+    const statusFn: Handler = async (rev, next) => {
       rev.response.status(
-        typeof status === "function" ? status(rev, next) : status,
+        typeof status === "function" ? await status(rev, next) : status,
       );
       return next();
     };
@@ -158,8 +158,8 @@ export function Status(status: number | TStatus): TDecorator {
 
 export function Type(name: string | TString, charset?: string): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const typeFn: Handler = (rev, next) => {
-      const value = typeof name === "function" ? name(rev, next) : name;
+    const typeFn: Handler = async (rev, next) => {
+      const value = typeof name === "function" ? await name(rev, next) : name;
       rev.response.type(value, charset);
       return next();
     };
@@ -171,9 +171,9 @@ export function Type(name: string | TString, charset?: string): TDecorator {
 
 export function Header(header: TObject | THeaders): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const headerFn: Handler = (rev, next) => {
+    const headerFn: Handler = async (rev, next) => {
       rev.response.header(
-        typeof header === "function" ? header(rev, next) : header,
+        typeof header === "function" ? await header(rev, next) : header,
       );
       return next();
     };

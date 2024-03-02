@@ -9,7 +9,7 @@ export interface TrpcOptions<TRouter extends AnyRouter> {
     prefix?: string;
     endpoint?: string;
     router: TAnyRouter;
-    createContext?: (rev: RequestEvent, next: NextFunction) => inferRouterContext<TRouter>;
+    createContext?: (rev: RequestEvent, next: NextFunction) => inferRouterContext<TRouter> | Promise<inferRouterContext<TRouter>>;
     batching?: {
         enabled: boolean;
     };

@@ -17,7 +17,7 @@ export interface TrpcOptions<TRouter extends AnyRouter> {
   createContext?: (
     rev: RequestEvent,
     next: NextFunction,
-  ) => inferRouterContext<TRouter>;
+  ) => inferRouterContext<TRouter> | Promise<inferRouterContext<TRouter>>;
   batching?: {
     enabled: boolean;
   };
@@ -35,7 +35,9 @@ export const trpc = <TRouter extends AnyRouter>(
 ): Handler => {
   return async (rev, next) => {
     try {
-      const ctx = opts.createContext?.(rev, next) ?? rev;
+      const ctx = typeof opts.createContext === "function"
+        ? await opts.createContext(rev, next)
+        : rev;
       const endpoint = opts.endpoint ?? opts.prefix ?? rev.__prefix ??
         rev.path.substring(0, rev.path.lastIndexOf("/")) ??
         "";

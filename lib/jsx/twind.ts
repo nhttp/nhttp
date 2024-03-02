@@ -19,7 +19,8 @@ export const useTwind = (
 ) => {
   if (internal.twind) return;
   internal.twind = true;
-  opts.src ??= "//cdn.twind.style";
+  opts.src ??= "https://cdn.twind.style";
+  opts.crossOrigin ??= "";
   createHookScript(opts);
 };
 /**

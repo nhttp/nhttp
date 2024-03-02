@@ -1,6 +1,6 @@
 import { createHookScript } from "./hook.js";
 const htmx = (opts = {}) => {
-  opts.src ??= "//unpkg.com/htmx.org";
+  opts.src ??= "https://unpkg.com/htmx.org@1.9.10";
   return (rev, next) => {
     rev.hxRequest = rev.headers.has("hx-request");
     createHookScript(opts, rev);

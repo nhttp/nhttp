@@ -45,11 +45,14 @@ function addMethod(method, path) {
 function View(name) {
   return (target, prop, des) => {
     const className = target.constructor.name;
-    const viewFn = (rev, next) => {
-      const index = typeof name === "function" ? name(rev, next) : name;
+    const viewFn = async (rev, next) => {
+      const index = typeof name === "function" ? await name(rev, next) : name;
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
-      const body = fns[fns.length - 1](rev, next);
-      return rev.response.render(index, typeof body === "object" ? body : {});
+      const body = await fns[fns.length - 1](rev, next);
+      return await rev.response.render(
+        index,
+        typeof body === "object" ? body : {}
+      );
     };
     joinHandlers(className, prop, [viewFn]);
     return des;
@@ -58,10 +61,10 @@ function View(name) {
 function Jsx() {
   return (target, prop, des) => {
     const className = target.constructor.name;
-    const jsxFn = (rev, next) => {
+    const jsxFn = async (rev, next) => {
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
-      const body = fns[fns.length - 1](rev, next);
-      return rev.response.render(body);
+      const body = await fns[fns.length - 1](rev, next);
+      return await rev.response.render(body);
     };
     joinHandlers(className, prop, [jsxFn]);
     return des;
@@ -83,9 +86,9 @@ function Wares(...middlewares) {
 }
 function Status(status) {
   return (target, prop, des) => {
-    const statusFn = (rev, next) => {
+    const statusFn = async (rev, next) => {
       rev.response.status(
-        typeof status === "function" ? status(rev, next) : status
+        typeof status === "function" ? await status(rev, next) : status
       );
       return next();
     };
@@ -96,8 +99,8 @@ function Status(status) {
 }
 function Type(name, charset) {
   return (target, prop, des) => {
-    const typeFn = (rev, next) => {
-      const value = typeof name === "function" ? name(rev, next) : name;
+    const typeFn = async (rev, next) => {
+      const value = typeof name === "function" ? await name(rev, next) : name;
       rev.response.type(value, charset);
       return next();
     };
@@ -108,9 +111,9 @@ function Type(name, charset) {
 }
 function Header(header) {
   return (target, prop, des) => {
-    const headerFn = (rev, next) => {
+    const headerFn = async (rev, next) => {
       rev.response.header(
-        typeof header === "function" ? header(rev, next) : header
+        typeof header === "function" ? await header(rev, next) : header
       );
       return next();
     };
