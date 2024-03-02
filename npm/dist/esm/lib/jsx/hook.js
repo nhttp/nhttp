@@ -68,7 +68,7 @@ const useRequest = () => useRequestEvent()?.request;
 function useScript(fn, params, options2 = {}) {
   let js_string = "";
   if (typeof fn === "string") {
-    js_string = fn;
+    js_string = `function(){${fn}}`;
   } else if (typeof fn === "function") {
     js_string = fn.toString();
   } else {

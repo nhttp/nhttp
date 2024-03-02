@@ -4,7 +4,7 @@
     "bench": "deno bench -A bench/benchmark.ts",
     "build:npm": "deno run -A ./scripts/build_npm.ts",
     "rm:cov": "deno run -A scripts/rm_cov.ts",
-    "test": "deno test --coverage=cov_profile -A --unstable",
+    "test": "deno test --coverage=cov_profile -A",
     "genhtml": "genhtml -o cov_profile/html cov_profile.lcov",
     "cov": "deno coverage cov_profile --lcov --output=cov_profile.lcov",
     "cov:serve": "file_server cov_profile/html",

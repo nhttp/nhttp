@@ -25,7 +25,7 @@ var import_fetch = require("@trpc/server/adapters/fetch");
 const trpc = (opts) => {
   return async (rev, next) => {
     try {
-      const ctx = opts.createContext?.(rev, next) ?? rev;
+      const ctx = typeof opts.createContext === "function" ? await opts.createContext(rev, next) : rev;
       const endpoint = opts.endpoint ?? opts.prefix ?? rev.__prefix ?? rev.path.substring(0, rev.path.lastIndexOf("/")) ?? "";
       return await (0, import_fetch.fetchRequestHandler)({
         endpoint,
