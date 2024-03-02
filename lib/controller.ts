@@ -99,7 +99,10 @@ export function View(name: string | TString): TDecorator {
       const index = typeof name === "function" ? name(rev, next) : name;
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
       const body = fns[fns.length - 1](rev, next);
-      return await rev.response.render(index, typeof body === "object" ? body : {});
+      return await rev.response.render(
+        index,
+        typeof body === "object" ? body : {},
+      );
     };
     joinHandlers(className, prop, [viewFn]);
     return des;
