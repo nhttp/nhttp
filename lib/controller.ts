@@ -98,7 +98,7 @@ export function View(name: string | TString): TDecorator {
     const viewFn: Handler = async (rev, next) => {
       const index = typeof name === "function" ? name(rev, next) : name;
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
-      const body = fns[fns.length - 1](rev, next);
+      const body = await fns[fns.length - 1](rev, next);
       return await rev.response.render(
         index,
         typeof body === "object" ? body : {},
