@@ -95,11 +95,14 @@ export function addMethod(method: string, path?: string | RegExp): TDecorator {
 export function View(name: string | TString): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
-    const viewFn: Handler = (rev, next) => {
+    const viewFn: Handler = async (rev, next) => {
       const index = typeof name === "function" ? name(rev, next) : name;
       const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
-      const body = fns[fns.length - 1](rev, next);
-      return rev.response.render(index, typeof body === "object" ? body : {});
+      const body = await fns[fns.length - 1](rev, next);
+      return await rev.response.render(
+        index,
+        typeof body === "object" ? body : {},
+      );
     };
     joinHandlers(className, prop, [viewFn]);
     return des;
