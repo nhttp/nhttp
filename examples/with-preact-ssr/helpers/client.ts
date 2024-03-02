@@ -19,7 +19,10 @@ const withClient = <T extends unknown = unknown>(
   if (typeof document === "undefined") {
     Fc.meta_url = meta_url;
   } else {
+    // client support window.
+    // deno-lint-ignore no-window
     const props = window.__INIT_PROPS__ ?? {};
+    // deno-lint-ignore no-window
     window.__INIT_PROPS__ = void 0;
     render(h(Fc, props), document.body);
   }
