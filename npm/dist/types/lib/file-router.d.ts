@@ -1,5 +1,5 @@
-import { NHttp } from "./deps";
-import { TRet } from "../mod";
+import type { NHttp } from "./deps";
+import type { TRet } from "../mod";
 /**
  * getRouteFromDir. Lookup route from dir.
  * @example

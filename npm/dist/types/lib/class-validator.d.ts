@@ -1,6 +1,6 @@
-import { ValidatorOptions } from "class-validator";
-import { Handler, RequestEvent, TRet } from "./deps";
-import { TDecorator } from "./controller";
+import { type ValidatorOptions } from "class-validator";
+import { type Handler, type RequestEvent, type TRet } from "./deps";
+import { type TDecorator } from "./controller";
 export * from "class-validator";
 type Class = {
     new (...args: TRet[]): TRet;

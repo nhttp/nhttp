@@ -1,5 +1,5 @@
-import { TObject } from "./../deps";
-import { TInfo, TOpenApi, TSecurity, TTagObject } from "./types";
+import type { TObject } from "./../deps";
+import type { TInfo, TOpenApi, TSecurity, TTagObject } from "./types";
 export declare class DocumentBuilder {
     private _doc;
     setHost(str: string): this;

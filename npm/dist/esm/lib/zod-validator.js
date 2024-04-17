@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { joinHandlers } from "./controller.js";
-import { HttpError } from "./deps.js";
+import {
+  HttpError
+} from "./deps.js";
 function validate(schema, target = "body", onError) {
   return (rev, next) => {
     try {

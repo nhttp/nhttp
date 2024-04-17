@@ -1,13 +1,13 @@
 import {
   findFns,
-  Handler,
-  Handlers,
+  type Handler,
+  type Handlers,
   multipart,
-  NextFunction,
-  RequestEvent,
-  TMultipartUpload,
-  TObject,
-  TRet,
+  type NextFunction,
+  type RequestEvent,
+  type TMultipartUpload,
+  type TObject,
+  type TRet,
 } from "./deps.ts";
 export type TDecorator = TRet;
 function concatRegexp(prefix: string | RegExp, path: RegExp) {

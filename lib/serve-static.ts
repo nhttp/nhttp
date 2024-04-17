@@ -1,5 +1,10 @@
-import { decURIComponent, NextFunction, RequestEvent, TRet } from "./deps.ts";
-import { sendFile as sendFileEtag, TOptsSendFile } from "./etag.ts";
+import {
+  decURIComponent,
+  type NextFunction,
+  type RequestEvent,
+  type TRet,
+} from "./deps.ts";
+import { sendFile as sendFileEtag, type TOptsSendFile } from "./etag.ts";
 
 export interface ServeStaticOptions extends TOptsSendFile {
   index?: string;

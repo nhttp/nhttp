@@ -1,10 +1,10 @@
 import {
-  Handler,
-  HttpResponse,
+  type Handler,
+  type HttpResponse,
   MIME_LIST,
-  RequestEvent,
-  TObject,
-  TRet,
+  type RequestEvent,
+  type TObject,
+  type TRet,
 } from "./deps.ts";
 let fs_glob: TRet;
 let s_glob: TRet;
@@ -62,11 +62,11 @@ async function is304(
   stat: TObject,
   weak: boolean,
   subfix = "",
-  cd?: string,
+  cd?: string | string[],
 ) {
   if (!stat.size) return false;
   const mtime = stat.mtime ?? build_date;
-  if (cd) subfix += cd;
+  if (cd) subfix += cd.toString();
   const hash = `"${stat.size}-${mtime.getTime()}${
     subfix ? (await cHash(encoder.encode(subfix))) : ""
   }"`;

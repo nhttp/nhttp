@@ -1096,6 +1096,18 @@ var node_inspect = Symbol.for("nodejs.util.inspect.custom");
 
 // npm/src/src/http_response.ts
 var TYPE = "content-type";
+var isArray2 = Array.isArray;
+var headerToArr = (obj = {}) => {
+  const arr = [];
+  for (const k in obj) {
+    arr.push([k, obj[k]]);
+  }
+  return arr;
+};
+var filterHeaders = (headers, key) => {
+  return headers.filter((vals) => vals[0] !== key);
+};
+var C_KEY = "set-cookie";
 var HttpResponse = class {
   constructor(send, init) {
     this.send = send;
@@ -1107,7 +1119,13 @@ var HttpResponse = class {
    * response.setHeader("key", "value");
    */
   setHeader(key, value) {
-    (this.init.headers ??= {})[key.toLowerCase()] = value;
+    key = key.toLowerCase();
+    if (this.__isHeaders) {
+      this.init.headers = filterHeaders(this.init.headers, key);
+      this.init.headers.push([key, value]);
+    } else {
+      (this.init.headers ??= {})[key] = value;
+    }
     return this;
   }
   /**
@@ -1116,6 +1134,11 @@ var HttpResponse = class {
    * const str = response.getHeader("key");
    */
   getHeader(key) {
+    key = key.toLowerCase();
+    if (this.__isHeaders) {
+      const res = this.init.headers.filter((vals) => vals[0] === key).map((vals) => vals[1]);
+      return res.length > 1 ? res : res[0];
+    }
     return this.init.headers?.[key.toLowerCase()];
   }
   header(key, value) {
@@ -1132,14 +1155,33 @@ var HttpResponse = class {
     }
     return {
       delete: (k) => {
-        delete this.init.headers?.[k.toLowerCase()];
+        k = k.toLowerCase();
+        if (this.__isHeaders) {
+          this.init.headers = filterHeaders(this.init.headers, k);
+        } else {
+          delete this.init.headers?.[k];
+        }
       },
       append: (k, v) => {
         const cur = this.getHeader(k);
         this.setHeader(k, cur ? cur + ", " + v : v);
         return this;
       },
-      toJSON: () => this.init.headers ?? {}
+      toJSON: () => {
+        if (this.__isHeaders) {
+          const obj = {};
+          const arr = this.init.headers;
+          for (let i = 0; i < arr.length; i++) {
+            const [k, v] = arr[i];
+            if (obj[k] !== void 0)
+              obj[k] = [obj[k]].concat(v);
+            else
+              obj[k] = v;
+          }
+          return obj;
+        }
+        return this.init.headers ?? {};
+      }
     };
   }
   status(code) {
@@ -1247,6 +1289,20 @@ var HttpResponse = class {
     return this.header("Location", url).status(status ?? 302).send();
   }
   /**
+   * add headers. send multiple headers to response.
+   * @example
+   * response.addHeader("name", "john");
+   * response.addHeader("name", "doe");
+   */
+  addHeader(key, value) {
+    this.__isHeaders ??= true;
+    if (!isArray2(this.init.headers)) {
+      this.init.headers = headerToArr(this.init.headers);
+    }
+    this.init.headers.push([key, value]);
+    return this;
+  }
+  /**
    * cookie
    * @example
    * response.cookie("key", "value" , {
@@ -1261,10 +1317,7 @@ var HttpResponse = class {
       opts.maxAge /= 1e3;
     }
     value = typeof value === "object" ? "j:" + JSON.stringify(value) : String(value);
-    this.header().append(
-      "Set-Cookie",
-      serializeCookie(name, value, opts)
-    );
+    this.addHeader(C_KEY, serializeCookie(name, value, opts));
     return this;
   }
   /**
@@ -1274,8 +1327,8 @@ var HttpResponse = class {
    */
   clearCookie(name, opts = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append(
-      "Set-Cookie",
+    this.addHeader(
+      C_KEY,
       serializeCookie(name, "", { ...opts, expires: /* @__PURE__ */ new Date(0) })
     );
   }
@@ -1290,22 +1343,18 @@ var HttpResponse = class {
   }
 };
 function oldSchool() {
-  Response.json ??= (data, init = {}) => new JsonResponse(data, init);
   if (BigInt.prototype.toJSON === void 0) {
     BigInt.prototype.toJSON = function() {
       return this.toString();
     };
   }
+  Response.json ??= (data, init = {}) => new JsonResponse(data, init);
 }
 var JsonResponse = class extends Response {
   constructor(body, init = {}) {
-    if (init.headers) {
-      if (init.headers instanceof Headers)
-        init.headers.set(TYPE, JSON_TYPE);
-      else
-        init.headers[TYPE] = JSON_TYPE;
-    } else
-      init.headers = { [TYPE]: JSON_TYPE };
+    const headers = new Headers(init.headers);
+    headers.set(TYPE, JSON_TYPE);
+    init.headers = headers;
     super(
       JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v),
       init
@@ -1848,10 +1897,8 @@ var NHttp = class extends Router {
         const send = rev.send.bind(rev);
         rev.send = async (body, lose) => {
           if (check(body)) {
-            rev[s_init] ??= {};
-            rev[s_init].headers ??= {};
             body = await render(body, rev);
-            rev[s_init].headers["content-type"] ??= HTML_TYPE;
+            rev.response.setHeader("content-type", HTML_TYPE);
           }
           await send(body, lose);
         };
@@ -2391,24 +2438,24 @@ function mutateResponse() {
     globalThis.Request = NodeRequest;
   }
 }
+var toHeads = (headers) => Array.from(headers.entries());
+var Buf = globalThis.Buffer;
+var isArray3 = Array.isArray;
 var R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
-var R_ENC = /(c|C)ontent-(e|E)ncoding/;
-async function sendStream(resWeb, res, ori = false) {
+async function sendStream(resWeb, res, ori = false, heads) {
   if (ori) {
     resWeb = resWeb.clone();
-    const headers = {};
-    resWeb.headers.forEach((val, key) => {
-      if (!R_ENC.test(key))
-        headers[key] = val;
-    });
+    const headers = new Headers(resWeb.headers);
+    headers.delete("content-encoding");
     const code = resWeb.status ?? 200;
-    if (R_NO_STREAM.test(headers["content-type"] ?? "")) {
+    const type = headers.get("content-type");
+    if (type && R_NO_STREAM.test(type)) {
       const body = await resWeb.text();
-      headers["content-length"] = Buffer.byteLength(body);
-      res.writeHead(code, headers);
+      headers.set("content-length", Buf.byteLength(body));
+      res.writeHead(code, toHeads(headers));
       res.end(body);
     } else {
-      res.writeHead(code, headers);
+      res.writeHead(code, toHeads(headers));
       if (resWeb.body != null) {
         for await (const chunk of resWeb.body)
           res.write(chunk);
@@ -2421,22 +2468,33 @@ async function sendStream(resWeb, res, ori = false) {
     if (resWeb[s_body2].locked && resWeb[s_body_clone] != null) {
       resWeb[s_body2] = resWeb[s_body_clone];
     }
+    if (heads) {
+      res.writeHead(res.statusCode, heads);
+    }
     for await (const chunk of resWeb[s_body2])
       res.write(chunk);
     res.end();
     return;
   }
   if (resWeb.body == null) {
+    if (heads) {
+      res.writeHead(res.statusCode, heads);
+    }
     res.end();
     return;
   }
   const chunks = [];
   for await (const chunk of resWeb.body)
     chunks.push(chunk);
-  const data = Buffer.concat(chunks);
-  if (resWeb[s_body2] instanceof FormData && !res.getHeader("Content-Type")) {
+  const data = Buf.concat(chunks);
+  if (resWeb[s_body2] instanceof FormData) {
     const type = `multipart/form-data;boundary=${data.toString().split("\r")[0]}`;
-    res.setHeader("Content-Type", type);
+    if (heads) {
+      heads.push(["Content-Type", type]);
+      res.writeHead(res.statusCode, heads);
+    } else {
+      res.setHeader("Content-Type", type);
+    }
   }
   res.end(data);
 }
@@ -2444,34 +2502,50 @@ function handleResWeb(resWeb, res) {
   if (res.writableEnded)
     return;
   if (resWeb._nres) {
+    let heads;
     if (resWeb[s_init2]) {
-      if (resWeb[s_init2].headers) {
-        if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
-          resWeb[s_init2].headers.forEach((val, key) => {
-            res.setHeader(key, val);
-          });
-        } else {
-          for (const k in resWeb[s_init2].headers) {
-            res.setHeader(k, resWeb[s_init2].headers[k]);
-          }
-        }
-      }
       if (resWeb[s_init2].status) {
         res.statusCode = resWeb[s_init2].status;
       }
       if (resWeb[s_init2].statusText) {
         res.statusMessage = resWeb[s_init2].statusText;
       }
+      if (resWeb[s_init2].headers) {
+        if (isArray3(resWeb[s_init2].headers)) {
+          heads = resWeb[s_init2].headers;
+        } else {
+          if (resWeb[s_init2].headers.get && typeof resWeb[s_init2].headers.get === "function") {
+            resWeb[s_init2].headers.forEach((val, key) => {
+              res.setHeader(key, val);
+            });
+          } else {
+            for (const k in resWeb[s_init2].headers) {
+              res.setHeader(k, resWeb[s_init2].headers[k]);
+            }
+          }
+        }
+      }
     }
     if (resWeb[s_headers2]) {
-      resWeb[s_headers2].forEach((val, key) => {
-        res.setHeader(key, val);
-      });
+      if (heads) {
+        heads = toHeads(resWeb[s_headers2]);
+      } else {
+        resWeb[s_headers2].forEach((val, key) => {
+          res.setHeader(key, val);
+        });
+      }
     }
     if (typeof resWeb[s_body2] === "string" || resWeb[s_body2] == null || resWeb[s_body2] instanceof Uint8Array) {
+      if (heads) {
+        heads.push([
+          "Content-Length",
+          Buf.byteLength(resWeb[s_body2] ?? "")
+        ]);
+        res.writeHead(res.statusCode, heads);
+      }
       res.end(resWeb[s_body2]);
     } else {
-      sendStream(resWeb, res);
+      sendStream(resWeb, res, false, heads);
     }
   } else {
     sendStream(resWeb, res, true);
@@ -2497,6 +2571,7 @@ async function serveNode(handler, opts = {
   port: 3e3
 }) {
   mutateResponse();
+  const immediate = opts.immediate ?? true;
   const port = opts.port;
   const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
   let createServer = opts.createServer;
@@ -2510,8 +2585,10 @@ async function serveNode(handler, opts = {
   }
   return createServer(
     opts,
-    (req, res) => {
+    immediate ? (req, res) => {
       setImmediate(() => handleNode(handler, req, res));
+    } : (req, res) => {
+      handleNode(handler, req, res);
     }
   ).listen(port);
 }
@@ -2525,7 +2602,7 @@ var NHttp2 = class extends NHttp {
       if (req.on === void 0)
         return oriHandle(req, conn, ctx);
       mutateResponse();
-      setImmediate(() => handleNode(this.handleRequest, req, conn));
+      handleNode(this.handleRequest, req, conn);
     };
     if (typeof Deno === "undefined") {
       this.listen = (options, callback) => {

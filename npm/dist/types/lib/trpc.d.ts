@@ -1,5 +1,5 @@
-import { AnyRouter, inferRouterContext } from "@trpc/server";
-import { Handler, NextFunction, RequestEvent, TRet } from "./deps";
+import type { AnyRouter, inferRouterContext } from "@trpc/server";
+import type { Handler, NextFunction, RequestEvent, TRet } from "./deps";
 type TAnyRouter = TRet;
 export interface TrpcOptions<TRouter extends AnyRouter> {
     /**

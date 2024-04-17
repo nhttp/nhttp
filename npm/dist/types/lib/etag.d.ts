@@ -1,4 +1,4 @@
-import { Handler, RequestEvent, TRet } from "./deps";
+import { type Handler, type RequestEvent, type TRet } from "./deps";
 export interface TOptsSendFile {
     weak?: boolean;
     stat?: (...args: TRet) => TRet;

@@ -1,5 +1,5 @@
-import { NextFunction, RequestEvent, TRet } from "./deps";
-import { sendFile as sendFileEtag, TOptsSendFile } from "./etag";
+import { type NextFunction, type RequestEvent, type TRet } from "./deps";
+import { sendFile as sendFileEtag, type TOptsSendFile } from "./etag";
 export interface ServeStaticOptions extends TOptsSendFile {
     index?: string;
     redirect?: boolean;

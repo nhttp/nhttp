@@ -1,4 +1,4 @@
-import { type HttpResponse, type RequestEvent, type TObject, type TRet } from "../deps";
+import type { HttpResponse, RequestEvent, TObject, TRet } from "../deps";
 import { type EObject, type JSXElement, type JSXProps, type NJSX } from "./index";
 type TValue = string | number | TRet;
 type TContext = {

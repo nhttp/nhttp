@@ -1,6 +1,6 @@
-import { z, ZodSchema } from "zod";
-import { TDecorator } from "./controller";
-import { Handler, RequestEvent, TRet } from "./deps";
+import { z, type ZodSchema } from "zod";
+import { type TDecorator } from "./controller";
+import { type Handler, type RequestEvent, type TRet } from "./deps";
 /**
  * validate using `zod`.
  * @example

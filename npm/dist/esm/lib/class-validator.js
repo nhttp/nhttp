@@ -1,7 +1,9 @@
 import {
   validateOrReject
 } from "class-validator";
-import { HttpError } from "./deps.js";
+import {
+  HttpError
+} from "./deps.js";
 import { joinHandlers } from "./controller.js";
 export * from "class-validator";
 function validate(cls, opts = {}, target = "body") {

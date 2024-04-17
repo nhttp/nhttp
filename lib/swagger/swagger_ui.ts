@@ -1,5 +1,5 @@
-import { Handler, TObject, TRet } from "./../deps.ts";
-import { GenHtmlOpts } from "./types.ts";
+import type { Handler, TObject, TRet } from "./../deps.ts";
+import type { GenHtmlOpts } from "./types.ts";
 
 const base_lib_swagger = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.51.1";
 

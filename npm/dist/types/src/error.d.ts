@@ -1,4 +1,4 @@
-import { TObject, TRet } from "./types";
+import type { TObject, TRet } from "./types";
 /**
  * Genarete error message from class HttpError.
  * @example

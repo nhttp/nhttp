@@ -1,5 +1,5 @@
-import { EngineOptions, FetchEvent, FetchHandler, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
-import Router, { TRouter } from "./router";
+import type { EngineOptions, FetchEvent, FetchHandler, Handlers, ListenOptions, NextFunction, RetHandler, TApp, TObject, TRet } from "./types";
+import Router, { type TRouter } from "./router";
 import { RequestEvent } from "./request_event";
 export declare class NHttp<Rev extends RequestEvent = RequestEvent> extends Router<Rev> {
     private parseQuery;

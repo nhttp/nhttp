@@ -1,6 +1,6 @@
-import { TDecorator } from "./controller";
-import { TRet } from "./deps";
-import { TApiDoc, TOpenApi, TOptionServe, TParameterObject, TRequestBodyObject, TSchemaObject, TTagObject } from "./swagger/types";
+import type { TDecorator } from "./controller";
+import type { TRet } from "./deps";
+import type { TApiDoc, TOpenApi, TOptionServe, TParameterObject, TRequestBodyObject, TSchemaObject, TTagObject } from "./swagger/types";
 declare global {
     var NHttpMetadata: TRet;
 }

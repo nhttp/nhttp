@@ -1,5 +1,5 @@
 import { s_inspect } from "./symbol";
-import { TRet } from "../index";
+import type { TRet } from "../index";
 export declare class NodeHeaders {
     headers: Headers;
     constructor(headers: Headers);

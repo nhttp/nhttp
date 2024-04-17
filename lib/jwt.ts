@@ -1,7 +1,13 @@
 import jwts from "https://esm.sh/v132/jwt-simple@0.5.6";
-import { Handler, HttpError, RequestEvent, TObject, TRet } from "./deps.ts";
-import { NextFunction } from "../mod.ts";
-import { joinHandlers, TDecorator } from "./controller.ts";
+import {
+  type Handler,
+  HttpError,
+  type RequestEvent,
+  type TObject,
+  type TRet,
+} from "./deps.ts";
+import type { NextFunction } from "../mod.ts";
+import { joinHandlers, type TDecorator } from "./controller.ts";
 
 declare global {
   namespace NHTTP {

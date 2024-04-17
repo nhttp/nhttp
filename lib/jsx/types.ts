@@ -717,7 +717,6 @@ export namespace NJSX {
     type?: string | undefined;
     referrerPolicy?: HTMLAttributeReferrerPolicy | undefined;
   }
-  // deno-lint-ignore no-empty-interface
   export interface AudioHTMLAttributes extends MediaHTMLAttributes {}
 
   export interface AreaHTMLAttributes extends HTMLAttributes {

@@ -1,4 +1,4 @@
-import { TRet } from "../index";
+import type { TRet } from "../index";
 import { s_inspect } from "./symbol";
 export declare class NodeResponse {
     resClone?: Response;

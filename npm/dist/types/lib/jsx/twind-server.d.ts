@@ -1,4 +1,4 @@
-import { type InlineOptions, type TwindConfig, TwindUserConfig } from "@twind/core";
+import { type InlineOptions, type TwindConfig, type TwindUserConfig } from "@twind/core";
 import type { Handler } from "../deps";
 export type { InlineOptions };
 export declare function onRenderElement({ htmx, ...opts }?: InlineOptions & {

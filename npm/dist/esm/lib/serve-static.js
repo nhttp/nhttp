@@ -1,4 +1,6 @@
-import { decURIComponent } from "./deps.js";
+import {
+  decURIComponent
+} from "./deps.js";
 import { sendFile as sendFileEtag } from "./etag.js";
 const sendFile = sendFileEtag;
 function serveStatic(dir, opts = {}) {

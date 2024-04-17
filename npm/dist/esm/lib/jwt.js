@@ -1,5 +1,7 @@
 import jwts from "jwt-simple";
-import { HttpError } from "./deps.js";
+import {
+  HttpError
+} from "./deps.js";
 import { joinHandlers } from "./controller.js";
 class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {

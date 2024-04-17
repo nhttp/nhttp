@@ -3,9 +3,9 @@ import { Helmet } from "./helmet.ts";
 import {
   dangerHTML,
   elemToRevContext,
-  FC,
-  HelmetRewind,
-  JSXNode,
+  type FC,
+  type HelmetRewind,
+  type JSXNode,
   type NJSX,
 } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";

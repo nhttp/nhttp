@@ -1,5 +1,5 @@
-import { TObject } from "./../deps.ts";
-import { TInfo, TOpenApi, TSecurity, TTagObject } from "./types.ts";
+import type { TObject } from "./../deps.ts";
+import type { TInfo, TOpenApi, TSecurity, TTagObject } from "./types.ts";
 
 export class DocumentBuilder {
   private _doc: TOpenApi = {

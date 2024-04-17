@@ -1,5 +1,5 @@
-import { RequestEvent } from "./request_event";
-import Router from "./router";
+import type { RequestEvent } from "./request_event";
+import type Router from "./router";
 export type TRet = any;
 export type EObject = {};
 export type TObject = {
@@ -126,6 +126,7 @@ export type ListenOptions = {
     handler?: FetchHandler;
     showInfo?: boolean;
     signal?: AbortSignal;
+    immediate?: boolean;
     [k: string]: TRet;
 };
 export interface NFile extends File {
