@@ -1,4 +1,4 @@
-import { TRet } from "../index.ts";
+import type { TRet } from "../index.ts";
 import { NodeHeaders } from "./headers.ts";
 import {
   s_body,
