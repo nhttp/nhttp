@@ -1,6 +1,6 @@
 import { getError } from "./error.ts";
-import { RequestEvent } from "./request_event.ts";
-import {
+import type { RequestEvent } from "./request_event.ts";
+import type {
   Handler,
   NextFunction,
   RetHandler,

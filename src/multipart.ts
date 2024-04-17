@@ -1,7 +1,7 @@
 import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
-import { RequestEvent } from "./request_event.ts";
-import { Handler, NFile, TObject, TRet } from "./types.ts";
+import type { RequestEvent } from "./request_event.ts";
+import type { Handler, NFile, TObject, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
 const uid = () =>

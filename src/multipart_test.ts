@@ -1,6 +1,6 @@
-import { multipart, TMultipartUpload } from "./multipart.ts";
+import { multipart, type TMultipartUpload } from "./multipart.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TObject, TRet } from "./types.ts";
+import type { TObject, TRet } from "./types.ts";
 import { RequestEvent } from "./request_event.ts";
 type MyNext = (err?: Error) => TRet;
 Deno.test("multipart upload", async (t) => {

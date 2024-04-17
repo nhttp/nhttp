@@ -1,4 +1,4 @@
-import {
+import type {
   EngineOptions,
   FetchEvent,
   FetchHandler,
@@ -12,7 +12,7 @@ import {
   TQueryFunc,
   TRet,
 } from "./types.ts";
-import Router, { ANY_METHODS, TRouter } from "./router.ts";
+import Router, { ANY_METHODS, type TRouter } from "./router.ts";
 import {
   defError,
   findFns,
@@ -24,7 +24,7 @@ import { getType, isTypeBody, writeBody } from "./body.ts";
 import { getError, HttpError } from "./error.ts";
 import { createRequest, RequestEvent, toRes } from "./request_event.ts";
 import { HTML_TYPE } from "./constant.ts";
-import { s_init, s_response } from "./symbol.ts";
+import { s_response } from "./symbol.ts";
 import { oldSchool } from "./http_response.ts";
 import { awaiter, buildListenOptions, onNext } from "./nhttp_util.ts";
 
@@ -195,10 +195,8 @@ export class NHttp<
         const send = rev.send.bind(rev);
         rev.send = async (body, lose) => {
           if (check(body)) {
-            rev[s_init] ??= {};
-            rev[s_init].headers ??= {};
             body = await render(body, rev);
-            rev[s_init].headers["content-type"] ??= HTML_TYPE;
+            rev.response.setHeader("content-type", HTML_TYPE);
           }
           await send(body, lose);
         };

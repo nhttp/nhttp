@@ -1,6 +1,6 @@
 import { RequestEvent, toRes } from "./request_event.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TRet } from "./types.ts";
+import type { TRet } from "./types.ts";
 import { HttpResponse } from "./http_response.ts";
 import {
   s_body,

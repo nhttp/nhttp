@@ -1,6 +1,11 @@
-import { RequestEvent } from "./request_event.ts";
+import type { RequestEvent } from "./request_event.ts";
 import { s_response, s_undefined } from "./symbol.ts";
-import { FetchHandler, ListenOptions, NextFunction, TRet } from "./types.ts";
+import type {
+  FetchHandler,
+  ListenOptions,
+  NextFunction,
+  TRet,
+} from "./types.ts";
 export const awaiter = (rev: RequestEvent) => {
   if (rev[s_undefined]) return;
   let t: undefined | number;

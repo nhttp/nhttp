@@ -1,9 +1,9 @@
 import { bodyParser, getType } from "./body.ts";
 import { C_TYPE, JSON_TYPE } from "./constant.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TApp } from "./index.ts";
+import type { TApp } from "./index.ts";
 import { nhttp } from "./nhttp.ts";
-import { TBodyParser, TRet } from "./types.ts";
+import type { TBodyParser, TRet } from "./types.ts";
 
 Deno.test("body parser", async (t) => {
   const getBody = (body: TRet, type?: string, opts?: TApp) => {
