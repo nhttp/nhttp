@@ -51,7 +51,7 @@ async function is304(nonMatch, response, stat, weak, subfix = "", cd) {
     return false;
   const mtime = stat.mtime ?? build_date;
   if (cd)
-    subfix += cd;
+    subfix += cd.toString();
   const hash = `"${stat.size}-${mtime.getTime()}${subfix ? await cHash(encoder.encode(subfix)) : ""}"`;
   const etag2 = weak ? `W/${hash}` : hash;
   response.header("last-modified", mtime.toUTCString());

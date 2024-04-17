@@ -1,8 +1,8 @@
-import { Handler, HttpError, Router } from "../mod.ts";
+import { type Handler, HttpError, Router } from "../mod.ts";
 import { nhttp } from "./nhttp.ts";
-import { RequestEvent } from "./request_event.ts";
+import type { RequestEvent } from "./request_event.ts";
 import { assertEquals, superdeno } from "./deps_test.ts";
-import { NextFunction, TRet } from "./types.ts";
+import type { NextFunction, TRet } from "./types.ts";
 
 const renderFile = (file: string, ..._args: TRet) => {
   return Deno.readTextFileSync(file);

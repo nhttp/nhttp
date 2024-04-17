@@ -1,8 +1,14 @@
 import { C_TYPE } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
-import { RequestEvent } from "./request_event.ts";
-import { Handler, TBodyParser, TQueryFunc, TRet, TValidBody } from "./types.ts";
+import type { RequestEvent } from "./request_event.ts";
+import type {
+  Handler,
+  TBodyParser,
+  TQueryFunc,
+  TRet,
+  TValidBody,
+} from "./types.ts";
 import {
   decoder,
   decURIComponent,

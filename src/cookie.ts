@@ -1,4 +1,4 @@
-import { Cookie } from "./types.ts";
+import type { Cookie } from "./types.ts";
 import { decoder, decURIComponent, encoder } from "./utils.ts";
 
 export function serializeCookie(

@@ -1,6 +1,6 @@
 import { getError, HttpError } from "./error.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TRet } from "./types.ts";
+import type { TRet } from "./types.ts";
 
 Deno.test("error", async (t) => {
   await t.step("http error no params", () => {

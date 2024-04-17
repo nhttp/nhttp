@@ -1,9 +1,9 @@
 import { fetchRequestHandler } from "https://esm.sh/v132/@trpc/server@10.25.0/adapters/fetch";
-import {
+import type {
   AnyRouter,
   inferRouterContext,
 } from "https://esm.sh/v132/@trpc/server@10.25.0";
-import { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
+import type { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
 type TAnyRouter = TRet;
 export interface TrpcOptions<TRouter extends AnyRouter> {

@@ -1,4 +1,4 @@
-import { TObject, TRet } from "./../deps.ts";
+import type { TObject, TRet } from "./../deps.ts";
 
 export type GenHtmlOpts = {
   swaggerOptions?: TObject;

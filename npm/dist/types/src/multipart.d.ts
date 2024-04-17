@@ -1,4 +1,4 @@
-import { Handler, NFile } from "./types";
+import type { Handler, NFile } from "./types";
 export type TMultipartUpload = {
     /**
      * fieldName.

@@ -1,4 +1,4 @@
-import { Handler, TRet } from "./deps.ts";
+import type { Handler, TRet } from "./deps.ts";
 
 /**
  * Yoga graphql handler.

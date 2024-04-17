@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any ban-types
-import { RequestEvent } from "./request_event.ts";
-import Router from "./router.ts";
+import type { RequestEvent } from "./request_event.ts";
+import type Router from "./router.ts";
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export type TRet = any;
 /* eslint-disable  @typescript-eslint/ban-types */
@@ -175,6 +175,7 @@ export type ListenOptions = {
   handler?: FetchHandler;
   showInfo?: boolean;
   signal?: AbortSignal;
+  immediate?: boolean;
   [k: string]: TRet;
 };
 export interface NFile extends File {

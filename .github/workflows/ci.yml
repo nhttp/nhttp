@@ -21,7 +21,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.41.1
+          deno-version: 1.42.4
 
       - name: Verify formatting
         if: matrix.os != 'windows-latest'

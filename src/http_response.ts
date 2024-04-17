@@ -6,16 +6,27 @@ import { s_params } from "./symbol.ts";
 import type { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 const TYPE = "content-type";
 export type ResInit = {
-  headers?: TObject;
+  headers?: TRet;
   status?: number;
   statusText?: string;
 };
-
+const isArray = Array.isArray;
+export const headerToArr = (obj = {} as TObject) => {
+  const arr = [] as string[][];
+  for (const k in obj) {
+    arr.push([k, obj[k]]);
+  }
+  return arr;
+};
+const filterHeaders = (headers: string[][], key: string) => {
+  return headers.filter((vals: string[]) => vals[0] !== key);
+};
 type RetHeaders = {
   append: (key: string, value: string) => HttpResponse;
   delete: (key: string) => void;
   toJSON: () => TObject;
 };
+const C_KEY = "set-cookie";
 /* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
 export interface HttpResponse extends NHTTP.HttpResponse {
   /**
@@ -49,7 +60,13 @@ export class HttpResponse {
    * response.setHeader("key", "value");
    */
   setHeader(key: string, value: string | string[]) {
-    (this.init.headers ??= {})[key.toLowerCase()] = value;
+    key = key.toLowerCase();
+    if (this.__isHeaders) {
+      this.init.headers = filterHeaders(this.init.headers, key);
+      this.init.headers.push([key, value]);
+    } else {
+      (this.init.headers ??= {})[key] = value;
+    }
     return this;
   }
   /**
@@ -57,7 +74,15 @@ export class HttpResponse {
    * @example
    * const str = response.getHeader("key");
    */
-  getHeader(key: string): string | undefined {
+  getHeader(key: string): string | string[] | undefined {
+    key = key.toLowerCase();
+    if (this.__isHeaders) {
+      const res = this.init.headers.filter((vals: string[]) => vals[0] === key)
+        .map((
+          vals: string[],
+        ) => vals[1]);
+      return res.length > 1 ? res : res[0];
+    }
     return this.init.headers?.[key.toLowerCase()];
   }
   /**
@@ -80,13 +105,13 @@ export class HttpResponse {
    * const headers = response.header().toJSON();
    */
   header(key: string, value: string | string[]): this;
-  header(key: string): string | undefined;
+  header(key: string): string | string[] | undefined;
   header(key: TObject): this;
   header(): RetHeaders;
   header(
     key?: TObject | string,
     value?: string | string[],
-  ): this | string | RetHeaders | undefined {
+  ): this | string | string[] | RetHeaders | undefined {
     if (typeof key === "string") {
       if (value === void 0) return this.getHeader(key);
       this.setHeader(key, value);
@@ -98,14 +123,31 @@ export class HttpResponse {
     }
     return {
       delete: (k) => {
-        delete this.init.headers?.[k.toLowerCase()];
+        k = k.toLowerCase();
+        if (this.__isHeaders) {
+          this.init.headers = filterHeaders(this.init.headers, k);
+        } else {
+          delete this.init.headers?.[k];
+        }
       },
       append: (k, v) => {
         const cur = this.getHeader(k);
         this.setHeader(k, cur ? (cur + ", " + v) : v);
         return this;
       },
-      toJSON: () => this.init.headers ?? {},
+      toJSON: () => {
+        if (this.__isHeaders) {
+          const obj = {} as TObject;
+          const arr = this.init.headers;
+          for (let i = 0; i < arr.length; i++) {
+            const [k, v] = arr[i];
+            if (obj[k] !== void 0) obj[k] = [obj[k]].concat(v);
+            else obj[k] = v;
+          }
+          return obj;
+        }
+        return this.init.headers ?? {};
+      },
     };
   }
   /**
@@ -226,6 +268,20 @@ export class HttpResponse {
     return this.header("Location", url).status(status ?? 302).send();
   }
   /**
+   * add headers. send multiple headers to response.
+   * @example
+   * response.addHeader("name", "john");
+   * response.addHeader("name", "doe");
+   */
+  addHeader(key: string, value: string | string[]) {
+    this.__isHeaders ??= true;
+    if (!isArray(this.init.headers)) {
+      this.init.headers = headerToArr(this.init.headers);
+    }
+    this.init.headers.push([key, value]);
+    return this;
+  }
+  /**
    * cookie
    * @example
    * response.cookie("key", "value" , {
@@ -246,10 +302,7 @@ export class HttpResponse {
     value = typeof value === "object"
       ? "j:" + JSON.stringify(value)
       : String(value);
-    this.header().append(
-      "Set-Cookie",
-      serializeCookie(name, value, opts),
-    );
+    this.addHeader(C_KEY, serializeCookie(name, value, opts));
     return this;
   }
   /**
@@ -259,8 +312,8 @@ export class HttpResponse {
    */
   clearCookie(name: string, opts: Cookie = {}) {
     opts.httpOnly = opts.httpOnly !== false;
-    this.header().append(
-      "Set-Cookie",
+    this.addHeader(
+      C_KEY,
       serializeCookie(name, "", { ...opts, expires: new Date(0) }),
     );
   }
@@ -283,25 +336,24 @@ export class HttpResponse {
 }
 
 export function oldSchool() {
+  if (BigInt.prototype.toJSON === void 0) {
+    BigInt.prototype.toJSON = function () {
+      return this.toString();
+    };
+  }
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
   // @ts-ignore: Temporary workaround for oldVersion
   Response.json ??= (
     data: unknown,
     init: ResInit = {},
   ) => new JsonResponse(data, init);
-  if (BigInt.prototype.toJSON === undefined) {
-    BigInt.prototype.toJSON = function () {
-      return this.toString();
-    };
-  }
 }
 
 export class JsonResponse extends Response {
   constructor(body: unknown, init: ResponseInit = {}) {
-    if (init.headers) {
-      if (init.headers instanceof Headers) init.headers.set(TYPE, JSON_TYPE);
-      else (<TObject> init.headers)[TYPE] = JSON_TYPE;
-    } else init.headers = { [TYPE]: JSON_TYPE };
+    const headers = new Headers(init.headers);
+    headers.set(TYPE, JSON_TYPE);
+    init.headers = headers;
     super(
       JSON.stringify(body, (_, v) => typeof v === "bigint" ? v.toString() : v),
       init,

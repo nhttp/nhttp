@@ -1,7 +1,7 @@
 import jwts from "jwt-simple";
-import { Handler, HttpError, RequestEvent, TObject, TRet } from "./deps";
-import { NextFunction } from "../mod";
-import { TDecorator } from "./controller";
+import { type Handler, HttpError, type RequestEvent, type TObject, type TRet } from "./deps";
+import type { NextFunction } from "../mod";
+import { type TDecorator } from "./controller";
 declare global {
     namespace NHTTP {
         interface RequestEvent {

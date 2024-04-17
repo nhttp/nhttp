@@ -1,4 +1,4 @@
-import { Handler, Handlers, NextFunction, RequestEvent, TMultipartUpload, TObject, TRet } from "./deps";
+import { type Handler, type Handlers, type NextFunction, type RequestEvent, type TMultipartUpload, type TObject, type TRet } from "./deps";
 export type TDecorator = TRet;
 declare global {
     var NHttpMetadata: TRet;

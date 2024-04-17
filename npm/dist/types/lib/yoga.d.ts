@@ -1,4 +1,4 @@
-import { Handler, TRet } from "./deps";
+import type { Handler, TRet } from "./deps";
 /**
  * Yoga graphql handler.
  * @example

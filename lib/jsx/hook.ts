@@ -1,9 +1,4 @@
-import {
-  type HttpResponse,
-  type RequestEvent,
-  type TObject,
-  type TRet,
-} from "../deps.ts";
+import type { HttpResponse, RequestEvent, TObject, TRet } from "../deps.ts";
 import {
   type EObject,
   Helmet,

@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
-import { NHttp } from "./deps.ts";
-import { TRet } from "../mod.ts";
+import type { NHttp } from "./deps.ts";
+import type { TRet } from "../mod.ts";
 
 async function readDir(dir: string) {
   const files: string[] = [];

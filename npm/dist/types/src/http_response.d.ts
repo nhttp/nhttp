@@ -1,10 +1,11 @@
 import { deno_inspect, node_inspect } from "./inspect";
 import type { Cookie, TObject, TRet, TSendBody } from "./types";
 export type ResInit = {
-    headers?: TObject;
+    headers?: TRet;
     status?: number;
     statusText?: string;
 };
+export declare const headerToArr: (obj?: TObject) => string[][];
 type RetHeaders = {
     append: (key: string, value: string) => HttpResponse;
     delete: (key: string) => void;
@@ -49,7 +50,7 @@ export declare class HttpResponse {
      * @example
      * const str = response.getHeader("key");
      */
-    getHeader(key: string): string | undefined;
+    getHeader(key: string): string | string[] | undefined;
     /**
      * set header or get header
      * @example
@@ -70,7 +71,7 @@ export declare class HttpResponse {
      * const headers = response.header().toJSON();
      */
     header(key: string, value: string | string[]): this;
-    header(key: string): string | undefined;
+    header(key: string): string | string[] | undefined;
     header(key: TObject): this;
     header(): RetHeaders;
     /**
@@ -148,6 +149,13 @@ export declare class HttpResponse {
      * response.redirect("http://google.com");
      */
     redirect(url: string, status?: number): void;
+    /**
+     * add headers. send multiple headers to response.
+     * @example
+     * response.addHeader("name", "john");
+     * response.addHeader("name", "doe");
+     */
+    addHeader(key: string, value: string | string[]): this;
     /**
      * cookie
      * @example

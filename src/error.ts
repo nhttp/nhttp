@@ -1,5 +1,5 @@
 import { STATUS_ERROR_LIST } from "./constant.ts";
-import { TObject, TRet } from "./types.ts";
+import type { TObject, TRet } from "./types.ts";
 
 /**
  * Genarete error message from class HttpError.

@@ -1,5 +1,5 @@
 import type { TRet } from "../deps.ts";
-import { type JSXProps, type NJSX } from "./index.ts";
+import type { JSXProps, NJSX } from "./index.ts";
 
 export type HelmetRewind = {
   head: JSX.Element[];

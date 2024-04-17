@@ -1,5 +1,5 @@
 import type { RequestEvent, TObject, TRet } from "../deps";
-import { FC, HelmetRewind, JSXNode, type NJSX } from "./index";
+import { type FC, type HelmetRewind, type JSXNode, type NJSX } from "./index";
 import { isValidElement } from "./is-valid-element";
 export { isValidElement };
 export type TOptionsRender = {

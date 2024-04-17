@@ -24,9 +24,7 @@ export class NHttp<
     this.handle = ((req: TRet, conn?: TRet, ctx?: TRet) => {
       if (req.on === void 0) return oriHandle(req, conn, ctx);
       mutateResponse();
-      /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-      // @ts-ignore: immediate for nodejs
-      setImmediate(() => handleNode(this.handleRequest, req, conn));
+      handleNode(this.handleRequest, req, conn);
     }) as TRet;
     // @ts-ignore
     if (typeof Deno === "undefined") {

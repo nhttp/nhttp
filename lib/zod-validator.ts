@@ -1,6 +1,11 @@
-import { z, ZodSchema } from "https://esm.sh/v132/zod@3.21.4";
-import { joinHandlers, TDecorator } from "./controller.ts";
-import { Handler, HttpError, RequestEvent, TRet } from "./deps.ts";
+import { z, type ZodSchema } from "https://esm.sh/v132/zod@3.21.4";
+import { joinHandlers, type TDecorator } from "./controller.ts";
+import {
+  type Handler,
+  HttpError,
+  type RequestEvent,
+  type TRet,
+} from "./deps.ts";
 
 /**
  * validate using `zod`.

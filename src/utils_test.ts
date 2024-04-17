@@ -1,7 +1,7 @@
-import { Handler } from "../mod.ts";
+import type { Handler } from "../mod.ts";
 import { getReqCookies, serializeCookie } from "./cookie.ts";
 import { assertEquals } from "./deps_test.ts";
-import { TObject, TRet } from "./types.ts";
+import type { TObject, TRet } from "./types.ts";
 import {
   concatRegexp,
   decURIComponent,

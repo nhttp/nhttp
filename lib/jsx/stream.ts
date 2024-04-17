@@ -1,9 +1,9 @@
-import { type RequestEvent } from "../deps.ts";
+import type { RequestEvent } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
-import { elemToRevContext, InternalHook } from "./hook.ts";
+import { elemToRevContext, type InternalHook } from "./hook.ts";
 import {
-  FC,
-  HelmetRewind,
+  type FC,
+  type HelmetRewind,
   type JSXElement,
   n,
   useInternalHook,

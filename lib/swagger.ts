@@ -1,7 +1,7 @@
-import { TDecorator } from "./controller.ts";
-import { TObject, TRet } from "./deps.ts";
+import type { TDecorator } from "./controller.ts";
+import type { TObject, TRet } from "./deps.ts";
 import { swaggerUi } from "./swagger/swagger_ui.ts";
-import {
+import type {
   TApiDoc,
   TOpenApi,
   TOptionServe,

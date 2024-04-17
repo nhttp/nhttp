@@ -4,7 +4,7 @@ import {
   type InlineOptions,
   install as installOri,
   type TwindConfig,
-  TwindUserConfig,
+  type TwindUserConfig,
 } from "https://esm.sh/v132/@twind/core@1.1.3";
 import presetAutoprefix from "https://esm.sh/v132/@twind/preset-autoprefix@1.0.7";
 import presetTailwind from "https://esm.sh/v132/@twind/preset-tailwind@1.1.4";

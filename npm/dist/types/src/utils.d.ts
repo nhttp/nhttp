@@ -1,5 +1,5 @@
-import { RequestEvent } from "./request_event";
-import { Handler, RetHandler, TObject, TRet } from "./types";
+import type { RequestEvent } from "./request_event";
+import type { Handler, RetHandler, TObject, TRet } from "./types";
 export declare const encoder: TextEncoder;
 export declare const decoder: TextDecoder;
 type EArr = [string, string | TObject];

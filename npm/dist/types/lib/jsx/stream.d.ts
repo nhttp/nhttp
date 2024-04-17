@@ -1,5 +1,5 @@
-import { type RequestEvent } from "../deps";
-import { FC, HelmetRewind } from "./index";
+import type { RequestEvent } from "../deps";
+import { type FC, type HelmetRewind } from "./index";
 import { type RenderHTML } from "./render";
 export declare function toStream(body: string, { footer, attr, head }: HelmetRewind, write: (data: string) => void, rev: RequestEvent, initHead?: string): Promise<void>;
 /**
