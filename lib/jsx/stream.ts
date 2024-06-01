@@ -1,17 +1,19 @@
+// stream.ts
 import type { RequestEvent } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import { elemToRevContext, type InternalHook } from "./hook.ts";
 import {
   type FC,
   type HelmetRewind,
+  type JSX,
   type JSXElement,
   n,
   useInternalHook,
 } from "./index.ts";
 import {
   bodyWithHelmet,
+  getOptions,
   isValidElement,
-  options,
   type RenderHTML,
   renderToString,
   toAttr,
@@ -19,7 +21,9 @@ import {
 } from "./render.ts";
 
 const encoder = new TextEncoder();
-
+/**
+ * internal helper `toStream`.
+ */
 export async function toStream(
   body: string,
   { footer, attr, head }: HelmetRewind,
@@ -28,7 +32,7 @@ export async function toStream(
   initHead?: string,
 ) {
   const hook = useInternalHook(rev);
-  write(options.docType ?? "<!DOCTYPE html>");
+  write(getOptions().docType ?? "<!DOCTYPE html>");
   write(
     `<html${
       toAttr(attr.html)
@@ -61,9 +65,10 @@ async function handleSuspense(
       child = await renderToString(await elemToRevContext(elem, rev));
     } catch (error) {
       let err_elem;
-      if (options.onErrorStream !== void 0) {
+      const onErr = getOptions().onErrorStream;
+      if (onErr !== void 0) {
         err_elem = await elemToRevContext(
-          n(options.onErrorStream, { error }),
+          n(onErr, { error }),
           rev,
         );
       } else {
@@ -101,8 +106,9 @@ async function handleSuspense(
  * ```
  */
 export const renderToReadableStream: RenderHTML = async (elem, rev) => {
-  const initHead = toInitHead(rev.__init_head, options.initHead);
-  const stream = await options.onRenderStream(
+  const opt = getOptions();
+  const initHead = toInitHead(rev.__init_head, opt.initHead);
+  const stream = await opt.onRenderStream(
     new ReadableStream({
       async start(ctrl) {
         const enqueue = (data: string) => {
@@ -111,7 +117,7 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
           } catch { /* noop */ }
         };
         const writeStream = async (elem: JSXElement) => {
-          const body = await options.onRenderElement(elem, rev);
+          const body = await opt.onRenderElement(elem, rev);
           const rewind = Helmet.rewind();
           rewind.attr.html.lang ??= "en";
           if (rev.hxRequest) {
@@ -130,10 +136,10 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
         try {
           await writeStream(await elemToRevContext(elem, rev));
         } catch (error) {
-          if (options.onErrorStream) {
+          if (opt.onErrorStream) {
             await writeStream(
               await elemToRevContext(
-                n(options.onErrorStream, { error }),
+                n(opt.onErrorStream, { error }),
                 rev,
               ),
             );

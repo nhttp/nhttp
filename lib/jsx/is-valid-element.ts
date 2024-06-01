@@ -1,13 +1,14 @@
+// is-valid-element.ts
 import type { TRet } from "../deps.ts";
 
 const isFunc = <T>(v: T) => typeof v === "function";
 const isArray = Array.isArray;
 /**
- * isValidElement.
+ * isValidElement. check element is valid in nhttp-jsx.
  * @example
  * const bool = isValidElement(<App />);
  */
-export function isValidElement(elem: TRet) {
+export function isValidElement(elem: TRet): boolean {
   if (typeof elem === "object") {
     if (elem == null || elem instanceof Response) return false;
     if (isArray(elem)) elem = elem[0] ?? {};

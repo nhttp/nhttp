@@ -1,0 +1,6 @@
+{
+  "name": "@nhttp/jwt",
+  "version": "0.0.3",
+  "exports": "./mod.ts",
+  "lock": false
+}

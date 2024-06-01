@@ -1,0 +1,6 @@
+{
+  "name": "@nhttp/zod",
+  "version": "0.0.2",
+  "exports": "./mod.ts",
+  "lock": false
+}

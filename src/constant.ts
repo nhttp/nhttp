@@ -1,6 +1,19 @@
+// constant.ts
+/**
+ * content-type json.
+ */
 export const JSON_TYPE = "application/json";
+/**
+ * content-type html.
+ */
 export const HTML_TYPE = "text/html; charset=UTF-8";
+/**
+ * constant content-type.
+ */
 export const C_TYPE = "content-type";
+/**
+ * status error list.
+ */
 export const STATUS_ERROR_LIST: Record<number, string> = {
   400: "Bad Request",
   401: "Unauthorized",
@@ -39,7 +52,9 @@ export const STATUS_ERROR_LIST: Record<number, string> = {
   507: "Insufficient Storage",
   511: "Network Authentication Required",
 };
-
+/**
+ * mimetype list.
+ */
 export const MIME_LIST: Record<string, string> = {
   aac: "audio/aac",
   abw: "application/x-abiword",
@@ -116,7 +131,10 @@ export const MIME_LIST: Record<string, string> = {
   "7z": "application/x-7z-compressed",
 };
 let cc: Record<string, string> | undefined;
-export const revMimeList = (name: string) => {
+/**
+ * get and cache mimelist .
+ */
+export const revMimeList = (name: string): string => {
   if (name.includes(";")) name = name.split(/;/)[0];
   if (cc) return cc[name] ?? name;
   cc = {};

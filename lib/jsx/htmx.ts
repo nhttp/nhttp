@@ -1,17 +1,7 @@
+// htmx.ts
 import type { NJSX } from "./types.ts";
 import type { Handler } from "../deps.ts";
 import { createHookScript } from "./hook.ts";
-
-declare global {
-  namespace NHTTP {
-    interface RequestEvent {
-      /**
-       * hxRequest. check if `HX-Request`.
-       */
-      hxRequest: boolean;
-    }
-  }
-}
 
 /**
  * htmx.

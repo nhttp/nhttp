@@ -1,22 +1,70 @@
+// cors.ts
+/**
+ * @module
+ *
+ * This module contains cors (Cross Origin Resource Sharing) middlewares for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import cors from "@nhttp/nhttp/cors";
+ *
+ * const app = nhttp();
+ *
+ * app.use(cors());
+ *
+ * app.get("/", (rev) => {
+ *   return "hello with cors";
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import type { Handler, RequestEvent, TRet } from "./deps.ts";
 
+/**
+ * `type` CorsOptions.
+ */
 export type CorsOptions = {
+  /**
+   * origin url.
+   */
   origin?:
     | string
     | string[]
     | boolean
     | ((rev: RequestEvent) => Promise<boolean | string> | boolean | string);
+  /**
+   * allow credentials.
+   */
   credentials?: boolean;
+  /**
+   * allowed headers.
+   */
   allowHeaders?: string | string[];
+  /**
+   * allowed methods.
+   */
   allowMethods?: string | string[];
+  /**
+   * expose headers.
+   */
   exposeHeaders?: string | string[];
+  /**
+   * custom headers.
+   */
   customHeaders?: Record<string, string>;
+  /**
+   * options status-code.
+   */
   optionsStatus?: number;
+  /**
+   * max-age headers.
+   */
   maxAge?: number;
   /**
-   * @deprecated use `preflightNext` instead
+   * preflight on next.
    */
-  preflight?: boolean;
   preflightNext?: boolean;
 };
 /**

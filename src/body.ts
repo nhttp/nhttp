@@ -1,3 +1,4 @@
+// body.ts
 import { C_TYPE } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import { multipart } from "./multipart.ts";
@@ -23,6 +24,9 @@ const c_types = [
   "multipart/form-data",
 ];
 
+/**
+ * check content-type body.
+ */
 export const isTypeBody = (a: string, b: string) => a === b || a?.includes(b);
 function verify(rev: RequestEvent, limit: TValidBody, len?: number) {
   if (len === void 0) {
@@ -75,10 +79,15 @@ async function multipartBody(
     rev.__nbody = formData;
   }
 }
+/**
+ * get content-type body.
+ */
 export const getType = (req: TRet) => {
   return req.raw ? req.raw.req.headers[C_TYPE] : req.headers.get(C_TYPE);
 };
-
+/**
+ * write to rev.body.
+ */
 export async function writeBody(
   rev: RequestEvent,
   type: string,
@@ -106,6 +115,17 @@ export async function writeBody(
     await multipartBody(opts?.multipart, rev);
   }
 }
+/**
+ * middleware bodyParser.
+ * @example
+ * ```ts
+ * app.post("/save", bodyParser(), ...handlers);
+ *
+ * // or
+ *
+ * app.use(bodyParser());
+ * ```
+ */
 export function bodyParser(
   opts?: TBodyParser | boolean,
   parseQuery?: TQueryFunc,

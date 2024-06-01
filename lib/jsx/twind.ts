@@ -1,3 +1,26 @@
+// twind.ts
+/**
+ * @module
+ *
+ * This module contains twind.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import { renderToHtml } from "@nhttp/nhttp/jsx";
+ * import { twind } from "@nhttp/nhttp/jsx/twind";
+ *
+ * const app = nhttp();
+ *
+ * app.engine(renderToHtml).use(twind());
+ *
+ * app.get("/me", () => {
+ *    return <span className="mt-10">It's Me</span>;
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import type { NJSX } from "./types.ts";
 import type { Handler } from "../deps.ts";
 import { createHookScript } from "./hook.ts";

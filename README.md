@@ -1,5 +1,3 @@
-<!-- // deno-fmt-ignore-file -->
-
 <p align="center">
   <a href="https://github.com/nhttp/nhttp"><img height="200" style="height: 200px" src="https://raw.githubusercontent.com/nhttp/nhttp/master/dummy/logo.png" alt="logo"></a>
   <h1 align="center">NHttp</h1>
@@ -7,19 +5,15 @@
 <p align="center">
 An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
 </p>
-<p align="center">
-   <a href="https://github.com/nhttp/nhttp"><img src="https://github.com/nhttp/nhttp/workflows/ci/badge.svg" alt="ci" /></a>
-   <a href="https://codecov.io/gh/nhttp/nhttp"><img src="https://codecov.io/gh/nhttp/nhttp/branch/master/graph/badge.svg?token=SJ2NZQ0ZJG" alt="coverage" /></a>
-   <a href="https://www.codefactor.io/repository/github/nhttp/nhttp/overview/master"><img src="https://www.codefactor.io/repository/github/nhttp/nhttp/badge/master" alt="codefactor" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp%2Fmod.ts" alt="denoland" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fnhttp@1.3.26%2Fmod.ts" alt="deps" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/minzip/nhttp-land" alt="size" /></a>
-   <a href="https://deno.land/x/nhttp"><img src="https://img.shields.io/bundlephobia/min/nhttp-land" alt="size" /></a>
-   <a href="http://badges.mit-license.org"><img src="https://img.shields.io/:license-mit-blue.svg" alt="licence" /></a>
-   <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-blue.svg" alt="prs" /></a>
-   <a href="https://nest.land/package/nhttp"><img src="https://nest.land/badge.svg" alt="nestland" /></a>
-</p>
 <hr/>
+
+[![CI](https://github.com/nhttp/nhttp/workflows/ci/badge.svg)](https://github.com/nhttp/nhttp)
+[![JSR](https://jsr.io/badges/@nhttp/nhttp)](https://jsr.io/@nhttp/nhttp)
+[![JSR_SCORE](https://jsr.io/badges/@nhttp/nhttp/score)](https://jsr.io/@nhttp/nhttp/score)
+[![CODECOV](https://codecov.io/gh/nhttp/nhttp/branch/master/graph/badge.svg?token=SJ2NZQ0ZJG)](https://codecov.io/gh/nhttp/nhttp)
+[![DENO](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Flatest-version%2Fx%2Fnhttp%2Fmod.ts)](https://deno.land/x/nhttp)
+[![MIT](https://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+[![PRS](https://img.shields.io/badge/PRs-welcome-blue.svg)](http://makeapullrequest.com)
 
 ## Features
 
@@ -36,23 +30,26 @@ An Simple web-framework for <a href="https://deno.land/">Deno</a> and Friends.
 
 [See Examples](https://github.com/nhttp/nhttp/tree/master/examples)
 
-> v1.3.0 requires Deno 1.35 or higher.
+## Installation
 
-## CLI
-
-### Deno
+### JSR
 
 ```bash
-deno run -Ar npm:create-nhttp
+// Deno
+deno add @nhttp/nhttp
+
+// npm
+npx jsr add @nhttp/nhttp
+
+// Yarn
+yarn dlx jsr add @nhttp/nhttp
+
+// pnpm
+pnpm dlx jsr add @nhttp/nhttp
+
+// Bun
+bunx jsr add @nhttp/nhttp
 ```
-
-### Npm
-
-```bash
-npm create nhttp@latest
-```
-
-## Manual Installation
 
 ### deno.land
 
@@ -60,36 +57,12 @@ npm create nhttp@latest
 import nhttp from "https://deno.land/x/nhttp/mod.ts";
 ```
 
-### deno-npm
-
-```ts
-import nhttp from "npm:nhttp-land";
-```
-
-### npm/yarn
-
-```bash
-npm i nhttp-land
-
-// or
-
-yarn add nhttp-land
-```
-
-```ts
-// module
-import nhttp from "nhttp-land";
-
-// commonjs
-const nhttp = require("nhttp-land").default;
-```
-
 ## Simple Usage
 
 Create file `app.ts` and copy-paste this code.
 
 ```ts
-import nhttp from "https://deno.land/x/nhttp/mod.ts";
+import nhttp from "@nhttp/nhttp";
 
 const app = nhttp();
 
@@ -115,11 +88,8 @@ deno run -A app.ts
 Create file `app.tsx` and copy-paste this code.
 
 ```jsx
-/** @jsx n */
-/** @jsxFrag n.Fragment */
-
-import nhttp from "https://deno.land/x/nhttp/mod.ts";
-import { htmx, n, renderToHtml } from "https://deno.land/x/nhttp/lib/jsx.ts";
+import nhttp from "@nhttp/nhttp";
+import { htmx, renderToHtml } from "@nhttp/nhttp/jsx";
 
 const app = nhttp();
 
@@ -142,36 +112,40 @@ app.post("/clicked", () => {
 app.listen(8000);
 ```
 
-### Run
+## config jsx
 
-```bash
-deno run -A app.tsx
+deno.json / tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "@nhttp/nhttp/jsx"
+  }
+}
 ```
 
 more docs => https://nhttp.deno.dev
 
-## 3rd-party libs
+## Standard Lib
 
 Like `std-libs` for NHttp.
 
 ### Usage
 
 ```ts
-// Deno
+// JSR
+import {...} from "@nhttp/nhttp/my-libs";
+
+// deno.land
 import {...} from "https://deno.land/x/nhttp/lib/my-libs.ts";
-
-// Deno NPM
-import {...} from "npm:nhttp-land/my-libs";
-
-// Node or Bun
-import {...} from "nhttp-land/my-libs";
 ```
 
-### ServeStatic
+### Serve Static
 
 ```ts
-import nhttp from "https://deno.land/x/nhttp/mod.ts";
-import serveStatic from "https://deno.land/x/nhttp/lib/serve-static.ts";
+import nhttp from "@nhttp/nhttp";
+import serveStatic from "@nhttp/nhttp/serve-static";
 
 const app = nhttp();
 
@@ -186,7 +160,19 @@ app.use(serveStatic("./my_folder", { prefix: "/assets" }));
 app.use(serveStatic(new URL("./my_folder", import.meta.url)));
 ```
 
-more libs => https://nhttp.deno.dev/docs/3rd-party-lib
+## CLI
+
+### Deno
+
+```bash
+deno run -Ar npm:create-nhttp
+```
+
+### Npm
+
+```bash
+npm create nhttp@latest
+```
 
 ## License
 

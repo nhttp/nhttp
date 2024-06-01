@@ -1,5 +1,5 @@
 // Credit : https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts
-/// <reference lib="dom" />
+
 // deno-lint-ignore no-explicit-any
 type TAny = any;
 type Bool = boolean | "true" | "false";
@@ -39,8 +39,14 @@ type HxTriggerModifier =
   | " queue:last"
   | " queue:all"
   | " queue:none";
+/**
+ * namespace NJSX.
+ */
 // deno-lint-ignore no-namespace
 export namespace NJSX {
+  /**
+   * `interface` NJSX.HTMXAttributes.
+   */
   export interface HTMXAttributes {
     /**
      * Hyperscript.
@@ -537,7 +543,7 @@ export namespace NJSX {
     "aria-valuetext"?: string | undefined;
   }
 
-  // All the WAI-ARIA 1.1 role attribute values from https://www.w3.org/TR/wai-aria-1.1/#role_definitions
+  /** All the WAI-ARIA 1.1 role attribute values from https://www.w3.org/TR/wai-aria-1.1/#role_definitions */
   type AriaRole =
     | "alert"
     | "alertdialog"

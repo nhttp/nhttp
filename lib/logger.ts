@@ -1,12 +1,58 @@
+// logger.ts
+/**
+ * @module
+ *
+ * This module contains logger for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import logger from "@nhttp/nhttp/logger";
+ *
+ * const app = nhttp();
+ *
+ * app.use(logger());
+ *
+ * app.get("/", (rev) => {
+ *   return "hello with logger";
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import type { Handler, TRet } from "./deps.ts";
 
+/**
+ * `type` Log.
+ */
 export type Log = {
+  /**
+   * timing request.
+   */
   timing: string;
+  /**
+   * route info.
+   */
   route: string | RegExp;
+  /**
+   * method info.
+   */
   method: string;
+  /**
+   * path info.
+   */
   path: string;
+  /**
+   * status info.
+   */
   status: number;
+  /**
+   * log info.
+   */
   log: TRet;
+  /**
+   * any.
+   */
   [k: string]: TRet;
 };
 const print = (log: Log, pretty = true) => {

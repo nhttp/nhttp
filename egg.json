@@ -8,11 +8,11 @@
   "version": "1.3.26",
   "files": [
     "deno.json",
-    "./mod.js",
     "./mod.ts",
     "./index.ts",
     "./src/**/*",
-    "./node/**/*",
+    "./ext/**/*",
+    "./runtime/**/*",
     "./lib/**/*",
     "LICENSE",
     "README.md"

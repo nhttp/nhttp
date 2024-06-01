@@ -1,3 +1,23 @@
+// yoga.ts
+/**
+ * @module
+ *
+ * This module contains yogaHandler for NHttp.
+ *
+ * @example
+ * ```ts
+ * import nhttp from "@nhttp/nhttp";
+ * import { createSchema, createYoga } from "npm:graphql-yoga";
+ *
+ * const app = nhttp();
+ *
+ * const yoga = createYoga({ schema: createSchema({...}) });
+ *
+ * app.any("/graphql", yogaHandler(yoga));
+ *
+ * app.listen(8000);
+ * ```
+ */
 import type { Handler, TRet } from "./deps.ts";
 
 /**

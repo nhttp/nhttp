@@ -1,0 +1,10 @@
+{
+  "name": "@nhttp/twind",
+  "version": "0.0.4",
+  "exports": {
+    ".": "./mod.ts",
+    "./server": "./server.ts",
+    "./stream": "./stream.ts"
+  },
+  "lock": false
+}

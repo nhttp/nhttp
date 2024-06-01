@@ -1,3 +1,4 @@
+// request_event.ts
 import {
   s_body,
   s_cookies,
@@ -18,6 +19,7 @@ import {
   s_url,
 } from "./symbol.ts";
 import type {
+  CreateRequest,
   FetchHandler,
   MatchRoute,
   TObject,
@@ -34,12 +36,30 @@ type TInfo<T> = {
   conn: T;
   context: TObject;
 };
-/* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
-export interface RequestEvent extends NHTTP.RequestEvent {
+/**
+ * `interface` RequestEvent.
+ */
+export interface RequestEvent {
   /**
    * send data to log. `requires logger middlewares`
    */
   log: (data: TRet) => void;
+  /**
+   * generate token CSRF. requires `csrf` middleware.
+   */
+  csrfToken: () => string;
+  /**
+   * verify token CSRF. requires `csrf` middleware.
+   */
+  csrfVerify: (value?: string) => boolean;
+  /**
+   * auth. requires `jwt` middleware.
+   */
+  auth: TObject;
+  /**
+   * check if `HX-Request`. requires `htmx` middleware.
+   */
+  hxRequest: boolean;
 }
 export class RequestEvent<O extends TObject = TObject> {
   constructor(
@@ -96,7 +116,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * ```
    */
   get info(): TInfo<O> {
-    const info = this.request._info;
+    const info = (this.request as TRet)._info;
     return {
       conn: <TRet> info?.conn ?? {},
       context: info?.ctx ?? {},
@@ -118,9 +138,9 @@ export class RequestEvent<O extends TObject = TObject> {
    *   rev.respondWith(resp);
    * });
    */
-  waitUntil = (promise: Promise<TRet>) => {
+  waitUntil = (promise: Promise<TRet>): void => {
     if (promise instanceof Promise) {
-      const ctx = this.request._info?.ctx;
+      const ctx = (this.request as TRet)._info?.ctx;
       if (typeof ctx?.waitUntil === "function") {
         ctx.waitUntil(promise);
         return;
@@ -163,7 +183,6 @@ export class RequestEvent<O extends TObject = TObject> {
       ) {
         this[s_response] = new Response(<TRet> body, this[s_init]);
       } else {
-        /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
         // @ts-ignore: Temporary workaround for send json
         this[s_response] = Response.json(body, this[s_init]);
       }
@@ -185,7 +204,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const search = rev.search;
    * console.log(search);
    */
-  get search() {
+  get search(): string | null {
     return this[s_search] ??= null;
   }
   set search(val: string | null) {
@@ -198,7 +217,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const params = rev.params;
    * console.log(params);
    */
-  get params() {
+  get params(): TObject {
     return this[s_params] ??= {};
   }
   set params(val: TObject) {
@@ -212,7 +231,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * console.log(url);
    * // => /hello?name=john
    */
-  get url() {
+  get url(): string {
     return this[s_url] ??= this.originalUrl;
   }
   set url(val: string) {
@@ -226,7 +245,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * console.log(url);
    * // => /hello?name=john
    */
-  get originalUrl() {
+  get originalUrl(): string {
     return this[s_ori_url] ??= getUrl(this.request.url);
   }
   set originalUrl(val: string) {
@@ -240,7 +259,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * console.log(path);
    * // => /hello
    */
-  get path() {
+  get path(): string {
     return this[s_path] ??= this.url;
   }
   set path(val: string) {
@@ -254,7 +273,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * console.log(query);
    * // => { name: "john" }
    */
-  get query() {
+  get query(): TObject {
     return this[s_query] ??= this.__parseQuery?.(this[s_search].substring(1)) ??
       {};
   }
@@ -267,7 +286,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const body = rev.body;
    * console.log(body);
    */
-  get body() {
+  get body(): TObject {
     return this[s_body] ??= {};
   }
   set body(val: TObject) {
@@ -279,7 +298,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const type = rev.headers.get("content-type");
    * console.log(type);
    */
-  get headers() {
+  get headers(): Headers {
     return this[s_headers] ??= this.request.headers;
   }
   set headers(val: Headers) {
@@ -291,7 +310,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const method = rev.method;
    * console.log(method);
    */
-  get method() {
+  get method(): string {
     return this[s_method] ??= this.request.method;
   }
   set method(val: string) {
@@ -303,7 +322,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const file = rev.file;
    * console.log(file);
    */
-  get file() {
+  get file(): TObject {
     return this[s_file] ??= {};
   }
   set file(val: TObject) {
@@ -315,7 +334,7 @@ export class RequestEvent<O extends TObject = TObject> {
    * const cookie = rev.cookies;
    * console.log(cookie);
    */
-  get cookies() {
+  get cookies(): TObject {
     return this[s_cookies] ??= getReqCookies(this.request.headers, true);
   }
   set cookies(val: TObject) {
@@ -351,16 +370,21 @@ export class RequestEvent<O extends TObject = TObject> {
     });
     return this[s_new_req] = new Request(this.request.url, init);
   }
-
-  [deno_inspect](inspect: TRet, opts: TRet) {
+  /**
+   * custom inspect for Deno.
+   */
+  [deno_inspect](inspect: TRet, opts: TRet): string {
     const ret = revInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
+  /**
+   * custom inspect for Node.
+   */
   [node_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
-  ) {
+  ): string {
     opts.depth = depth;
     const ret = revInspect(this);
     return `${this.constructor.name} ${
@@ -369,6 +393,9 @@ export class RequestEvent<O extends TObject = TObject> {
   }
   [k: string | symbol]: TRet;
 }
+/**
+ * Fast return new Response.
+ */
 export function toRes(body?: TSendBody): TRet {
   if (typeof body === "string") return new Response(body);
   if (
@@ -381,18 +408,19 @@ export function toRes(body?: TSendBody): TRet {
       body instanceof ReadableStream ||
       body instanceof Blob
     ) return new Response(<TRet> body);
-    /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-    // @ts-ignore: Temporary workaround for send json
     return Response.json(body);
   }
   if (typeof body === "number") return new Response(body.toString());
   return body === void 0 ? void 0 : new Response(<TRet> body);
 }
+/**
+ * create new Request.
+ */
 export function createRequest(
   handle: FetchHandler,
   url: string,
   init: RequestInit = {},
-) {
+): CreateRequest {
   const res = () => {
     return handle(
       new Request(

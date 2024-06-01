@@ -1,10 +1,11 @@
+// multipart.ts
 import { revMimeList } from "./constant.ts";
 import { HttpError } from "./error.ts";
 import type { RequestEvent } from "./request_event.ts";
 import type { Handler, NFile, TObject, TRet } from "./types.ts";
 import { parseQuery, toBytes } from "./utils.ts";
 
-const uid = () =>
+const uid = (): string =>
   `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
     .replace(".", "");
 export type TMultipartUpload = {
@@ -66,13 +67,16 @@ export type TMultipartUpload = {
 };
 
 class Multipart {
-  public createBody(formData: FormData) {
+  /**
+   * create body from formdata.
+   */
+  public createBody(formData: FormData): TRet {
     return parseQuery(formData);
   }
-  private isFile(file: TRet) {
+  private isFile(file: TRet): boolean {
     return typeof file === "object" && typeof file.arrayBuffer === "function";
   }
-  private cleanUp(body: TObject) {
+  private cleanUp(body: TObject): void {
     for (const key in body) {
       if (Array.isArray(body[key])) {
         const arr = body[key] as Array<unknown>;
@@ -88,7 +92,7 @@ class Multipart {
       }
     }
   }
-  private validate(files: File[], opts: TMultipartUpload) {
+  private validate(files: File[], opts: TMultipartUpload): void {
     let j = 0;
     const len = files.length;
     if (opts?.maxCount) {
@@ -124,7 +128,10 @@ class Multipart {
       j++;
     }
   }
-  private async privUpload(files: File[], opts: TMultipartUpload) {
+  private async privUpload(
+    files: File[],
+    opts: TMultipartUpload,
+  ): Promise<void> {
     let i = 0;
     const len = files.length;
     while (i < len) {
@@ -151,7 +158,7 @@ class Multipart {
       i++;
     }
   }
-  private async mutateBody(rev: RequestEvent) {
+  private async mutateBody(rev: RequestEvent): Promise<void> {
     const type = rev.headers.get("content-type");
     if (
       rev.request.bodyUsed === false &&
@@ -162,7 +169,10 @@ class Multipart {
       rev.__nbody = formData;
     }
   }
-  private async handleArrayUpload(rev: RequestEvent, opts: TMultipartUpload[]) {
+  private async handleArrayUpload(
+    rev: RequestEvent,
+    opts: TMultipartUpload[],
+  ): Promise<void> {
     let j = 0, i = 0;
     const len = opts.length;
     while (j < len) {
@@ -195,7 +205,10 @@ class Multipart {
     }
     this.cleanUp(rev.body);
   }
-  private async handleSingleUpload(rev: RequestEvent, obj: TMultipartUpload) {
+  private async handleSingleUpload(
+    rev: RequestEvent,
+    obj: TMultipartUpload,
+  ): Promise<void> {
     if (obj.required && rev.body[obj.name] === void 0) {
       throw new HttpError(
         400,
@@ -239,4 +252,15 @@ class Multipart {
   }
 }
 
-export const multipart = new Multipart();
+/**
+ * multipart for handle formdata.
+ * @example
+ * const upload = multipart.upload({ name: "image" });
+ *
+ * app.post("/save", upload, (rev) => {
+ *    console.log("file", rev.file.image);
+ *    console.log(rev.body);
+ *    return "success upload";
+ * });
+ */
+export const multipart: Multipart = new Multipart();

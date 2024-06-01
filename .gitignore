@@ -8,6 +8,7 @@ deno.lock
 note.txt
 backup_api.txt
 /public
+/dev
 /dummy/test.mp4
 /backup
 /file-routing

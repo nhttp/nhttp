@@ -1,3 +1,4 @@
+// swagger_ui.ts
 import type { Handler, TObject, TRet } from "./../deps.ts";
 import type { GenHtmlOpts } from "./types.ts";
 
@@ -186,7 +187,9 @@ const generateHTML = (
     .replace("<% swaggerOptions %>", stringify(initOptions));
   return htmlWithCustomCssUrl.replace("<% title %>", customSiteTitle);
 };
-
+/**
+ * setup swagger UI.
+ */
 const setup = (swaggerDoc: TObject, opts: GenHtmlOpts = {}): Handler => {
   let html = generateHTML(swaggerDoc, opts);
   html = html.replaceAll(
@@ -203,6 +206,9 @@ const setup = (swaggerDoc: TObject, opts: GenHtmlOpts = {}): Handler => {
     return html;
   };
 };
+/**
+ * serve assets swagger UI.
+ */
 const serveInitAssets = (): Handler => {
   return ({ response }) => {
     response.type("js");
@@ -228,5 +234,7 @@ const stringify = (obj: TObject) => {
   });
   return "var options = " + json + ";";
 };
-
+/**
+ * create swagger-UI.
+ */
 export const swaggerUi = { setup, serveInitAssets };

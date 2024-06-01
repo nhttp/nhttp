@@ -7,7 +7,7 @@ export {
   multipart,
   RequestEvent,
   s_response,
-} from "./../index.ts";
+} from "../index.ts";
 export type {
   Cookie,
   Handler,
@@ -18,4 +18,4 @@ export type {
   TMultipartUpload,
   TObject,
   TRet,
-} from "./../index.ts";
+} from "../index.ts";

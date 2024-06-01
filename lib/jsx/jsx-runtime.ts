@@ -1,5 +1,24 @@
+// jsx-runtime.ts
+/**
+ * @module
+ *
+ * This module contains jsx runtime.
+ *
+ * @example
+ * ```json
+ * // deno.json / tsconfig.json
+ * {
+ *    "compilerOptions": {
+ *      "jsx": "react-jsx",
+ *      "jsxImportSource": "@nhttp/nhttp/jsx"
+ *    }
+ * }
+ * ```
+ */
 import {
+  type EObject,
   Fragment,
+  type JSX,
   type JSXElement,
   type JSXNode,
   n,
@@ -13,6 +32,9 @@ type CreateElement = (
   ...args: unknown[]
 ) => JSXNode;
 const isArray = Array.isArray;
+/**
+ * createElement.
+ */
 const createElement: CreateElement = (type, props) => {
   if (props?.children == null) return n(type, props);
   const childs = props.children;
@@ -25,12 +47,15 @@ export { createElement as jsx };
 export { createElement as jsxs };
 export { createElement as jsxDev };
 export { createElement as jsxDEV };
+export type { JSX, NJSX };
 
-// support jsx-transform precompile.
+/**
+ * jsxTemplate (jsx-transform precompile).
+ */
 export const jsxTemplate = (
   tpl: TemplateStringsArray,
   ...subs: JSXNode[]
-) => {
+): JSXElement<EObject> | null => {
   internal.precompile ??= true;
   const ret = [];
   for (let i = 0; i < tpl.length; i++) {
@@ -39,14 +64,27 @@ export const jsxTemplate = (
   }
   return n(Fragment, {}, ret);
 };
+type JSXEsacpe =
+  | string
+  | number
+  | JSXElement<EObject>
+  | JSXNode<EObject>[]
+  | Promise<JSXElement<EObject>>
+  | null;
+/**
+ * jsxEscape (jsx-transform precompile).
+ */
 export const jsxEscape = (
   v: string | null | JSXNode | Array<string | null | JSXNode>,
-) => {
+): JSXEsacpe => {
   return v == null || typeof v === "boolean" || typeof v === "function"
     ? null
     : v;
 };
-export const jsxAttr = (k: string, v: unknown) => {
+/**
+ * jsxAttr (jsx-transform precompile).
+ */
+export const jsxAttr = (k: string, v: unknown): string => {
   if (k === "style" && typeof v === "object") {
     return `${k}="${toStyle(v as Record<string, string | number>)}"`;
   }
