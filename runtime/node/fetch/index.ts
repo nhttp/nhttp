@@ -7,13 +7,13 @@ const isArray = Array.isArray;
 const R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
 const toHeads = (headers: Headers) => Array.from(headers.entries());
 async function sendStream(
-  resWeb: Response,
+  resWeb: TRet,
   res: TRet,
   heads?: TRet[],
   native?: boolean,
 ) {
   if (native) {
-    resWeb = resWeb.clone() as Response;
+    resWeb = resWeb.clone();
     const headers = new Headers(resWeb.headers);
     const code = resWeb.status ?? 200;
     const type = headers.get("content-type");
@@ -138,7 +138,7 @@ export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
       "http://" + req.headers.host + req.url,
       void 0,
       { req, res },
-    ),
+    ) as TRet,
   );
   if (resWeb?.then) asyncHandleResWeb(resWeb, res);
   else handleResWeb(resWeb, res);

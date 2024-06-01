@@ -55,7 +55,7 @@ export type Log = {
    */
   [k: string]: TRet;
 };
-const print = (log: Log, pretty = true) => {
+const print = (log: Log, pretty = true): void => {
   const json = pretty ? log : JSON.stringify(log);
   if (log.status >= 500) {
     console.log("\x1b[41m", "ERROR =>", "\x1b[0m", json);

@@ -83,7 +83,7 @@ export class NodeResponse extends NodeBody<Response> {
     } else {
       init.headers = { [C_TYPE]: JSON_TYPE };
     }
-    return new NodeResponse(JSON.stringify(data), init);
+    return new NodeResponse(JSON.stringify(data), init) as TRet;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers) */
   get headers(): Headers {
@@ -118,7 +118,11 @@ export class NodeResponse extends NodeBody<Response> {
     if (this.__body instanceof ReadableStream) {
       this.__body_clone = this.target.clone().body;
     }
-    return new NodeResponse(this.__body, this.__init, this.target.clone());
+    return new NodeResponse(
+      this.__body,
+      this.__init,
+      this.target.clone(),
+    ) as TRet;
   }
   /**
    * Node custom inspect
