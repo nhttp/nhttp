@@ -1,14 +1,19 @@
-name: publish
-
+name: Publish
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - jsr
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
-      id-token: write 
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
-      - run: npx jsr publish
+
+      - name: Publish package
+        run: npx jsr publish
