@@ -1,6 +1,6 @@
 {
   "name": "@nhttp/nhttp",
-  "version": "0.0.7",
+  "version": "0.0.10",
   "exports": {
     ".": "./index.ts",
     "./yoga": "./lib/yoga.ts",
@@ -16,7 +16,8 @@
     "./jsx/jsx-runtime": "./lib/jsx/jsx-runtime.ts",
     "./jsx/jsx-dev-runtime": "./lib/jsx/jsx-dev-runtime.ts",
     "./jsx": "./lib/jsx/index.ts",
-    "./jsx/twind": "./lib/jsx/twind.ts"
+    "./jsx/twind": "./lib/jsx/twind.ts",
+    "./node-fetch": "./runtime/node/fetch/fetch.ts"
   },
   "compilerOptions": {
     "lib": [

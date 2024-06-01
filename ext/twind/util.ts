@@ -1,7 +1,7 @@
-import type { RequestEvent, TRet } from "jsr:@nhttp/nhttp@^0.0.2";
-import type { JSX } from "jsr:@nhttp/nhttp@^0.0.2/jsx";
+import type { RequestEvent, TRet } from "jsr:@nhttp/nhttp@^0.0.8";
+import type { JSX } from "jsr:@nhttp/nhttp@^0.0.8/jsx";
 import type { InlineOptions } from "npm:@twind/core@1.1.3";
-import type { TOptionsRender } from "jsr:@nhttp/nhttp@^0.0.2/jsx";
+import type { TOptionsRender } from "jsr:@nhttp/nhttp@^0.0.8/jsx";
 import { extract } from "npm:@twind/core@1.1.3";
 
 export const getOptions = (): TOptionsRender =>

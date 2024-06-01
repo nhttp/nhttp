@@ -13,7 +13,7 @@ export class NodeResponse extends NodeBody<Response> {
   /**
    * Node Response flags.
    */
-  _nres = 1;
+  _nres: number | undefined = 1;
   /**
    * body clone
    */
@@ -22,6 +22,13 @@ export class NodeResponse extends NodeBody<Response> {
    * response headers cache.
    */
   __headers!: Headers | undefined;
+  constructor(body?: BodyInit | null, init?: ResponseInit);
+  constructor(
+    body?: BodyInit | null,
+    init?: ResponseInit,
+    clone?: Response,
+    url?: string,
+  );
   constructor(
     private __body?: BodyInit | null,
     private __init?: ResponseInit,
@@ -79,31 +86,31 @@ export class NodeResponse extends NodeBody<Response> {
     return new NodeResponse(JSON.stringify(data), init);
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers) */
-  get headers() {
+  get headers(): Headers {
     return this.__headers ??= new Headers(this.__init?.headers);
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/ok) */
-  get ok() {
+  get ok(): boolean {
     return this.target.ok;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirected) */
-  get redirected() {
+  get redirected(): boolean {
     return this.target.redirected;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status) */
-  get status() {
+  get status(): number {
     return this.__init?.status ?? 200;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText) */
-  get statusText() {
+  get statusText(): string {
     return this.target.statusText;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/type) */
-  get type() {
+  get type(): ResponseType {
     return this.target.type;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url) */
-  get url() {
+  get url(): string {
     return this.resUrl ?? this.target.url;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone) */
@@ -114,19 +121,13 @@ export class NodeResponse extends NodeBody<Response> {
     return new NodeResponse(this.__body, this.__init, this.target.clone());
   }
   /**
-   * perf v8 instanceof
-   */
-  get [Symbol.hasInstance]() {
-    return "Response";
-  }
-  /**
    * Node custom inspect
    */
   [s_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
-  ) {
+  ): string {
     opts.depth = depth;
     const ret = {
       body: this.body,

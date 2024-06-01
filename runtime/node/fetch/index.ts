@@ -1,34 +1,25 @@
 // index.ts
 import type { FetchHandler, ListenOptions, TRet } from "../../../src/types.ts";
-import { createFetch } from "./fetch.ts";
-import { NodeRequest } from "./request.ts";
-import type { NodeResponse } from "./response.ts";
+import { Request, type Response } from "./fetch.ts";
 
-const toHeads = (headers: Headers) => Array.from(headers.entries());
 const Buf = (globalThis as TRet).Buffer;
 const isArray = Array.isArray;
 const R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
-
+const toHeads = (headers: Headers) => Array.from(headers.entries());
 async function sendStream(
-  resWeb: NodeResponse,
+  resWeb: Response,
   res: TRet,
-  ori = false,
   heads?: TRet[],
+  native?: boolean,
 ) {
-  if (ori) {
-    resWeb = resWeb.clone() as NodeResponse;
+  if (native) {
+    resWeb = resWeb.clone() as Response;
     const headers = new Headers(resWeb.headers);
-    if (headers.has("content-encoding")) {
-      headers.delete("content-encoding");
-    }
     const code = resWeb.status ?? 200;
     const type = headers.get("content-type");
     if (type && R_NO_STREAM.test(type)) {
       const body = await resWeb.text();
       headers.set("content-length", Buf.byteLength(body));
-      if (headers.has("transfer-encoding")) {
-        headers.delete("transfer-encoding");
-      }
       res.writeHead(code, toHeads(headers));
       res.end(body);
     } else {
@@ -77,7 +68,7 @@ async function sendStream(
 function handleResWeb(resWeb: TRet, res: TRet) {
   if (res.writableEnded) return;
   if (resWeb._nres) {
-    let heads: TRet;
+    let heads!: TRet[];
     if (resWeb["__init"]) {
       if (resWeb["__init"].status) {
         res.statusCode = resWeb["__init"].status;
@@ -85,7 +76,7 @@ function handleResWeb(resWeb: TRet, res: TRet) {
       if (resWeb["__init"].statusText) {
         res.statusMessage = resWeb["__init"].statusText;
       }
-      if (resWeb["__init"].headers) {
+      if (resWeb["__init"].headers && !resWeb["__headers"]) {
         if (isArray(resWeb["__init"].headers)) {
           heads = resWeb["__init"].headers;
         } else {
@@ -105,8 +96,8 @@ function handleResWeb(resWeb: TRet, res: TRet) {
       }
     }
     if (resWeb["__headers"]) {
-      if (heads) {
-        heads = toHeads(resWeb["__headers"]);
+      if (resWeb["__headers"].has("set-cookie")) {
+        heads = Array.from(resWeb["__headers"].entries());
       } else {
         (<Headers> resWeb["__headers"]).forEach((val, key) => {
           res.setHeader(key, val);
@@ -127,10 +118,10 @@ function handleResWeb(resWeb: TRet, res: TRet) {
       }
       res.end(resWeb["__body"]);
     } else {
-      sendStream(resWeb, res, false, heads);
+      sendStream(resWeb, res, heads);
     }
   } else {
-    sendStream(resWeb, res, true);
+    sendStream(resWeb, res, void 0, true);
   }
 }
 
@@ -143,11 +134,11 @@ async function asyncHandleResWeb(resWeb: Promise<Response>, res: TRet) {
 // deno-lint-ignore require-await
 export async function handleNode(handler: FetchHandler, req: TRet, res: TRet) {
   const resWeb: TRet = handler(
-    new NodeRequest(
+    new Request(
       "http://" + req.headers.host + req.url,
       void 0,
       { req, res },
-    ) as unknown as Request,
+    ),
   );
   if (resWeb?.then) asyncHandleResWeb(resWeb, res);
   else handleResWeb(resWeb, res);
@@ -161,7 +152,6 @@ export async function serveNode(
     port: 3000,
   },
 ): Promise<TRet> {
-  createFetch();
   const immediate = opts.immediate ?? true;
   const port = opts.port;
   const isSecure = opts.certFile !== void 0 || opts.cert !== void 0;
@@ -184,5 +174,3 @@ export async function serveNode(
       },
   ).listen(port);
 }
-
-export { createFetch };

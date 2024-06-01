@@ -19,7 +19,7 @@ export class NodeHeaders {
     depth: number,
     opts: TRet,
     inspect: TRet,
-  ) {
+  ): string {
     opts.depth = depth;
     const headers = {} as TRet;
     this.headers.forEach((v, k) => {

@@ -1,3 +1,4 @@
+// runtime.ts
 import type { ListenOptions, TObject, TRet } from "../src/types.ts";
 
 export const defineCallback = (
@@ -20,7 +21,8 @@ export const defineCallback = (
 export const isBun = (): boolean => "Bun" in globalThis;
 export const isDeno = (): boolean => "Deno" in globalThis;
 export const isNode = (): boolean => {
-  return !isBun() && (<TRet> globalThis).process?.release?.name === "node";
+  return !isDeno() && !isBun() &&
+    (<TRet> globalThis).process?.release?.name === "node";
 };
 
 export class RuntimeServer<T = TObject> {

@@ -39,7 +39,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/cache)
    */
-  get cache() {
+  get cache(): RequestCache {
     return this.target.cache;
   }
   /**
@@ -47,7 +47,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/credentials)
    */
-  get credentials() {
+  get credentials(): RequestCredentials {
     return this.target.credentials;
   }
   /**
@@ -55,7 +55,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/destination)
    */
-  get destination() {
+  get destination(): RequestDestination {
     return this.target.destination;
   }
   /**
@@ -63,7 +63,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)
    */
-  get headers() {
+  get headers(): Headers {
     return this.raw ? new Headers(this.raw.req.headers) : this.target.headers;
   }
   /**
@@ -71,7 +71,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)
    */
-  get integrity() {
+  get integrity(): string {
     return this.target.integrity;
   }
   /**
@@ -79,7 +79,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/keepalive)
    */
-  get keepalive() {
+  get keepalive(): boolean {
     return this.target.keepalive;
   }
   /**
@@ -87,7 +87,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)
    */
-  get method() {
+  get method(): string {
     return this.raw ? this.raw.req.method : this.target.method;
   }
   /**
@@ -95,7 +95,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/mode)
    */
-  get mode() {
+  get mode(): RequestMode {
     return this.target.mode;
   }
   /**
@@ -103,7 +103,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)
    */
-  get redirect() {
+  get redirect(): RequestRedirect {
     return this.target.redirect;
   }
   /**
@@ -111,7 +111,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/referrer)
    */
-  get referrer() {
+  get referrer(): string {
     return this.target.referrer;
   }
   /**
@@ -119,7 +119,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/referrerPolicy)
    */
-  get referrerPolicy() {
+  get referrerPolicy(): ReferrerPolicy {
     return this.target.referrerPolicy;
   }
   /**
@@ -127,7 +127,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)
    */
-  get signal() {
+  get signal(): AbortSignal {
     return this.target.signal;
   }
   /**
@@ -135,7 +135,7 @@ export class NodeRequest extends NodeBody<Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)
    */
-  get url() {
+  get url(): string {
     if (typeof this.__input === "string") {
       return this.__input;
     }
@@ -151,19 +151,13 @@ export class NodeRequest extends NodeBody<Request> {
     ) as TRet;
   }
   /**
-   * perf v8 instanceof
-   */
-  get [Symbol.hasInstance]() {
-    return "Request";
-  }
-  /**
    * Node custom inspect
    */
   [s_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
-  ) {
+  ): string {
     opts.depth = depth;
     const ret = {
       bodyUsed: this.bodyUsed,

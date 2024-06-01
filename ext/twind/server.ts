@@ -1,4 +1,9 @@
 // server.ts
+/**
+ * @module
+ *
+ * This module contains twind server.
+ */
 import {
   type BaseTheme,
   inline,
@@ -13,7 +18,7 @@ import {
 } from "npm:@twind/core@1.1.3";
 import presetAutoprefix from "npm:@twind/preset-autoprefix@1.0.7";
 import presetTailwind from "npm:@twind/preset-tailwind@1.1.4";
-import type { Handler, TRet } from "jsr:@nhttp/nhttp@^0.0.2";
+import type { Handler, TRet } from "jsr:@nhttp/nhttp@^0.0.8";
 import { getOptions, onRenderElement } from "./util.ts";
 
 export type { InlineOptions };

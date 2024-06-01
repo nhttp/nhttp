@@ -6,12 +6,27 @@ const consumed = "body already consumed";
 const misstype = "missing content-type";
 const mnotbody = "GET/HEAD cannot have body";
 const notBody = (raw: TRet) => raw.method === "GET" || raw.method === "HEAD";
+const getClassRequest = (): {
+  new (input: RequestInfo, init?: RequestInit): Request;
+} => {
+  return (<TRet> globalThis).NativeRequest !== void 0
+    ? (<TRet> globalThis).NativeRequest
+    : (<TRet> globalThis).Request;
+};
+const getClassResponse = (): {
+  new (body?: BodyInit | null, init?: ResponseInit): Response;
+} => {
+  return (<TRet> globalThis).NativeResponse !== void 0
+    ? (<TRet> globalThis).NativeResponse
+    : (<TRet> globalThis).Response;
+};
 function reqBody(
   url: string,
   body: Uint8Array,
   raw: TRet,
 ): Request {
-  return new (<TRet> globalThis).NativeRequest(url, {
+  const Req = getClassRequest();
+  return new Req(url, {
     method: raw.method,
     headers: raw.headers,
     body: notBody(raw) ? void 0 : body,
@@ -52,20 +67,22 @@ export class NodeBody<T extends Response | Request> {
   get target(): T {
     if (this.#name === "Request") {
       if (this.#clone !== void 0) return this.#clone as T;
-      return (this.#req ??= new (<TRet> globalThis).NativeRequest(
-        this.#input,
+      const Req = getClassRequest();
+      return (this.#req ??= new Req(
+        this.#input as RequestInfo,
         this.#init,
       )) as T;
     }
     if (this.#clone !== void 0) return this.#clone as T;
+    const Res = getClassResponse();
     if (
       this.#resUrl !== void 0 &&
-      this.#init instanceof (<TRet> globalThis).NativeResponse
+      this.#init instanceof Res
     ) {
       return this.#init as T;
     }
-    return (this.#res ??= new (<TRet> globalThis).NativeResponse(
-      this.#input,
+    return (this.#res ??= new Res(
+      this.#input as BodyInit | null,
       this.#init,
     )) as T;
   }
@@ -111,7 +128,7 @@ export class NodeBody<T extends Response | Request> {
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)
    */
-  get bodyUsed() {
+  get bodyUsed(): boolean {
     if (this.#raw !== void 0) {
       return this.#isBodyUsed ?? false;
     }

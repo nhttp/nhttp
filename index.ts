@@ -17,6 +17,7 @@
  * app.listen(8000);
  * ```
  */
+import { handleNode, serveNode } from "./runtime/node/fetch/index.ts";
 import { NHttp as BaseApp } from "./src/nhttp.ts";
 import type { RequestEvent, TApp, TRet } from "./src/index.ts";
 import { default as BaseRouter, type TRouter } from "./src/router.ts";
@@ -27,11 +28,6 @@ import { defineCallback, isBun, isDeno, isNode } from "./runtime/runtime.ts";
 import { writeFile } from "./runtime/node/node_fs.ts";
 import { BunServer } from "./runtime/bun/bun_server.ts";
 import { NodeServer } from "./runtime/node/node_server.ts";
-import {
-  createFetch,
-  handleNode,
-  serveNode,
-} from "./runtime/node/fetch/index.ts";
 /**
  * `class` NHttp.
  * @example
@@ -58,7 +54,6 @@ export class NHttp<
         };
       } else if (isNode()) {
         this.handle = this.fetch = ((req: TRet, res: TRet) => {
-          createFetch();
           handleNode(this.handleRequest, req, res);
         }) as TRet;
         this.listen = (options, callback) => {

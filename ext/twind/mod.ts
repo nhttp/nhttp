@@ -1,2 +1,7 @@
 // mod.ts
-export * from "jsr:@nhttp/nhttp@^0.0.2/jsx/twind";
+/**
+ * @module
+ *
+ * This module contains twind client.
+ */
+export * from "jsr:@nhttp/nhttp@^0.0.8/jsx/twind";
