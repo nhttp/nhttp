@@ -1,10 +1,10 @@
 // index.ts
 import type { FetchHandler, ListenOptions, TRet } from "../../../src/types.ts";
 import { Request, type Response } from "./fetch.ts";
+import { C_TYPE, R_NO_STREAM } from "./util.ts";
 
 const Buf = (globalThis as TRet).Buffer;
 const isArray = Array.isArray;
-const R_NO_STREAM = /\/json|\/plain|\/html|\/css|\/javascript/;
 const toHeads = (headers: Headers) => Array.from(headers.entries());
 async function sendStream(
   resWeb: TRet,
@@ -16,7 +16,7 @@ async function sendStream(
     resWeb = resWeb.clone();
     const headers = new Headers(resWeb.headers);
     const code = resWeb.status ?? 200;
-    const type = headers.get("content-type");
+    const type = headers.get(C_TYPE);
     if (type && R_NO_STREAM.test(type)) {
       const body = await resWeb.text();
       headers.set("content-length", Buf.byteLength(body));
@@ -57,10 +57,10 @@ async function sendStream(
       data.toString().split("\r")[0]
     }`;
     if (heads) {
-      heads.push(["Content-Type", type]);
+      heads.push([C_TYPE, type]);
       res.writeHead(res.statusCode, heads);
     } else {
-      res.setHeader("Content-Type", type);
+      res.setHeader(C_TYPE, type);
     }
   }
   res.end(data);

@@ -3,9 +3,8 @@ import type { TRet } from "../../../src/types.ts";
 import { NodeBody } from "./body.ts";
 import { NodeHeaders } from "./headers.ts";
 import { s_inspect } from "./symbol.ts";
+import { C_TYPE, isArray, JSON_TYPE } from "./util.ts";
 
-const C_TYPE = "Content-Type";
-const JSON_TYPE = "application/json";
 /**
  * Node Response Web-Api
  */
@@ -49,7 +48,7 @@ export class NodeResponse extends NodeBody<Response> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/error_static)
    */
   static error(): Response {
-    return (<TRet> globalThis).NativeResponse.error();
+    return new Response();
   }
   /**
    * `static` redirect response.
@@ -57,7 +56,10 @@ export class NodeResponse extends NodeBody<Response> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)
    */
   static redirect(url: string | URL, status?: number): Response {
-    return (<TRet> globalThis).NativeResponse.redirect(url, status);
+    return new Response(null, {
+      headers: { location: typeof url === "string" ? url : url.href },
+      status: status ?? 302,
+    });
   }
   /**
    * `static` json response.
@@ -69,21 +71,25 @@ export class NodeResponse extends NodeBody<Response> {
     init: ResponseInit = {},
   ): Response {
     if (init.headers) {
-      if (
-        (<TRet> init.headers).get &&
-        typeof (<TRet> init.headers).get === "function"
-      ) {
-        (<Headers> init.headers).set(
+      if (init.headers instanceof Headers) {
+        init.headers.set(
           C_TYPE,
-          (<Headers> init.headers).get(C_TYPE) ?? JSON_TYPE,
+          init.headers.get(C_TYPE) ?? JSON_TYPE,
         );
+      } else if (isArray(init.headers)) {
+        const hasType = init.headers.findIndex((el) => {
+          return el[0].toLowerCase() === C_TYPE.toLowerCase();
+        }) === -1;
+        if (hasType) {
+          init.headers.push([C_TYPE, JSON_TYPE]);
+        }
       } else {
-        (<TRet> init.headers)[C_TYPE] ??= JSON_TYPE;
+        init.headers[C_TYPE] ??= JSON_TYPE;
       }
     } else {
       init.headers = { [C_TYPE]: JSON_TYPE };
     }
-    return new NodeResponse(JSON.stringify(data), init) as TRet;
+    return new Response(JSON.stringify(data), init);
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers) */
   get headers(): Headers {
@@ -118,11 +124,11 @@ export class NodeResponse extends NodeBody<Response> {
     if (this.__body instanceof ReadableStream) {
       this.__body_clone = this.target.clone().body;
     }
-    return new NodeResponse(
+    return new (<TRet> globalThis).Response(
       this.__body,
       this.__init,
       this.target.clone(),
-    ) as TRet;
+    );
   }
   /**
    * Node custom inspect

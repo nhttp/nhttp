@@ -42,23 +42,24 @@ export class Response extends NodeResponse {
 export async function fetch(
   input: RequestInfo | URL,
   init?: RequestInit,
-): Promise<Response> {
-  if (input instanceof Request) {
+): Promise<globalThis.Response> {
+  if ((<TRet> globalThis).NativeFetch === void 0) {
+    return await globalThis.fetch(input, init);
+  }
+  if (input instanceof globalThis.Request) {
     init = input;
     input = input.url;
   }
-  const res: Response = await (<TRet> globalThis).NativeFetch(
+  const res: globalThis.Response = await (<TRet> globalThis).NativeFetch(
     input,
     init,
   );
-  const res_url = input instanceof URL ? input.href : (input as string);
-  const ret = new Response(
+  return new (<TRet> globalThis).Response(
     res.body,
     res,
     void 0,
-    res_url,
+    input instanceof URL ? input.href : (input as string),
   );
-  return ret;
 }
 
 /**

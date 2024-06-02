@@ -1,25 +1,12 @@
 // body.ts
 import type { TRet } from "../../../src/types.ts";
+import { getClassRequest, getClassResponse } from "./util.ts";
 
 const typeError = (m: string) => Promise.reject(new TypeError(m));
 const consumed = "body already consumed";
 const misstype = "missing content-type";
 const mnotbody = "GET/HEAD cannot have body";
 const notBody = (raw: TRet) => raw.method === "GET" || raw.method === "HEAD";
-const getClassRequest = (): {
-  new (input: RequestInfo, init?: RequestInit): Request;
-} => {
-  return (<TRet> globalThis).NativeRequest !== void 0
-    ? (<TRet> globalThis).NativeRequest
-    : (<TRet> globalThis).Request;
-};
-const getClassResponse = (): {
-  new (body?: BodyInit | null, init?: ResponseInit): Response;
-} => {
-  return (<TRet> globalThis).NativeResponse !== void 0
-    ? (<TRet> globalThis).NativeResponse
-    : (<TRet> globalThis).Response;
-};
 function reqBody(
   url: string,
   body: Uint8Array,

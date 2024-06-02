@@ -143,12 +143,12 @@ export class NodeRequest extends NodeBody<Request> {
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone) */
   clone(): Request {
-    return new NodeRequest(
+    return new (<TRet> globalThis).Request(
       this.__input,
       this.__init,
       this.raw,
       this.target.clone(),
-    ) as TRet;
+    );
   }
   /**
    * Node custom inspect
