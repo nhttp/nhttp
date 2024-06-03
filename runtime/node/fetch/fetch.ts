@@ -5,62 +5,8 @@
  * This module contains fetch-API (`Request`, `Response`, `fetch`) for nodejs with NHttp.
  */
 import type { TObject, TRet } from "../../../src/types.ts";
-import { isNode } from "../../runtime.ts";
 import { NodeRequest } from "./request.ts";
 import { NodeResponse } from "./response.ts";
-/**
- * This Fetch API interface represents a resource request.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request)
- */
-export class Request extends NodeRequest {
-  /**
-   * perf v8 instanceof `Request`.
-   */
-  get [Symbol.hasInstance](): string {
-    return "Request";
-  }
-}
-/**
- * This Fetch API interface represents the response to a request.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response)
- */
-export class Response extends NodeResponse {
-  /**
-   * perf v8 instanceof `Response`.
-   */
-  get [Symbol.hasInstance](): string {
-    return "Response";
-  }
-}
-/**
- * Fetch API.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/fetch)
- */
-export async function fetch(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<globalThis.Response> {
-  if ((<TRet> globalThis).NativeFetch === void 0) {
-    return await globalThis.fetch(input, init);
-  }
-  if (input instanceof globalThis.Request) {
-    init = input;
-    input = input.url;
-  }
-  const res: globalThis.Response = await (<TRet> globalThis).NativeFetch(
-    input,
-    init,
-  );
-  return new (<TRet> globalThis).Response(
-    res.body,
-    res,
-    void 0,
-    input instanceof URL ? input.href : (input as string),
-  );
-}
 
 /**
  * install Fetch-API.
@@ -71,9 +17,40 @@ export function install() {
     global.NativeResponse = global.Response;
     global.NativeRequest = global.Request;
     global.NativeFetch = global.fetch;
-    global.fetch = fetch;
-    global.Response = Response;
-    global.Request = Request;
+    global.fetch = async function fetch(
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> {
+      if ((<TRet> globalThis).NativeFetch === void 0) {
+        return await fetch(input, init);
+      }
+      if (input instanceof Request) {
+        init = input;
+        input = input.url;
+      }
+      const res: TObject = await (<TRet> globalThis).NativeFetch(
+        input,
+        init,
+      );
+      res._url = input instanceof URL ? input.href : (input as string);
+      return new Response(res.body, res);
+    };
+    global.Response = class Response extends NodeResponse {
+      /**
+       * perf v8 instanceof `Response`.
+       */
+      get [Symbol.hasInstance](): string {
+        return "Response";
+      }
+    };
+    global.Request = class Request extends NodeRequest {
+      /**
+       * perf v8 instanceof `Request`.
+       */
+      get [Symbol.hasInstance](): string {
+        return "Request";
+      }
+    };
   }
 }
 
@@ -91,5 +68,3 @@ export function uninstall() {
     global.NativeFetch = void 0;
   }
 }
-
-if (isNode()) install();

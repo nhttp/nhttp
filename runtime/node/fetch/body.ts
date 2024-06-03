@@ -1,5 +1,5 @@
 // body.ts
-import type { TRet } from "../../../src/types.ts";
+import type { TObject, TRet } from "../../../src/types.ts";
 import { getClassRequest, getClassResponse } from "./util.ts";
 
 const typeError = (m: string) => Promise.reject(new TypeError(m));
@@ -24,50 +24,36 @@ function reqBody(
  * Node body
  */
 export class NodeBody<T extends Response | Request> {
-  #init!: RequestInit | ResponseInit | undefined;
+  #init!: TObject;
   #name: string;
-  #raw!: TRet;
   #input!: BodyInit | null | RequestInfo | undefined;
   #isBodyUsed!: boolean;
-  #clone!: Request | Response | undefined;
   #req!: Request;
   #res!: Response;
-  #resUrl!: string | undefined;
   constructor(
     name: string,
     input?: BodyInit | null | RequestInfo,
-    init?: RequestInit | ResponseInit,
-    clone?: Request | Response,
-    raw?: TRet,
-    resUrl?: string,
+    init: TObject = {},
   ) {
     this.#name = name;
-    this.#raw = raw;
     this.#input = input;
     this.#init = init;
-    this.#clone = clone;
-    this.#resUrl = resUrl;
   }
   /**
    * given target request/response are using.
    */
   get target(): T {
     if (this.#name === "Request") {
-      if (this.#clone !== void 0) return this.#clone as T;
+      if (this.#init._clone !== void 0) return this.#init._clone as T;
       const Req = getClassRequest();
       return (this.#req ??= new Req(
         this.#input as RequestInfo,
         this.#init,
       )) as T;
     }
-    if (this.#clone !== void 0) return this.#clone as T;
+    if (this.#init._clone !== void 0) return this.#init._clone as T;
+    if (this.#init._url !== void 0) return this.#init as T;
     const Res = getClassResponse();
-    if (
-      this.#resUrl !== void 0 &&
-      this.#init instanceof Res
-    ) {
-      return this.#init as T;
-    }
     return (this.#res ??= new Res(
       this.#input as BodyInit | null,
       this.#init,
@@ -76,11 +62,13 @@ export class NodeBody<T extends Response | Request> {
   #rawBody(): Promise<Uint8Array> {
     if (this.#isBodyUsed) return typeError(consumed);
     this.#isBodyUsed = true;
-    if (!this.#raw.req.headers["content-type"]) return typeError(misstype);
-    if (notBody(this.#raw.req)) return typeError(mnotbody);
+    if (!this.#init._raw.req.headers["content-type"]) {
+      return typeError(misstype);
+    }
+    if (notBody(this.#init._raw.req)) return typeError(mnotbody);
     return new Promise((resolve, reject) => {
       const chunks: Uint8Array[] = [];
-      this.#raw.req.on("data", (buf: Uint8Array) => chunks.push(buf))
+      this.#init._raw.req.on("data", (buf: Uint8Array) => chunks.push(buf))
         // @ts-ignore: Buffer for nodejs
         .on("end", () => resolve(Buffer.concat(chunks)))
         .on("error", reject);
@@ -92,9 +80,9 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/body)
    */
   get body(): ReadableStream<Uint8Array> | null {
-    if (this.#raw !== void 0) {
-      if (notBody(this.#raw.req)) return null;
-      if (!this.#raw.req.headers["content-type"]) return null;
+    if (this.#init._raw !== void 0) {
+      if (notBody(this.#init._raw.req)) return null;
+      if (!this.#init._raw.req.headers["content-type"]) return null;
       return new ReadableStream({
         start: async (ctrl) => {
           try {
@@ -116,7 +104,7 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)
    */
   get bodyUsed(): boolean {
-    if (this.#raw !== void 0) {
+    if (this.#init._raw !== void 0) {
       return this.#isBodyUsed ?? false;
     }
     return this.target.bodyUsed;
@@ -127,7 +115,7 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/arrayBuffer)
    */
   arrayBuffer(): Promise<ArrayBuffer> {
-    if (this.#raw === void 0) {
+    if (this.#init._raw === void 0) {
       return this.target.arrayBuffer();
     }
     return this.#rawBody();
@@ -138,14 +126,14 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/blob)
    */
   blob(): Promise<Blob> {
-    if (this.#raw === void 0) {
+    if (this.#init._raw === void 0) {
       return this.target.blob();
     }
     return (async () => {
       const req = reqBody(
         this.#input as string,
         await this.#rawBody(),
-        this.#raw.req,
+        this.#init._raw.req,
       );
       return await req.blob();
     })();
@@ -156,14 +144,14 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/formData)
    */
   formData(): Promise<FormData> {
-    if (this.#raw === void 0) {
+    if (this.#init._raw === void 0) {
       return this.target.formData();
     }
     return (async () => {
       const req = reqBody(
         this.#input as string,
         await this.#rawBody(),
-        this.#raw.req,
+        this.#init._raw.req,
       );
       return await req.formData();
     })();
@@ -174,7 +162,7 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/json)
    */
   json(): Promise<TRet> {
-    if (this.#raw === void 0) {
+    if (this.#init._raw === void 0) {
       return this.target.json();
     }
     return (async () => {
@@ -187,7 +175,7 @@ export class NodeBody<T extends Response | Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/text)
    */
   text(): Promise<string> {
-    if (this.#raw === void 0) {
+    if (this.#init._raw === void 0) {
       return this.target.text();
     }
     return (async () => {

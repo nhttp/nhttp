@@ -1,5 +1,5 @@
 // request.ts
-import type { TRet } from "../../../src/types.ts";
+import type { TObject, TRet } from "../../../src/types.ts";
 import { NodeBody } from "./body.ts";
 import { NodeHeaders } from "./headers.ts";
 import { s_inspect } from "./symbol.ts";
@@ -13,26 +13,20 @@ export class NodeRequest extends NodeBody<Request> {
    */
   _nreq = 1;
   constructor(input: RequestInfo, init?: RequestInit);
-  constructor(input: RequestInfo, init?: RequestInit, raw?: TRet);
   constructor(
-    input: RequestInfo,
-    init?: RequestInit,
-    raw?: TRet,
-    reqClone?: Request,
-  );
-  constructor(
-    private __input: RequestInfo,
-    private __init?: RequestInit,
-    /**
-     * raw node http request.
-     */
-    public raw?: TRet,
-    /**
-     * clone request
-     */
-    public reqClone?: Request,
+    private _input: RequestInfo,
+    private _init: TObject = {},
   ) {
-    super("Request", __input, __init as RequestInit, reqClone, raw);
+    super("Request", _input, _init);
+  }
+  /**
+   * get raw request/response.
+   */
+  get raw(): TObject | undefined {
+    return this._init._raw;
+  }
+  set raw(data) {
+    this._init._raw = data;
   }
   /**
    * Returns the cache mode associated with request, which is a string indicating how the request will interact with the browser's cache when fetching.
@@ -64,7 +58,9 @@ export class NodeRequest extends NodeBody<Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)
    */
   get headers(): Headers {
-    return this.raw ? new Headers(this.raw.req.headers) : this.target.headers;
+    return this._init._raw
+      ? new Headers(this._init._raw.req.headers)
+      : this.target.headers;
   }
   /**
    * Returns request's subresource integrity metadata, which is a cryptographic hash of the resource being fetched. Its value consists of multiple hashes separated by whitespace. [SRI]
@@ -88,7 +84,7 @@ export class NodeRequest extends NodeBody<Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)
    */
   get method(): string {
-    return this.raw ? this.raw.req.method : this.target.method;
+    return this._init._raw ? this._init._raw.req.method : this.target.method;
   }
   /**
    * Returns the mode associated with request, which is a string indicating whether the request will use CORS, or will be restricted to same-origin URLs.
@@ -136,19 +132,15 @@ export class NodeRequest extends NodeBody<Request> {
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)
    */
   get url(): string {
-    if (typeof this.__input === "string") {
-      return this.__input;
+    if (typeof this._input === "string") {
+      return this._input;
     }
     return this.target.url;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone) */
   clone(): Request {
-    return new (<TRet> globalThis).Request(
-      this.__input,
-      this.__init,
-      this.raw,
-      this.target.clone(),
-    );
+    this._init._clone = this.target.clone();
+    return new Request(this._input, this._init);
   }
   /**
    * Node custom inspect

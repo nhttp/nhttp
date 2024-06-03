@@ -1,5 +1,5 @@
 // response.ts
-import type { TRet } from "../../../src/types.ts";
+import type { TObject, TRet } from "../../../src/types.ts";
 import { NodeBody } from "./body.ts";
 import { NodeHeaders } from "./headers.ts";
 import { s_inspect } from "./symbol.ts";
@@ -16,31 +16,17 @@ export class NodeResponse extends NodeBody<Response> {
   /**
    * body clone
    */
-  __body_clone!: ReadableStream<Uint8Array> | null | undefined;
+  _body_clone!: ReadableStream<Uint8Array> | null | undefined;
   /**
    * response headers cache.
    */
-  __headers!: Headers | undefined;
+  _headers!: Headers | undefined;
   constructor(body?: BodyInit | null, init?: ResponseInit);
   constructor(
-    body?: BodyInit | null,
-    init?: ResponseInit,
-    clone?: Response,
-    url?: string,
-  );
-  constructor(
-    private __body?: BodyInit | null,
-    private __init?: ResponseInit,
-    /**
-     * response clone.
-     */
-    public resClone?: Response,
-    /**
-     * response url.
-     */
-    public resUrl?: string,
+    private _body?: BodyInit | null,
+    private _init: TObject = {},
   ) {
-    super("Response", __body, __init as ResponseInit, resClone, void 0, resUrl);
+    super("Response", _body, _init);
   }
   /**
    * `static` error response.
@@ -93,7 +79,7 @@ export class NodeResponse extends NodeBody<Response> {
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers) */
   get headers(): Headers {
-    return this.__headers ??= new Headers(this.__init?.headers);
+    return this._headers ??= new Headers(this._init.headers);
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/ok) */
   get ok(): boolean {
@@ -105,7 +91,7 @@ export class NodeResponse extends NodeBody<Response> {
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status) */
   get status(): number {
-    return this.__init?.status ?? 200;
+    return this._init.status ?? 200;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText) */
   get statusText(): string {
@@ -117,18 +103,15 @@ export class NodeResponse extends NodeBody<Response> {
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url) */
   get url(): string {
-    return this.resUrl ?? this.target.url;
+    return this._init._url ?? this.target.url;
   }
   /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone) */
   clone(): Response {
-    if (this.__body instanceof ReadableStream) {
-      this.__body_clone = this.target.clone().body;
+    if (this._body instanceof ReadableStream) {
+      this._body_clone = this.target.clone().body;
     }
-    return new (<TRet> globalThis).Response(
-      this.__body,
-      this.__init,
-      this.target.clone(),
-    );
+    this._init._clone = this.target.clone();
+    return new Response(this._body, this._init);
   }
   /**
    * Node custom inspect
