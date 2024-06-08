@@ -9,6 +9,12 @@ async function updateVersionNHttp() {
   await Deno.writeTextFile("deno.json", JSON.stringify(pkg, null, 2));
 }
 
+async function updateNestVersionNHttp() {
+  const pkg = JSON.parse(await Deno.readTextFile("egg.json"));
+  pkg.version = VERSION;
+  await Deno.writeTextFile("egg.json", JSON.stringify(pkg, null, 2));
+}
+
 async function readDir(dir: string): Promise<string[]> {
   const files: string[] = [];
   const getFiles = async (path: string) => {
@@ -40,4 +46,5 @@ async function updateVersionExt() {
 }
 
 await updateVersionNHttp();
+await updateNestVersionNHttp();
 await updateVersionExt();

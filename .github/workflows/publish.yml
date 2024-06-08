@@ -16,10 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Publish package
-      #   run: npx jsr publish
+      - name: Publish package
+        run: npx jsr publish
 
-  publish_ext:
+  publish-ext:
     needs: publish
     runs-on: ubuntu-latest
 
@@ -33,9 +33,24 @@ jobs:
       - name: Publish class-validator
         run: |
           cd ext/class-validator
-          dir
+          npx jsr publish
 
       - name: Publish jwt
         run: |
           cd ext/jwt
-          dir
+          npx jsr publish
+
+      - name: Publish trpc
+        run: |
+          cd ext/trpc
+          npx jsr publish
+
+      - name: Publish twind
+        run: |
+          cd ext/twind
+          npx jsr publish
+
+      - name: Publish zod
+        run: |
+          cd ext/zod
+          npx jsr publish
