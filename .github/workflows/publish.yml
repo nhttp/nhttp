@@ -37,5 +37,5 @@ jobs:
 
       - name: Publish jwt
         run: |
-          cd ../jwt
+          cd ext/jwt
           dir
