@@ -1,22 +1,68 @@
+// index.ts
+/**
+ * @module
+ *
+ * This module contains core jsx for NHttp.
+ *
+ * @example
+ * ```tsx
+ * // example JSX + Htmx
+ * import nhttp from "@nhttp/nhttp";
+ * import { htmx, renderToHtml } from "@nhttp/nhttp/jsx";
+ *
+ * const app = nhttp();
+ *
+ * app.engine(renderToHtml);
+ *
+ * app.use(htmx());
+ *
+ * app.get("/", () => {
+ *   return (
+ *      <button hx-post="/clicked" hx-swap="outerHTML">
+ *        Click Me
+ *      </button>
+ *   );
+ * });
+ *
+ * app.post("/clicked", () => {
+ *    return <span>It's Me</span>;
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import type { TRet } from "../deps.ts";
 import type { NJSX } from "./types.ts";
-declare global {
-  namespace JSX {
-    // @ts-ignore: Element
-    type Element = JSXElement | Promise<JSXElement>;
-    // @ts-ignore: IntrinsicElements
-    interface IntrinsicElements extends NJSX.IntrinsicElements {
-      [k: string]: {
-        children?: JSXNode;
-        [k: string]: TRet;
-      };
-    }
-    interface ElementChildrenAttribute {
-      children: EObject;
-    }
+import {
+  type FCHelmet,
+  Helmet as HelmetCore,
+  type HelmetRewind,
+} from "./helmet.ts";
+/**
+ * namespace JSX.
+ */
+// deno-lint-ignore no-namespace
+export namespace JSX {
+  /**
+   * `type` JSX.Element.
+   */
+  export type Element = JSXElement | Promise<JSXElement>;
+  /**
+   * `interface` JSX.IntrinsicElements.
+   */
+  export interface IntrinsicElements extends NJSX.IntrinsicElements {
+    [k: string]: {
+      children?: JSXNode;
+      [k: string]: TRet;
+    };
+  }
+  /**
+   * `interface` JSX.ElementChildrenAttribute.
+   */
+  export interface ElementChildrenAttribute {
+    children: EObject;
   }
 }
-import { Helmet } from "./helmet.ts";
 export {
   escapeHtml,
   isValidElement,
@@ -27,11 +73,28 @@ export {
   type TOptionsRender,
   toStyle,
 } from "./render.ts";
-export { Helmet, type HelmetRewind } from "./helmet.ts";
+/**
+ * Simple SSR Helmet for SEO
+ * @example
+ * ```jsx
+ * const Home: FC = (props) => {
+ *   return  (
+ *     <>
+ *       <Helmet>
+ *         <title>Home Title</title>
+ *       </Helmet>
+ *       <h1>Home Page</h1>
+ *     </>
+ *   )
+ * }
+ * ```
+ */
+export const Helmet: FCHelmet = HelmetCore;
 export * from "./hook.ts";
 export * from "./types.ts";
 export * from "./htmx.ts";
 export * from "./stream.ts";
+export type { HelmetRewind };
 // deno-lint-ignore ban-types
 export type EObject = {};
 type Merge<A, B> = {
@@ -40,8 +103,13 @@ type Merge<A, B> = {
       : (K extends keyof A ? A[K] : never)
   );
 };
-
+/**
+ * `type` JSXProps.
+ */
 export type JSXProps<P = EObject> = Merge<{ children?: JSXNode }, P>;
+/**
+ * `type` JSXNode.
+ */
 export type JSXNode<T = EObject> =
   | JSXNode<T>[]
   | JSXElement<T>
@@ -51,12 +119,25 @@ export type JSXNode<T = EObject> =
   | boolean
   | null
   | undefined;
+/**
+ * tag `dangerouslySetInnerHTML`.
+ */
 export const dangerHTML = "dangerouslySetInnerHTML";
-
+/**
+ * `type` JSXElement.
+ */
 export type JSXElement<T = EObject> = {
+  /**
+   * type (html tag) / FC.
+   */
   type: string | FC<T>;
+  /**
+   * property / attributes.
+   */
   props: T | null | undefined;
-  // shim key
+  /**
+   * shim key.
+   */
   key: number | string | null;
 };
 
@@ -80,6 +161,13 @@ export type FC<T = EObject> = (
  */
 export const Fragment: FC = ({ children }) => children as JSXElement;
 
+/**
+ * JSX compose.
+ * @example
+ * const Home = (props) => {
+ *   return n("h1", {}, ["hello"]);
+ * }
+ */
 export function n(
   type: string,
   props?: NJSX.HTMLAttributes | null,
@@ -103,7 +191,8 @@ export function n(
     __n__: true,
   } as JSXNode;
 }
-n.Fragment = Fragment;
+const FragmentExpando = Fragment;
+n.Fragment = FragmentExpando;
 export { n as h };
 
 /**

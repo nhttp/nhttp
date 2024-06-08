@@ -1,4 +1,4 @@
-import { z, type ZodSchema } from "https://esm.sh/v132/zod@3.21.4";
+import { z, type ZodSchema } from "npm:zod@3.23.8";
 import { joinHandlers, type TDecorator } from "./controller.ts";
 import {
   type Handler,
@@ -38,6 +38,15 @@ export function validate<
 }
 /**
  * validate using `zod` for decorators.
+ * @example
+ * ```ts
+ * class UserController {
+ *
+ *    ⁤@Validate(UserSchema)
+ *    ⁤@Post()
+ *    save() {...}
+ * }
+ * ```
  */
 export function Validate(
   schema: ZodSchema,

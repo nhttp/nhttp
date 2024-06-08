@@ -1,3 +1,32 @@
+// controller.ts
+/**
+ * @module
+ *
+ * This module contains decorators-ontroller for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import { Controller, Post, Get, Status } from "@nhttp/nhttp/controller";
+ *
+ * ⁤@Controller("/user")
+ * class UserController {
+ *
+ *    ⁤@Get()
+ *    findAll() {...}
+ *
+ *    ⁤@Status(201)
+ *    ⁤@Post()
+ *    save() {...}
+ * }
+ *
+ * const app = nhttp();
+ *
+ * app.use([new UserController()]);
+ *
+ * app.listen(8000);
+ * ```
+ */
 import {
   findFns,
   type Handler,
@@ -9,6 +38,12 @@ import {
   type TObject,
   type TRet,
 } from "./deps.ts";
+import { Metadata } from "./metadata.ts";
+// deno-lint-ignore ban-types
+type EObject = {};
+/**
+ * `type` TDecorator.
+ */
 export type TDecorator = TRet;
 function concatRegexp(prefix: string | RegExp, path: RegExp) {
   if (prefix === "") return path;
@@ -17,12 +52,6 @@ function concatRegexp(prefix: string | RegExp, path: RegExp) {
   flags = Array.from(new Set(flags.split(""))).join();
   return new RegExp(prefix.source + path.source, flags);
 }
-
-declare global {
-  // deno-lint-ignore no-var
-  var NHttpMetadata: TRet;
-}
-
 type TStatus<
   Rev extends RequestEvent = RequestEvent,
 > = (
@@ -48,14 +77,17 @@ type TMethod = (
   path?: string | RegExp,
 ) => TDecorator;
 
+/**
+ * helper add route decorator.
+ */
 export function addRoute(
   className: string,
   prop: string,
   handler: Handler,
   opts: { path?: string | RegExp; method: string },
 ) {
-  globalThis.NHttpMetadata = globalThis.NHttpMetadata || {};
-  const metadata = globalThis.NHttpMetadata;
+  Metadata.init();
+  const metadata = Metadata.get();
   metadata[className] = metadata[className] || {};
   const obj = metadata[className]["route"] || {};
   obj[prop] = obj[prop] || {};
@@ -64,13 +96,16 @@ export function addRoute(
   metadata[className]["route"] = obj;
 }
 
+/**
+ * helper join handlers decorator.
+ */
 export function joinHandlers(
   className: TRet,
   prop: string,
   arr: TRet[],
 ) {
-  globalThis.NHttpMetadata = globalThis.NHttpMetadata || {};
-  const metadata = globalThis.NHttpMetadata;
+  Metadata.init();
+  const metadata = Metadata.get();
   metadata[className] = metadata[className] || {};
   const obj = metadata[className]["route"] || {};
   obj[prop] = obj[prop] || {};
@@ -78,6 +113,9 @@ export function joinHandlers(
   metadata[className]["route"] = obj;
 }
 
+/**
+ * helper add http-method decorator.
+ */
 export function addMethod(method: string, path?: string | RegExp): TDecorator {
   path ??= "/";
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
@@ -92,12 +130,15 @@ export function addMethod(method: string, path?: string | RegExp): TDecorator {
   };
 }
 
+/**
+ * View decorator.
+ */
 export function View(name: string | TString): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
     const viewFn: Handler = async (rev, next) => {
       const index = typeof name === "function" ? await name(rev, next) : name;
-      const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
+      const fns = Metadata.get()[className]["route"][prop]["fns"];
       const body = await fns[fns.length - 1](rev, next);
       return await rev.response.render(
         index,
@@ -108,12 +149,14 @@ export function View(name: string | TString): TDecorator {
     return des;
   };
 }
-
+/**
+ * Jsx decorator.
+ */
 export function Jsx(): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
     const jsxFn: Handler = async (rev, next) => {
-      const fns = globalThis.NHttpMetadata[className]["route"][prop]["fns"];
+      const fns = Metadata.get()[className]["route"][prop]["fns"];
       const body = await fns[fns.length - 1](rev, next);
       return await rev.response.render(body);
     };
@@ -122,6 +165,9 @@ export function Jsx(): TDecorator {
   };
 }
 
+/**
+ * Upload decorator.
+ */
 export function Upload(options: TMultipartUpload): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const className = target.constructor.name;
@@ -129,11 +175,14 @@ export function Upload(options: TMultipartUpload): TDecorator {
     return des;
   };
 }
-
+/**
+ * Wares decorator. for add middlewares in decorator.
+ */
 export function Wares<
   Rev extends RequestEvent = RequestEvent,
+  T = EObject,
 >(
-  ...middlewares: Handlers<Rev> | { new (...args: TRet[]): TRet }[]
+  ...middlewares: Handlers<T, Rev> | { new (...args: TRet[]): TRet }[]
 ): TDecorator {
   return (target: TObject, prop: string, des: PropertyDecorator) => {
     const className = target.constructor.name;
@@ -141,7 +190,18 @@ export function Wares<
     return des;
   };
 }
-
+/**
+ * Create custom decorator from middleware.
+ */
+export function createDecorator<
+  Rev extends RequestEvent = RequestEvent,
+  T = EObject,
+>(...middlewares: Handlers<T, Rev>): TDecorator {
+  return Wares<Rev, T>(...middlewares);
+}
+/**
+ * Status decorator. for add http-status-code in decorator.
+ */
 export function Status(status: number | TStatus): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const statusFn: Handler = async (rev, next) => {
@@ -155,7 +215,9 @@ export function Status(status: number | TStatus): TDecorator {
     return des;
   };
 }
-
+/**
+ * Type decorator. for add content-type in decorator.
+ */
 export function Type(name: string | TString, charset?: string): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const typeFn: Handler = async (rev, next) => {
@@ -168,7 +230,9 @@ export function Type(name: string | TString, charset?: string): TDecorator {
     return des;
   };
 }
-
+/**
+ * Type decorator. for set response-headers in decorator.
+ */
 export function Header(header: TObject | THeaders): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const headerFn: Handler = async (rev, next) => {
@@ -182,7 +246,9 @@ export function Header(header: TObject | THeaders): TDecorator {
     return des;
   };
 }
-
+/**
+ * Inject decorator. injector service decorator.
+ */
 export function Inject(value?: TRet, ...args: TRet): TDecorator {
   return function (target: TObject, prop: string) {
     target[prop] = typeof value === "function" ? new value(...args) : value;
@@ -191,18 +257,50 @@ export function Inject(value?: TRet, ...args: TRet): TDecorator {
     }
   };
 }
-
+/**
+ * Get decorator. http-method Get in decorator.
+ */
 export const Get: TMethod = (path) => addMethod("GET", path);
+/**
+ * Post decorator. http-method Post in decorator.
+ */
 export const Post: TMethod = (path) => addMethod("POST", path);
+/**
+ * Put decorator. http-method Put in decorator.
+ */
 export const Put: TMethod = (path) => addMethod("PUT", path);
+/**
+ * Delete decorator. http-method Delete in decorator.
+ */
 export const Delete: TMethod = (path) => addMethod("DELETE", path);
+/**
+ * Any decorator. http-method Any in decorator.
+ */
 export const Any: TMethod = (path) => addMethod("ANY", path);
+/**
+ * Options decorator. http-method Options in decorator.
+ */
 export const Options: TMethod = (path) => addMethod("OPTIONS", path);
+/**
+ * Head decorator. http-method Head in decorator.
+ */
 export const Head: TMethod = (path) => addMethod("HEAD", path);
+/**
+ * Trace decorator. http-method Trace in decorator.
+ */
 export const Trace: TMethod = (path) => addMethod("TRACE", path);
+/**
+ * Connect decorator. http-method Connect in decorator.
+ */
 export const Connect: TMethod = (path) => addMethod("CONNECT", path);
+/**
+ * Patch decorator. http-method Patch in decorator.
+ */
 export const Patch: TMethod = (path) => addMethod("PATCH", path);
 
+/**
+ * Controller decorator.
+ */
 export function Controller(
   path?: string,
   ...middlewares: Handlers | { new (...args: TRet[]): TRet }[]
@@ -214,7 +312,7 @@ export function Controller(
   return (target: TRet) => {
     const cRoutes = [] as TObject[];
     const className = target.name;
-    const obj = globalThis.NHttpMetadata?.[className]?.["route"];
+    const obj = Metadata.get()?.[className]?.["route"];
     if (!obj) {
       throw new TypeError("Typo: Controller with no routing");
     }

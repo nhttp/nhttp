@@ -1,3 +1,39 @@
+// csrf.ts
+/**
+ * @module
+ *
+ * This module contains csrf (Cross Site Request Forgery) middlewares for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import csrf from "@nhttp/nhttp/csrf";
+ *
+ * const app = nhttp();
+ *
+ * const MyForm: FC<{ csrf: string }> = (props) => {
+ *   return (
+ *     <form method="POST" action="/">
+ *       <input name="_csrf" type="hidden" value={props.csrf} />
+ *       <input name="name" />
+ *       <button type="submit">Submit</button>
+ *     </form>
+ *   )
+ * }
+ *
+ * const csrfProtect = csrf();
+ *
+ * app.get("/", csrfProtect, (rev) => {
+ *   return <MyForm csrf={rev.csrfToken()}/>
+ * });
+ *
+ * app.post("/", csrfProtect, (rev) => {
+ *   return <MyForm csrf={rev.csrfToken()}/>
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import crypto from "node:crypto";
 import {
   type Cookie,
@@ -7,22 +43,7 @@ import {
   type TRet,
 } from "./deps.ts";
 
-declare global {
-  namespace NHTTP {
-    interface RequestEvent {
-      /**
-       * generate token CSRF.
-       */
-      csrfToken: () => string;
-      /**
-       * verify token CSRF.
-       */
-      csrfVerify: (value?: string) => boolean;
-    }
-  }
-}
-
-const rand = () =>
+const rand = (): string =>
   `${performance.now().toString(36)}${Math.random().toString(36).slice(5)}`
     .replace(".", "");
 
@@ -88,7 +109,9 @@ const CHARS = [
   8,
   9,
 ];
-
+/**
+ * `type` CSRFOptions.
+ */
 export type CSRFOptions = {
   /**
    * cookie. default to `false`.
@@ -213,7 +236,7 @@ function toHash(str: string, algo: string) {
     .replace(/\//g, "_")
     .replace(/=/g, "");
 }
-function create(secret: string, saltLen: number, algo: string) {
+function create(secret: string, saltLen: number, algo: string): string {
   const salt = new Array(saltLen)
     .fill(void 0)
     .map(() => CHARS[(Math.random() * CHARS.length) | 0])
@@ -221,7 +244,7 @@ function create(secret: string, saltLen: number, algo: string) {
   return `${salt}-${toHash(`${salt}-${secret}`, algo)}`;
 }
 
-function verify(secret: string, token: string, algo: string) {
+function verify(secret: string, token: string, algo: string): boolean {
   if (!~token.indexOf("-")) return false;
   const salt = token.substring(0, token.indexOf("-"));
   const expected = `${salt}-${toHash(`${salt}-${secret}`, algo)}`;

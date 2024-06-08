@@ -1,3 +1,25 @@
+// etag.ts
+/**
+ * @module
+ *
+ * This module contains etag middlewares for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import etag from "@nhttp/nhttp/etag";
+ *
+ * const app = nhttp();
+ *
+ * app.use(etag());
+ *
+ * app.get("/", (rev) => {
+ *   return "hello with etag";
+ * });
+ *
+ * app.listen(8000);
+ * ```
+ */
 import {
   type Handler,
   type HttpResponse,
@@ -10,18 +32,35 @@ let fs_glob: TRet;
 let s_glob: TRet;
 let c_glob: TRet;
 let b_glob: TRet;
-
+/**
+ * `interface` TOptsSendFile.
+ */
 export interface TOptsSendFile {
+  /**
+   * weak etag. default to `true`.
+   */
   weak?: boolean;
+  /**
+   * stat file.
+   */
   stat?: (...args: TRet) => TRet;
+  /**
+   * on read file.
+   */
   readFile?: (...args: TRet) => TRet;
+  /**
+   * use etag. default to `true`.
+   */
   etag?: boolean;
+  /**
+   * callback setHeaders.
+   */
   setHeaders?: (rev: RequestEvent, pathFile: string, stat: TRet) => void;
 }
 const encoder = new TextEncoder();
 const build_date = new Date();
 const isDeno = typeof Deno !== "undefined";
-async function cHash(ab: Uint8Array | ArrayBuffer) {
+async function cHash(ab: Uint8Array | ArrayBuffer): Promise<string> {
   if (ab.byteLength === 0) return "47DEQpj8HBSa+/TImW+5JCeuQeR";
   let hash = "";
   if (typeof crypto === "undefined") {
@@ -32,13 +71,24 @@ async function cHash(ab: Uint8Array | ArrayBuffer) {
   }
   return hash;
 }
-export function getContentType(path: string) {
+/**
+ * get content-type from pathfile.
+ */
+export function getContentType(path: string): string {
   const iof = path.lastIndexOf(".");
   if (iof <= 0) return MIME_LIST.arc;
   const ext = path.substring(path.lastIndexOf(".") + 1);
   return MIME_LIST[ext];
 }
-async function beforeFile(opts: TOptsSendFile, pathFile: string) {
+type BeforeFileRet = {
+  stat: TObject | undefined;
+  subfix: string | undefined;
+  path: string;
+};
+async function beforeFile(
+  opts: TOptsSendFile,
+  pathFile: string,
+): Promise<BeforeFileRet> {
   let stat = {} as TObject, subfix;
   const iof = pathFile.lastIndexOf("?");
   if (iof !== -1) {
@@ -83,12 +133,14 @@ async function getFile(path: string, readFile?: (...args: TRet) => TRet) {
   }
   return file;
 }
-
+/**
+ * send file with etag.
+ */
 export async function sendFile(
   rev: RequestEvent,
   pathFile: string,
   opts: TOptsSendFile = {},
-) {
+): Promise<TRet> {
   try {
     opts.etag ??= true;
     const response = rev.response;
@@ -131,7 +183,19 @@ export async function sendFile(
     throw error;
   }
 }
-export type EtagOptions = { weak?: boolean; clone?: boolean };
+/**
+ * `type` EtagOptions.
+ */
+export type EtagOptions = {
+  /**
+   * etag weak. default to `true`.
+   */
+  weak?: boolean;
+  /**
+   * clone response. default to `false`.
+   */
+  clone?: boolean;
+};
 /**
  * Etag middleware.
  * @example

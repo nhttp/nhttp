@@ -1,18 +1,58 @@
-import {
-  decURIComponent,
-  type NextFunction,
-  type RequestEvent,
-  type TRet,
-} from "./deps.ts";
+// serve-static.ts
+/**
+ * @module
+ *
+ * This module contains serve assets (serve static files) for NHttp.
+ *
+ * @example
+ * ```tsx
+ * import nhttp from "@nhttp/nhttp";
+ * import serveStatic from "@nhttp/nhttp/serve-static";
+ *
+ * const app = nhttp();
+ *
+ * app.use(serveStatic("./my_dir", options));
+ *
+ * // or with prefix
+ * // app.use(serveStatic("./my_dir", { prefix: "/assets" }));
+ *
+ * // or with prefix path
+ * // app.use("/assets", serveStatic("./my_dir"));
+ *
+ * app.listen(8000);
+ * ```
+ */
+import { decURIComponent, type Handler, type TRet } from "./deps.ts";
 import { sendFile as sendFileEtag, type TOptsSendFile } from "./etag.ts";
 
+/**
+ * `interface` ServeStaticOptions.
+ */
 export interface ServeStaticOptions extends TOptsSendFile {
+  /**
+   * target redirect. default to `index.html`.
+   */
   index?: string;
+  /**
+   * config redirect. default to `true`.
+   */
   redirect?: boolean;
+  /**
+   * prefix assets.
+   */
   prefix?: string;
+  /**
+   * support for single-page-apps.
+   */
   spa?: boolean;
+  /**
+   * custom readFile.
+   */
   readFile?: (...args: TRet) => TRet;
 }
+/**
+ * send file with etag.
+ */
 export const sendFile = sendFileEtag;
 /**
  * serve-static middleware.
@@ -24,7 +64,10 @@ export const sendFile = sendFileEtag;
  * // or
  * // app.use("/assets", serveStatic("./my_dir"));
  */
-export function serveStatic(dir: string | URL, opts: ServeStaticOptions = {}) {
+export function serveStatic(
+  dir: string | URL,
+  opts: ServeStaticOptions = {},
+): Handler {
   opts.index ??= "index.html";
   opts.redirect ??= true;
   opts.etag ??= false;
@@ -39,7 +82,7 @@ export function serveStatic(dir: string | URL, opts: ServeStaticOptions = {}) {
     if (prefix.endsWith("/")) prefix = prefix.slice(0, -1);
   }
   if (hasFileUrl) dir = new URL(dir).pathname;
-  return async (rev: RequestEvent, next: NextFunction) => {
+  return async (rev, next) => {
     if (rev.method === "GET" || rev.method === "HEAD") {
       try {
         let path = rev.path;

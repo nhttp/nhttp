@@ -1,3 +1,4 @@
+// render.ts
 import type { RequestEvent, TObject, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import {
@@ -5,12 +6,16 @@ import {
   elemToRevContext,
   type FC,
   type HelmetRewind,
+  type JSX,
   type JSXNode,
   type NJSX,
 } from "./index.ts";
 import { isValidElement } from "./is-valid-element.ts";
 
 export { isValidElement };
+/**
+ * `type` TOptionsRender.
+ */
 export type TOptionsRender = {
   /**
    * Attach on render element.
@@ -63,15 +68,30 @@ export type TOptionsRender = {
    * use context requestEvent. default to `true`.
    */
   requestEventContext: boolean;
+  /**
+   * initial Head.
+   */
   initHead?: string;
 };
+/**
+ * Share internal config.
+ */
 export const internal = {} as TObject;
-export const options: TOptionsRender = {
-  onRenderHtml: (html) => html,
-  onRenderElement: renderToString,
-  onRenderStream: (stream) => stream,
-  requestEventContext: true,
-};
+/**
+ * Share options config.
+ */
+export const options: TOptionsRender =
+  ((globalThis as TRet).NHttpJSXOptions as TOptionsRender) = {
+    onRenderHtml: (html) => html,
+    onRenderElement: renderToString,
+    onRenderStream: (stream) => stream,
+    requestEventContext: true,
+  };
+/**
+ * Share options config.
+ */
+export const getOptions = (): TOptionsRender =>
+  (globalThis as TRet).NHttpJSXOptions;
 const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   area: true,
   base: true,
@@ -88,7 +108,7 @@ const voidTags: Record<string, boolean> = Object.assign(Object.create(null), {
   track: true,
   wbr: true,
 });
-const voidNonPx: Record<string, boolean> = Object.assign(Object.create(null), {
+const nonPxCss: Record<string, boolean> = Object.assign(Object.create(null), {
   "animation-iteration-count": true,
   "border-image-outset": true,
   "border-image-slice": true,
@@ -126,10 +146,19 @@ const voidNonPx: Record<string, boolean> = Object.assign(Object.create(null), {
 });
 const KEBAB_CSS = {} as TObject;
 const isArray = Array.isArray;
-export function toInitHead(a: string | undefined, b: string | undefined) {
+/**
+ * helper `toInitHead`.
+ */
+export function toInitHead(
+  a: string | undefined,
+  b: string | undefined,
+): string | undefined {
   if (a !== void 0 && b !== void 0) return b + a;
   return a || b;
 }
+/**
+ * list mutate attribute.
+ */
 export const mutateAttr: Record<string, string> = {
   acceptCharset: "accept-charset",
   httpEquiv: "http-equiv",
@@ -137,10 +166,13 @@ export const mutateAttr: Record<string, string> = {
   className: "class",
 };
 // handle alpine/vue e.g. at-click to @click
-function withAt(k: string) {
+function withAt(k: string): string {
   return k.startsWith("at-") ? "@" + k.slice(3) : k;
 }
-export const toAttr = (props: TRet = {}) => {
+/**
+ * helper props to attribute.
+ */
+export const toAttr = (props: TRet = {}): string => {
   let attr = "";
   for (const k in props) {
     let val = props[k];
@@ -163,13 +195,16 @@ export const toAttr = (props: TRet = {}) => {
   }
   return attr;
 };
+/**
+ * create html from body, helmet and init-head.
+ */
 export const toHtml = async (
   body: string,
   { head, footer, attr }: HelmetRewind,
   initHead = "",
-) => {
+): Promise<string> => {
   return (
-    (options.docType ?? "<!DOCTYPE html>") +
+    (getOptions().docType ?? "<!DOCTYPE html>") +
     `<html${toAttr(attr.html)}>` +
     '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
     initHead + (head.length > 0 ? (await renderToString(head)) : "") +
@@ -178,12 +213,20 @@ export const toHtml = async (
     "</body></html>"
   );
 };
-
+/**
+ * `type` RenderHTML.
+ */
 export type RenderHTML = ((...args: TRet) => TRet) & {
+  /**
+   * check is valid element.
+   */
   check: (elem: TRet) => boolean;
 };
 const REG_HTML = /["'&<>]/;
-export function escapeHtml(str: string, force?: boolean) {
+/**
+ * escape HTML.
+ */
+export function escapeHtml(str: string, force?: boolean): string {
   // optimize
   return (internal.precompile && !force) || !REG_HTML.test(str) ? str : (() => {
     let esc = "", i = 0, l = 0, html = "";
@@ -215,11 +258,13 @@ export function escapeHtml(str: string, force?: boolean) {
     return html;
   })();
 }
-function kebab(camelCase: string) {
+function kebab(camelCase: string): string {
   return camelCase.replace(/[A-Z]/g, "-$&").toLowerCase();
 }
-
-export function toStyle(obj: NJSX.CSSProperties) {
+/**
+ * helper from object to string in style-css.
+ */
+export function toStyle(obj: NJSX.CSSProperties): string | undefined {
   let out = "";
   for (const k in obj) {
     const val = obj[k];
@@ -229,7 +274,7 @@ export function toStyle(obj: NJSX.CSSProperties) {
       if (
         typeof val === "number" &&
         !name.startsWith("--") &&
-        !(name in voidNonPx)
+        !(name in nonPxCss)
       ) {
         s = "px;";
       }
@@ -271,10 +316,13 @@ export async function renderToString(elem: TRet): Promise<string> {
   if (type === "") return child;
   return `<${type}${attributes}>${child}</${type}>`;
 }
+/**
+ * join body with helmet.
+ */
 export async function bodyWithHelmet(
   body: string,
   { title, footer }: HelmetRewind,
-) {
+): Promise<string> {
   let src = "";
   if (title !== void 0) {
     src += `<script>document.title="${escapeHtml(title)}";</script>`;
@@ -297,16 +345,17 @@ export async function bodyWithHelmet(
  */
 export const renderToHtml: RenderHTML = async (elem, rev) => {
   elem = await elemToRevContext(elem, rev);
-  const body = await options.onRenderElement(elem, rev);
+  const opt = getOptions();
+  const body = await opt.onRenderElement(elem, rev);
   const rewind = Helmet.rewind();
   rewind.attr.html.lang ??= "en";
   if (rev.hxRequest) return await bodyWithHelmet(body, rewind);
   const html = await toHtml(
     body,
     rewind,
-    toInitHead(rev.__init_head, options.initHead),
+    toInitHead(rev.__init_head, opt.initHead),
   );
-  return await options.onRenderHtml(html, rev);
+  return await opt.onRenderHtml(html, rev);
 };
 
 renderToHtml.check = isValidElement;

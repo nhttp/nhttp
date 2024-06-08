@@ -1,32 +1,25 @@
-import jwts from "https://esm.sh/v132/jwt-simple@0.5.6";
+import jwts from "npm:jwt-simple@0.5.6";
 import {
   type Handler,
   HttpError,
+  type NextFunction,
   type RequestEvent,
-  type TObject,
   type TRet,
 } from "./deps.ts";
-import type { NextFunction } from "../mod.ts";
 import { joinHandlers, type TDecorator } from "./controller.ts";
 
-declare global {
-  namespace NHTTP {
-    interface RequestEvent {
-      /**
-       * auth. result from `jwt` middleware.
-       */
-      auth: TObject;
-    }
-  }
-}
-
+/**
+ * UnauthorizedError.
+ */
 class UnauthorizedError extends HttpError {
   constructor(message = "Unauthorized") {
     super(401, message);
   }
 }
-
-type TOptions = {
+/**
+ * type `JwtOptions`.
+ */
+export type JwtOptions = {
   secret: string;
   algorithm?: jwts.TAlgorithm;
   noVerify?: boolean;
@@ -40,15 +33,36 @@ type TOptions = {
   ) => TRet;
   onAuth?: Handler;
 };
-
+type JWT =
+  & ((
+    secretOrOptions: string | JwtOptions,
+  ) => Handler | Handler[])
+  & {
+    /**
+     * encode token.
+     */
+    encode: (
+      payload: TRet,
+      key: string,
+      algorithm?: jwts.TAlgorithm | undefined,
+      options?: jwts.IOptions | undefined,
+    ) => string;
+    /**
+     * decode token.
+     */
+    decode: (
+      token: string,
+      key: string,
+      noVerify?: boolean | undefined,
+      algorithm?: jwts.TAlgorithm | undefined,
+    ) => TRet;
+  };
 /**
  * jwt middleware.
  * @example
  * app.get("/admin", jwt({ secret: "my_secret" }), ...handlers);
  */
-export const jwt = (
-  secretOrOptions: string | TOptions,
-): Handler | Handler[] => {
+export const jwt: JWT = (secretOrOptions) => {
   const opts = typeof secretOrOptions === "string"
     ? { secret: secretOrOptions }
     : secretOrOptions;
@@ -119,7 +133,21 @@ export const jwt = (
   return opts.onAuth ? [auth, opts.onAuth] : auth;
 };
 
-export function Jwt(secretOrOptions: string | TOptions): TDecorator {
+/**
+ * Jwt decorator.
+ * @example
+ * ```ts
+ * const Guard = () => Jwt({ secret: JWT_SECRET, onAuth: () => {...} });
+ *
+ * class HomeController {
+ *
+ *    ⁤@Guard()
+ *    ⁤@Get("/home")
+ *    home() {...}
+ * }
+ * ```
+ */
+export function Jwt(secretOrOptions: string | JwtOptions): TDecorator {
   return (tgt: TRet, prop: string, des: PropertyDescriptor) => {
     joinHandlers(tgt.constructor.name, prop, [jwt(secretOrOptions)]);
     return des;

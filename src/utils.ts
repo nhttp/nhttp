@@ -1,3 +1,4 @@
+// utils.ts
 import { getError } from "./error.ts";
 import type { RequestEvent } from "./request_event.ts";
 import type {
@@ -8,13 +9,26 @@ import type {
   TRet,
   TSizeList,
 } from "./types.ts";
-
-export const encoder = new TextEncoder();
-export const decoder = new TextDecoder();
+/**
+ * encoder.
+ * @example
+ * const uint8 = encoder.encode("my_text");
+ */
+export const encoder: TextEncoder = new TextEncoder();
+/**
+ * decoder.
+ * @example
+ * const str = decoder.decode(uint8);
+ */
+export const decoder: TextDecoder = new TextDecoder();
 
 type EArr = [string, string | TObject];
-
-export const decURIComponent = (str = "") => {
+/**
+ * decode URI Component with check.
+ * @example
+ * const str = decURIComponent("my_text");
+ */
+export const decURIComponent = (str = ""): string => {
   if (/%/.test(str)) {
     try {
       return decodeURIComponent(str);
@@ -23,7 +37,11 @@ export const decURIComponent = (str = "") => {
   return str;
 };
 
-// alias decodeUriComponent
+/**
+ * decode URI Component with check.
+ * @example
+ * const str = duc("my_text");
+ */
 const duc = decURIComponent;
 
 class EHeaders {
@@ -41,8 +59,10 @@ class EHeaders {
   }
   [k: string]: TRet;
 }
-
-export function findFn(fn: TRet) {
+/**
+ * Helper find function.
+ */
+export function findFn(fn: TRet): TRet {
   if (fn.length === 3) {
     const newFn: TRet = (rev: RequestEvent, next: NextFunction) => {
       const response = rev.response;
@@ -69,7 +89,9 @@ export function findFn(fn: TRet) {
   }
   return fn;
 }
-
+/**
+ * Helper find functions.
+ */
 export function findFns<Rev extends RequestEvent = RequestEvent>(
   arr: TObject[],
 ): Handler<Rev>[] {
@@ -89,8 +111,10 @@ export function findFns<Rev extends RequestEvent = RequestEvent>(
   }
   return ret;
 }
-
-export function toBytes(arg: string | number) {
+/**
+ * convert string/number to unit-size.
+ */
+export function toBytes(arg: string | number): number {
   if (typeof arg === "number") return arg;
   const sizeList: TSizeList = {
     b: 1,
@@ -111,7 +135,9 @@ export function toBytes(arg: string | number) {
   }
   return Math.floor(sizeList[unt] as number * val);
 }
-
+/**
+ * convert path to RegExp.
+ */
 export function toPathx(path: string | RegExp, flag?: boolean) {
   if (path instanceof RegExp) return { pattern: path, wild: true, path };
   if (/\?|\*|\.|:/.test(path) === false && !flag) {
@@ -130,7 +156,9 @@ export function toPathx(path: string | RegExp, flag?: boolean) {
   }/*$`);
   return { pattern, path, wild };
 }
-
+/**
+ * Helper need path for query.
+ */
 export function needPatch(
   data: TObject | TObject[],
   keys: number[],
@@ -156,7 +184,9 @@ export function needPatch(
   if (typeof data === "object") data[key] = val;
   return data;
 }
-
+/**
+ * Helper parse query-array.
+ */
 export function myParse(arr: EArr[]) {
   const obj = arr.reduce((red: TObject, [field, value]) => {
     if (red[field]) {
@@ -182,7 +212,9 @@ export function myParse(arr: EArr[]) {
   }, {});
   return obj;
 }
-
+/**
+ * Helper parse query-array.
+ */
 export function parseQueryArray(query: string) {
   const data = [] as EArr[];
   query.split(/&/).forEach((key) => {
@@ -192,8 +224,10 @@ export function parseQueryArray(query: string) {
   });
   return myParse(data);
 }
-
-export function parseQuery(query: undefined | null | string | FormData) {
+/**
+ * parse query support string/formdata.
+ */
+export function parseQuery(query: undefined | null | string | FormData): TRet {
   if (typeof query === "string") {
     if (query === "") return {};
     if (query.includes("]=")) return parseQueryArray(query);
@@ -214,6 +248,9 @@ export function parseQuery(query: undefined | null | string | FormData) {
   }
   return (!query) ? {} : myParse(Array.from(query.entries()));
 }
+/**
+ * Helper concat RegExp.
+ */
 export function concatRegexp(prefix: string | RegExp, path: RegExp) {
   if (prefix === "") return path;
   prefix = new RegExp(prefix);
@@ -221,7 +258,9 @@ export function concatRegexp(prefix: string | RegExp, path: RegExp) {
   flags = Array.from(new Set(flags.split(""))).join();
   return new RegExp(prefix.source + path.source, flags);
 }
-
+/**
+ * Helper create assets middleware.
+ */
 export function middAssets(str: string) {
   return [
     ((rev, next) => {
@@ -236,7 +275,9 @@ export function middAssets(str: string) {
     }) as Handler,
   ];
 }
-
+/**
+ * Helper push route.
+ */
 export function pushRoutes(
   str: string,
   wares: Handler[],
@@ -264,9 +305,13 @@ export function pushRoutes(
     });
   });
 }
-
+/**
+ * Helper get url from `request.url`.
+ */
 export const getUrl = (s: string) => s.slice(s.indexOf("/", 8));
-
+/**
+ * Helper default Error Message.
+ */
 export const defError = (
   err: TObject,
   rev: RequestEvent,

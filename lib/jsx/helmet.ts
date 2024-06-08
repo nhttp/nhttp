@@ -1,14 +1,39 @@
+// helmet.ts
 import type { TRet } from "../deps.ts";
-import type { JSXProps, NJSX } from "./index.ts";
+import type { JSX, JSXProps, NJSX } from "./index.ts";
 
+/**
+ * `type` HelmetRewind.
+ */
 export type HelmetRewind = {
+  /**
+   * data helmet from `head`.
+   */
   head: JSX.Element[];
+  /**
+   * data helmet from after `body`.
+   */
   footer: JSX.Element[];
+  /**
+   * attributes.
+   */
   attr: {
+    /**
+     * body attributes.
+     */
     body: NJSX.HTMLAttributes;
+    /**
+     * html attributes.
+     */
     html: NJSX.HTMLAttributes;
   };
+  /**
+   * body.
+   */
   body?: JSX.Element;
+  /**
+   * title.
+   */
   title?: string;
 };
 
@@ -18,20 +43,24 @@ function toHelmet(elems: JSX.Element[]) {
   let hasTitle = false;
   for (let i = 0; i < elems.length; i++) {
     const elem = elems[i] as TRet;
-    if (elem.type === "base") {
-      if (hasBase) continue;
-      hasBase = true;
-    } else if (elem.type === "title") {
-      if (hasTitle) continue;
-      hasTitle = true;
-      Helmet.title = elem.props.children[0];
+    if (elem != null) {
+      if (elem.type === "base") {
+        if (hasBase) continue;
+        hasBase = true;
+      } else if (elem.type === "title") {
+        if (hasTitle) continue;
+        hasTitle = true;
+        Helmet.title = elem.props.children[0];
+      }
+      helmet.push(elem);
     }
-    helmet.push(elem);
   }
   return helmet;
 }
-// shiming for support preact/react.
-type FCHelmet =
+/**
+ * `type` FCHelmet. shiming for support preact/react.
+ */
+export type FCHelmet =
   & ((
     props: JSXProps<{
       footer?: boolean;
@@ -70,9 +99,21 @@ type FCHelmet =
      * ];
      */
     writeFooterTag?: () => JSX.Element[];
+    /**
+     * Write `html` attributes.
+     */
     writeHtmlAttr?: () => NJSX.HTMLAttributes;
+    /**
+     * Write `body` attributes.
+     */
     writeBodyAttr?: () => NJSX.HTMLAttributes;
+    /**
+     * title.
+     */
     title?: string;
+    /**
+     * reset helmet.
+     */
     reset: () => void;
   };
 
@@ -99,11 +140,13 @@ export const Helmet: FCHelmet = ({ children, footer }) => {
   const elements: JSX.Element[] = [];
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
-    if (child.type === "html") {
-      Helmet.writeHtmlAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
-    } else if (child.type === "body") {
-      Helmet.writeBodyAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
-    } else elements.push(child);
+    if (child != null) {
+      if (child.type === "html") {
+        Helmet.writeHtmlAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
+      } else if (child.type === "body") {
+        Helmet.writeBodyAttr = () => (child.props ?? {}) as NJSX.HTMLAttributes;
+      } else elements.push(child);
+    }
   }
   if (footer) Helmet.writeFooterTag = () => toHelmet(elements.concat(bodys));
   else Helmet.writeHeadTag = () => toHelmet(elements.concat(heads));

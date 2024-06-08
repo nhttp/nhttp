@@ -1,11 +1,14 @@
+// cookie.ts
 import type { Cookie } from "./types.ts";
 import { decoder, decURIComponent, encoder } from "./utils.ts";
-
+/**
+ * Serialize Cookie.
+ */
 export function serializeCookie(
   name: string,
   value: string,
   cookie: Cookie = {},
-) {
+): string {
   cookie.encode = !!cookie.encode;
   if (cookie.encode) {
     value = "E:" + btoa(encoder.encode(value).toString());
@@ -63,6 +66,9 @@ function tryDecode(str: string) {
     return decURIComponent(str);
   }
 }
+/**
+ * get cookie from request.
+ */
 export function getReqCookies(headers: Headers, decode?: boolean, i = 0) {
   const str = headers.get("Cookie");
   if (str === null) return {};

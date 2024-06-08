@@ -1,7 +1,7 @@
 import {
   validateOrReject,
   type ValidatorOptions,
-} from "https://esm.sh/v132/class-validator@0.14.0";
+} from "npm:class-validator@0.14.1";
 import {
   type Handler,
   HttpError,
@@ -9,12 +9,28 @@ import {
   type TRet,
 } from "./deps.ts";
 import { joinHandlers, type TDecorator } from "./controller.ts";
-export * from "https://esm.sh/v132/class-validator@0.14.0";
+export * from "npm:class-validator@0.14.1";
 
-type Class = { new (...args: TRet[]): TRet };
+/**
+ * `type` Class.
+ */
+export type Class = { new (...args: TRet[]): TRet };
 
+/**
+ * ClassValidatorOptions. options for validate using `class-validator`
+ * @example
+ * ```ts
+ * app.post("/user", validate(User, { onError: () => {...}, plainToClass: () => {...} }), ...handlers);
+ * ```
+ */
 export type ClassValidatorOptions = ValidatorOptions & {
+  /**
+   * fn paint to class.
+   */
   plainToClass?: (...args: TRet) => TRet;
+  /**
+   * custom error.
+   */
   onError?: (err: TRet, rev: RequestEvent) => TRet;
 };
 /**
@@ -53,6 +69,15 @@ export function validate<
 
 /**
  * validate using `class-validator` for decorators.
+ * @example
+ * ```ts
+ * class UserController {
+ *
+ *    ⁤@Validate(User)
+ *    ⁤@Post()
+ *    save() {...}
+ * }
+ * ```
  */
 export function Validate(
   cls: Class,

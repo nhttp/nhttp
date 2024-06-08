@@ -1,3 +1,4 @@
+// inspect.ts
 import type { HttpResponse } from "./http_response.ts";
 import type { RequestEvent } from "./request_event.ts";
 import type { TObject } from "./types.ts";
@@ -11,7 +12,9 @@ function inspect(target: TObject, obj: TObject) {
   }
   return ret;
 }
-
+/**
+ * Inspect for RequestEvent.
+ */
 export function revInspect(rev: RequestEvent) {
   return inspect(rev, {
     body: rev.body,
@@ -38,7 +41,9 @@ export function revInspect(rev: RequestEvent) {
     waitUntil: rev.waitUntil,
   });
 }
-
+/**
+ * Inspect for HttpResponse.
+ */
 export function resInspect(res: HttpResponse) {
   return inspect(res, {
     clearCookie: res.clearCookie,
@@ -59,6 +64,11 @@ export function resInspect(res: HttpResponse) {
     type: res.type,
   });
 }
-
+/**
+ * Deno Inspect symbol.
+ */
 export const deno_inspect = Symbol.for("Deno.customInspect");
+/**
+ * Node Inspect symbol.
+ */
 export const node_inspect = Symbol.for("nodejs.util.inspect.custom");

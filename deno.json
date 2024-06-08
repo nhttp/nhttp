@@ -1,47 +1,83 @@
 {
+  "name": "@nhttp/nhttp",
+  "version": "2.0.0",
+  "exports": {
+    ".": "./index.ts",
+    "./yoga": "./lib/yoga.ts",
+    "./csrf": "./lib/csrf.ts",
+    "./serve-static": "./lib/serve-static.ts",
+    "./swagger": "./lib/swagger.ts",
+    "./etag": "./lib/etag.ts",
+    "./logger": "./lib/logger.ts",
+    "./metadata": "./lib/metadata.ts",
+    "./controller": "./lib/controller.ts",
+    "./cors": "./lib/cors.ts",
+    "./file-router": "./lib/file-router.ts",
+    "./jsx/jsx-runtime": "./lib/jsx/jsx-runtime.ts",
+    "./jsx/jsx-dev-runtime": "./lib/jsx/jsx-dev-runtime.ts",
+    "./jsx": "./lib/jsx/index.ts",
+    "./jsx/twind": "./lib/jsx/twind.ts",
+    "./node-fetch": "./runtime/node/fetch/fetch.ts"
+  },
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "deno.ns"
+    ]
+  },
   "tasks": {
     "fmtlint": "deno fmt && deno lint",
     "bench": "deno bench -A bench/benchmark.ts",
-    "build:npm": "deno run -A ./scripts/build_npm.ts",
     "rm:cov": "deno run -A scripts/rm_cov.ts",
     "test": "deno test --coverage=cov_profile -A",
     "genhtml": "genhtml -o cov_profile/html cov_profile.lcov",
     "cov": "deno coverage cov_profile --lcov --output=cov_profile.lcov",
     "cov:serve": "file_server cov_profile/html",
+    "gen:version": "deno run -A ./scripts/version.ts && deno fmt",
     "test:dev": "deno task rm:cov && deno task test && deno task cov && deno task genhtml && deno task cov:serve"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "index.ts",
+      "mod.ts",
+      "src",
+      "lib",
+      "runtime"
+    ],
+    "exclude": [
+      "src/**/*_test.ts",
+      "lib/class-validator.ts",
+      "lib/zod-validator.ts",
+      "lib/jsx.ts",
+      "lib/trpc.ts",
+      "lib/jsx/twind/**/*",
+      "lib/jsx/twind-server.ts",
+      "lib/jsx/twind-stream.ts",
+      "lib/jwt.ts"
+    ]
   },
   "lint": {
     "exclude": [
-      "mod.js",
-      "dev.ts",
-      "dev.tsx",
-      "bench.ts",
-      "dev.js",
-      "backup/",
-      "cf_workers/",
-      "examples/",
-      "node_modules/",
-      "bench/",
-      "npm/",
-      "scripts/",
-      "dummy/",
+      "backup",
+      "examples",
+      "bench",
+      "dev",
+      "dummy",
       "cov_profile",
       "cov_profile.lcov"
     ]
   },
   "fmt": {
     "exclude": [
-      "dev.js",
-      "mod.js",
-      "dev.ts",
-      "dev.tsx",
-      "cf_workers/",
-      "node_modules/",
-      "npm/",
-      "dummy/",
-      "bench.ts",
+      "backup",
+      "dev",
+      "dummy",
       "cov_profile",
       "cov_profile.lcov"
     ]
-  }
+  },
+  "lock": false
 }

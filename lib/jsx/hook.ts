@@ -1,3 +1,4 @@
+// hook.ts
 import type { HttpResponse, RequestEvent, TObject, TRet } from "../deps.ts";
 import {
   type EObject,
@@ -6,23 +7,29 @@ import {
   type JSXProps,
   n,
   type NJSX,
-  options,
   toStyle,
 } from "./index.ts";
-import { renderToString, toAttr } from "./render.ts";
+import { getOptions, renderToString, toAttr } from "./render.ts";
 
 type TValue = string | number | TRet;
 type TContext = {
   Provider: (props: JSXProps<{ value?: TValue }>) => Promise<TRet>;
   getValue: <T>() => T;
 };
+/**
+ * Share symbol `internal_hook`.
+ */
 export const s_int = Symbol("internal_hook");
 const isArray = Array.isArray;
 let HAS_CHECK_HOOK: boolean;
-export function checkHook(elem: TRet) {
+
+/**
+ * Check if app using hooks.
+ */
+export function checkHook(elem: TRet): boolean {
   return HAS_CHECK_HOOK ??= (() => {
     if (isArray(elem)) elem = elem[0];
-    return options.requestEventContext && elem?.__n__ !== void 0;
+    return getOptions().requestEventContext && elem?.__n__ !== void 0;
   })();
 }
 /**
@@ -91,8 +98,13 @@ export function createContext<T extends unknown = unknown>(
 export function useContext<T extends unknown = unknown>(context: TContext): T {
   return context.getValue();
 }
-
-export const RevContext = createContext();
+/**
+ * RevContext (RequestEvent global Context).
+ */
+export const RevContext: TContext = createContext();
+/**
+ * element to RevContext.
+ */
 export function elemToRevContext(
   elem: TRet,
   rev: RequestEvent,
@@ -115,7 +127,13 @@ export function elemToRevContext(
 export const useRequestEvent = <T extends EObject = EObject>(): RequestEvent<
   T
 > => useContext(RevContext);
+/**
+ * `type` InternalHook.
+ */
 export type InternalHook = { sus: TRet[]; sus_id: number };
+/**
+ * useInternalHook (internal only).
+ */
 export const useInternalHook = (
   rev?: RequestEvent,
 ): InternalHook => {
@@ -172,6 +190,17 @@ export const useBody = <T = TObject>(): T => useRequestEvent()?.body as T;
  * ```
  */
 export const useResponse = (): HttpResponse => useRequestEvent()?.response;
+/**
+ * useRequest. server-side only.
+ * @example
+ * ```tsx
+ * const User: FC = () => {
+ *   const req = useRequest();
+ *   console.log(req.url);
+ *   return <h1>hello</h1>
+ * }
+ * ```
+ */
 export const useRequest = (): Request => useRequestEvent()?.request;
 interface AttrScript extends NJSX.ScriptHTMLAttributes {
   /**
@@ -238,7 +267,7 @@ export function useScript<T>(
   fn: ((params: T) => void | Promise<void>) | string | T,
   params?: T | ((params: T) => void | Promise<void>) | string,
   options: AttrScript = {},
-) {
+): TRet {
   let js_string = "";
   if (typeof fn === "string") {
     js_string = `function(){${fn}}`;
@@ -278,7 +307,7 @@ export function useScript<T>(
   return src;
 }
 
-const cssToString = (css: Record<string, NJSX.CSSProperties>) => {
+const cssToString = (css: Record<string, NJSX.CSSProperties>): string => {
   let str = "";
   for (const k in css) {
     str += `${k}{${toStyle(css[k])}}`;
@@ -309,7 +338,7 @@ const cssToString = (css: Record<string, NJSX.CSSProperties>) => {
 export function useStyle(
   css: Record<string, NJSX.CSSProperties> | string,
   options: { position?: "head" | "footer" } = {},
-) {
+): void {
   const rev = useRequestEvent();
   if (rev.hxRequest) options.position = "footer";
   const str = typeof css === "string" ? css : cssToString(css);
@@ -324,19 +353,23 @@ export function useStyle(
 /**
  * generate unique ID.
  */
-export const useId = () =>
+export const useId = (): string =>
   performance.now().toString(36).replace(".", "").slice(3);
 
+/**
+ * generate html script tag.
+ */
 export const createHookScript = (
   opts: NJSX.ScriptHTMLAttributes = {},
   rev?: RequestEvent,
-) => {
+): void => {
   const script = `<script${toAttr(opts)}></script>`;
   if (rev !== void 0) {
     rev.__init_head ??= "";
     rev.__init_head += script;
     return;
   }
-  options.initHead ??= "";
-  options.initHead += script;
+  const op = getOptions();
+  op.initHead ??= "";
+  op.initHead += script;
 };

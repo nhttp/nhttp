@@ -1,3 +1,4 @@
+// router.ts
 import type { RequestEvent } from "./request_event.ts";
 import type {
   Handler,
@@ -16,6 +17,9 @@ import {
   toPathx,
 } from "./utils.ts";
 const isArray = Array.isArray;
+/**
+ * helper find params from route-path.
+ */
 export function findParams(el: TObject, url: string) {
   const match = el.pattern.exec?.(decURIComponent(url));
   const params = match?.groups ?? {};
@@ -53,7 +57,18 @@ function mutatePath(base: string, str: string) {
   return { path, ori };
 }
 
-export type TRouter = { base?: string };
+/**
+ * `type` TRouter.
+ */
+export type TRouter = {
+  /**
+   * base path.
+   */
+  base?: string;
+};
+/**
+ * Share any methods.
+ */
 export const ANY_METHODS = [
   "GET",
   "POST",
@@ -74,16 +89,27 @@ type TMethod = typeof ANY_METHODS[number];
 export default class Router<
   Rev extends RequestEvent = RequestEvent,
 > {
+  /**
+   * object route.
+   */
   route: TObject = {};
+  /**
+   * list route from child.
+   */
   c_routes: TObject[] = [];
+  /**
+   * list middlewares.
+   */
   midds: TRet[] = [];
+  /**
+   * list assets middlewares.
+   */
   pmidds?: TRet[];
   private base = "";
   constructor({ base = "" }: TRouter = {}) {
     this.base = base;
     if (this.base == "/") this.base = "";
   }
-
   /**
    * add middlware or router.
    * @example
@@ -95,7 +121,7 @@ export default class Router<
     ...routerOrMiddleware: Array<
       RouterOrWare<T, Rev> | RouterOrWare<T, Rev>[]
     >
-  ) {
+  ): this {
     let args = routerOrMiddleware, str = "";
     if (typeof prefix === "function" && !args.length) {
       this.midds = this.midds.concat(findFns([prefix]));
@@ -160,7 +186,7 @@ export default class Router<
     method: TMethod | TMethod[],
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     if (isArray(method)) {
       method.forEach((m) => {
         this.on<T>(m, path, ...handlers);
@@ -177,7 +203,7 @@ export default class Router<
   get<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("GET", path, ...handlers);
   }
   /**
@@ -188,7 +214,7 @@ export default class Router<
   post<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("POST", path, ...handlers);
   }
   /**
@@ -199,7 +225,7 @@ export default class Router<
   put<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("PUT", path, ...handlers);
   }
   /**
@@ -210,7 +236,7 @@ export default class Router<
   patch<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("PATCH", path, ...handlers);
   }
   /**
@@ -221,7 +247,7 @@ export default class Router<
   delete<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("DELETE", path, ...handlers);
   }
   /**
@@ -232,7 +258,7 @@ export default class Router<
   any<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("ANY", path, ...handlers);
   }
   /**
@@ -243,7 +269,7 @@ export default class Router<
   head<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("HEAD", path, ...handlers);
   }
   /**
@@ -254,7 +280,7 @@ export default class Router<
   options<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("OPTIONS", path, ...handlers);
   }
   /**
@@ -265,7 +291,7 @@ export default class Router<
   trace<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("TRACE", path, ...handlers);
   }
   /**
@@ -276,9 +302,12 @@ export default class Router<
   connect<T extends unknown = unknown>(
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
-  ) {
+  ): this {
     return this.on<T>("CONNECT", path, ...handlers);
   }
+  /**
+   * Find route.
+   */
   find(
     method: string,
     path: string,

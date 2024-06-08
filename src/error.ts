@@ -1,5 +1,6 @@
+// error.ts
 import { STATUS_ERROR_LIST } from "./constant.ts";
-import type { TObject, TRet } from "./types.ts";
+import type { ErrorResponseJson, TObject, TRet } from "./types.ts";
 
 /**
  * Genarete error message from class HttpError.
@@ -23,7 +24,7 @@ export class HttpError extends Error {
 /**
  * Give error object
  */
-export function getError(err: TObject, isStack?: boolean) {
+export function getError(err: TObject, isStack?: boolean): ErrorResponseJson {
   if (typeof err === "string") {
     return {
       status: 500,

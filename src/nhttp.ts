@@ -1,7 +1,10 @@
+// nhttp.ts
 import type {
+  CreateRequest,
   EngineOptions,
   FetchEvent,
   FetchHandler,
+  Handler,
   Handlers,
   ListenOptions,
   NextFunction,
@@ -28,14 +31,27 @@ import { s_response } from "./symbol.ts";
 import { oldSchool } from "./http_response.ts";
 import { awaiter, buildListenOptions, onNext } from "./nhttp_util.ts";
 
+/**
+ * `class` NHttp.
+ * @example
+ * const app = new NHttp();
+ *
+ * app.get(path, ...handlers);
+ *
+ * app.listen(8000);
+ */
 export class NHttp<
+  RuntimeServer = TObject,
   Rev extends RequestEvent = RequestEvent,
 > extends Router<Rev> {
   private parseQuery: TQueryFunc;
   private env: string;
   private stackError!: boolean;
   private bodyParser?: TBodyParser | false;
-  server!: TRet;
+  /**
+   * public server.
+   */
+  public server!: RuntimeServer;
 
   constructor(
     { parseQuery, bodyParser, env, stackError }: TApp = {},
@@ -64,7 +80,7 @@ export class NHttp<
       rev: Rev,
       next: NextFunction,
     ) => RetHandler,
-  ) {
+  ): this {
     this._onError = (err, rev) => {
       try {
         let status: number = err.status || err.statusCode || err.code || 500;
@@ -98,7 +114,7 @@ export class NHttp<
       rev: Rev,
       next: NextFunction,
     ) => RetHandler,
-  ) {
+  ): this {
     const def = this._on404.bind(this);
     this._on404 = (rev) => {
       rev.route.path = "";
@@ -119,6 +135,9 @@ export class NHttp<
     };
     return this;
   }
+  /**
+   * `verb` app.on.
+   */
   on<T extends unknown = unknown>(
     method: string,
     path: string | RegExp,
@@ -188,7 +207,7 @@ export class NHttp<
       check?: (elem: TRet) => boolean;
     },
     opts: EngineOptions = {},
-  ) {
+  ): this {
     const check = render.check;
     return this.use((rev: RequestEvent, next) => {
       if (check !== undefined) {
@@ -232,7 +251,14 @@ export class NHttp<
       return next();
     });
   }
-  matchFns = (rev: RequestEvent, method: string, url: string) => {
+  /**
+   * match the function list.
+   */
+  matchFns = (
+    rev: RequestEvent,
+    method: string,
+    url: string,
+  ): Handler<Rev>[] => {
     const iof = url.indexOf("?");
     if (iof !== -1) {
       rev.path = url.substring(0, iof);
@@ -250,7 +276,7 @@ export class NHttp<
       this._on404,
     );
   };
-  private onErr = async (err: Error, req: Request) => {
+  private onErr = async (err: Error, req: Request): Promise<TRet> => {
     const rev = <Rev> new RequestEvent(req);
     await rev.send(await this._onError(err, rev) as TRet, 1);
     return rev[s_response] ?? awaiter(rev);
@@ -334,9 +360,20 @@ export class NHttp<
    * // or
    * Bun.serve({ fetch: app.handle });
    */
-  handle: FetchHandler = (req: Request, conn?: TRet, ctx?: TRet) => {
-    if (conn) req._info = { conn, ctx };
+  handle: FetchHandler = (req, conn, ctx) => {
+    if (conn) (req as TRet)._info = { conn, ctx };
     return this.handleRequest(req);
+  };
+
+  /**
+   * fetch
+   * @example
+   * Deno.serve(app.fetch);
+   * // or
+   * Bun.serve({ fetch: app.fetch });
+   */
+  fetch: FetchHandler = (req, conn, ctx) => {
+    return this.handle(req, conn, ctx);
   };
 
   /**
@@ -346,7 +383,8 @@ export class NHttp<
    *   event.respondWith(app.handleEvent(event))
    * });
    */
-  handleEvent = (evt: FetchEvent) => this.handle(evt.request);
+  handleEvent = (evt: FetchEvent): Response | Promise<Response> =>
+    this.handle(evt.request);
   /**
    * Mock request.
    * @example
@@ -361,8 +399,30 @@ export class NHttp<
    * const hello_post = await app.req("/", { method: "POST" }).text();
    * assertEquals(hello_post, "hello, post");
    */
-  req = (url: string, init: RequestInit = {}) => {
+  req = (url: string, init: RequestInit = {}): CreateRequest => {
     return createRequest(this.handle, url, init);
+  };
+  /**
+   * declarative http serve based on exports.
+   * ```ts
+   * export default app.serve();
+   * ```
+   */
+  serve = <Opts extends ListenOptions = ListenOptions>(
+    opts: Opts = <TRet> {},
+  ): Opts => {
+    opts.fetch ??= this.handle;
+    return opts;
+  };
+  /**
+   * declarative http module based on exports.
+   * @example
+   * export default app.module();
+   */
+  module = <Opts extends ListenOptions = ListenOptions>(
+    opts: Opts = <TRet> {},
+  ): Opts => {
+    return this.serve<Opts>(opts);
   };
   /**
    * listen the server
@@ -377,12 +437,12 @@ export class NHttp<
    * }, callback);
    */
   listen = (
-    options: number | ListenOptions,
+    options?: number | ListenOptions,
     callback?: (
       err: Error | undefined,
       opts: ListenOptions,
     ) => void | Promise<void>,
-  ) => {
+  ): RuntimeServer => {
     const { opts, handler } = buildListenOptions.bind(this)(options);
     const runCallback = (err?: Error) => {
       if (callback) {
@@ -396,9 +456,11 @@ export class NHttp<
     };
     try {
       if (runCallback()) opts.onListen = () => {};
-      return this.server = Deno.serve(opts, handler);
+      this.server = Deno.serve(opts, handler) as RuntimeServer;
+      return this.server;
     } catch (error) {
       runCallback(error);
+      return void 0 as RuntimeServer;
     }
   };
   private _onError(
@@ -425,10 +487,13 @@ export class NHttp<
  * @example
  * const app = nhttp();
  */
-export function nhttp<Rev extends RequestEvent = RequestEvent>(
+export function nhttp<
+  RuntimeServer = TObject,
+  Rev extends RequestEvent = RequestEvent,
+>(
   opts: TApp = {},
 ) {
-  return new NHttp<Rev>(opts);
+  return new NHttp<RuntimeServer, Rev>(opts);
 }
 
 /**

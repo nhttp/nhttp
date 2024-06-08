@@ -1,3 +1,4 @@
+// http_response.ts
 import { HTML_TYPE, JSON_TYPE, MIME_LIST } from "./constant.ts";
 import { serializeCookie } from "./cookie.ts";
 import { HttpError } from "./error.ts";
@@ -5,13 +6,28 @@ import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
 import type { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 const TYPE = "content-type";
+/**
+ * `type` ResInit.
+ */
 export type ResInit = {
+  /**
+   * http Headers.
+   */
   headers?: TRet;
+  /**
+   * status code.
+   */
   status?: number;
+  /**
+   * status text.
+   */
   statusText?: string;
 };
 const isArray = Array.isArray;
-export const headerToArr = (obj = {} as TObject) => {
+/**
+ * convert headers to array 2d `string[][]`.
+ */
+export const headerToArr = (obj = {} as TObject): string[][] => {
   const arr = [] as string[][];
   for (const k in obj) {
     arr.push([k, obj[k]]);
@@ -21,14 +37,28 @@ export const headerToArr = (obj = {} as TObject) => {
 const filterHeaders = (headers: string[][], key: string) => {
   return headers.filter((vals: string[]) => vals[0] !== key);
 };
+/**
+ * `type` RetHeaders.
+ */
 type RetHeaders = {
+  /**
+   * append headers.
+   */
   append: (key: string, value: string) => HttpResponse;
+  /**
+   * delete headers.
+   */
   delete: (key: string) => void;
+  /**
+   * convert Headers to json.
+   */
   toJSON: () => TObject;
 };
 const C_KEY = "set-cookie";
-/* eslint-disable  @typescript-eslint/no-unsafe-declaration-merging */
-export interface HttpResponse extends NHTTP.HttpResponse {
+/**
+ * `interface` HttpResponse.
+ */
+export interface HttpResponse {
   /**
    * render `requires app.engine configs`
    * @example
@@ -43,6 +73,9 @@ export interface HttpResponse extends NHTTP.HttpResponse {
     ...args: TRet
   ) => Promise<void>;
 }
+/**
+ * HttpResponse.
+ */
 export class HttpResponse {
   constructor(
     /**
@@ -51,7 +84,10 @@ export class HttpResponse {
      * response.send("hello");
      * response.send({ name: "john" });
      */
-    public send: (body?: TSendBody) => void,
+    public send: (body?: TSendBody) => void | Promise<void>,
+    /**
+     * response init.
+     */
     public init: ResInit,
   ) {}
   /**
@@ -59,7 +95,7 @@ export class HttpResponse {
    * @example
    * response.setHeader("key", "value");
    */
-  setHeader(key: string, value: string | string[]) {
+  setHeader(key: string, value: string | string[]): this {
     key = key.toLowerCase();
     if (this.__isHeaders) {
       this.init.headers = filterHeaders(this.init.headers, key);
@@ -173,7 +209,7 @@ export class HttpResponse {
    * @example
    * response.sendStatus(204);
    */
-  sendStatus(code: number) {
+  sendStatus(code: number): void | Promise<void> {
     if (code > 511) code = 500;
     try {
       return this.status(code).send(code);
@@ -188,7 +224,7 @@ export class HttpResponse {
    * // or
    * response.attachment();
    */
-  attachment(filename?: string) {
+  attachment(filename?: string): this {
     const c_dis = filename ? `attachment; filename=${filename}` : "attachment;";
     return this.header("content-disposition", c_dis);
   }
@@ -202,7 +238,7 @@ export class HttpResponse {
    * // get status
    * const status = response.statusCode;
    */
-  get statusCode() {
+  get statusCode(): number {
     return this.status();
   }
   set statusCode(val: number) {
@@ -216,7 +252,7 @@ export class HttpResponse {
    *   await response.render("index");
    * });
    */
-  get params() {
+  get params(): TObject {
     return this[s_params] ??= {};
   }
   set params(val: TObject) {
@@ -230,7 +266,7 @@ export class HttpResponse {
    * // with charset
    * response.type("html", "utf-8").send("<h1>hello, world</h1>");
    */
-  type(contentType: string, charset?: string) {
+  type(contentType: string, charset?: string): this {
     return this.header(
       "content-type",
       (MIME_LIST[contentType] ?? contentType) +
@@ -243,7 +279,7 @@ export class HttpResponse {
    * @example
    * response.html("<h1>Hello World</h1>");
    */
-  html(html: string | Uint8Array) {
+  html(html: string | Uint8Array): void | Promise<void> {
     return this.type(HTML_TYPE).send(html);
   }
   /**
@@ -251,7 +287,7 @@ export class HttpResponse {
    * @example
    * response.json({ name: "john" });
    */
-  json(body: TObject) {
+  json(body: TObject): void | Promise<void> {
     if (typeof body !== "object") {
       throw new HttpError(400, "body not json");
     }
@@ -264,7 +300,7 @@ export class HttpResponse {
    * response.redirect("/home", 301);
    * response.redirect("http://google.com");
    */
-  redirect(url: string, status?: number) {
+  redirect(url: string, status?: number): void | Promise<void> {
     return this.header("Location", url).status(status ?? 302).send();
   }
   /**
@@ -273,7 +309,7 @@ export class HttpResponse {
    * response.addHeader("name", "john");
    * response.addHeader("name", "doe");
    */
-  addHeader(key: string, value: string | string[]) {
+  addHeader(key: string, value: string | string[]): this {
     this.__isHeaders ??= true;
     if (!isArray(this.init.headers)) {
       this.init.headers = headerToArr(this.init.headers);
@@ -292,7 +328,7 @@ export class HttpResponse {
     name: string,
     value: string | string[] | number | number[] | TObject | undefined,
     opts: Cookie = {},
-  ) {
+  ): this {
     opts.httpOnly = opts.httpOnly !== false;
     opts.path = opts.path || "/";
     if (opts.maxAge) {
@@ -310,45 +346,58 @@ export class HttpResponse {
    * @example
    * response.clearCookie("name");
    */
-  clearCookie(name: string, opts: Cookie = {}) {
+  clearCookie(name: string, opts: Cookie = {}): void {
     opts.httpOnly = opts.httpOnly !== false;
     this.addHeader(
       C_KEY,
       serializeCookie(name, "", { ...opts, expires: new Date(0) }),
     );
   }
-  [deno_inspect](inspect: TRet, opts: TRet) {
+  /**
+   * custom inspect for Deno.
+   */
+  [deno_inspect](inspect: TRet, opts: TRet): string {
     const ret = resInspect(this);
     return `${this.constructor.name} ${inspect(ret, opts)}`;
   }
+  /**
+   * custom inspect for Node.
+   */
   [node_inspect](
     depth: number,
     opts: TRet,
     inspect: TRet,
-  ) {
+  ): string {
     opts.depth = depth;
     const ret = resInspect(this);
     return `${this.constructor.name} ${
       inspect?.(ret, opts) ?? Deno.inspect(ret)
     }`;
   }
+  /**
+   * any.
+   */
   [k: string | symbol]: TRet;
 }
-
-export function oldSchool() {
-  if (BigInt.prototype.toJSON === void 0) {
-    BigInt.prototype.toJSON = function () {
+/**
+ * Support for runtime old version.
+ */
+export function oldSchool(): void {
+  if ((BigInt.prototype as TRet).toJSON === void 0) {
+    (BigInt.prototype as TRet).toJSON = function () {
       return this.toString();
     };
   }
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-  // @ts-ignore: Temporary workaround for oldVersion
   Response.json ??= (
     data: unknown,
     init: ResInit = {},
   ) => new JsonResponse(data, init);
 }
-
+/**
+ * JsonResponse.
+ * @example
+ * app.get("/", () => new JsonResponse({ name: "foo" }));
+ */
 export class JsonResponse extends Response {
   constructor(body: unknown, init: ResponseInit = {}) {
     const headers = new Headers(init.headers);
