@@ -1,13 +1,13 @@
 {
   "name": "@nhttp/twind",
-  "version": "0.0.12",
+  "version": "2.0.0",
   "exports": {
     ".": "./mod.ts",
     "./server": "./server.ts",
     "./stream": "./stream.ts"
   },
   "imports": {
-    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^0.0.12"
+    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.0"
   },
   "lock": false
 }

@@ -1,9 +1,6 @@
 name: Publish
 on:
-  # workflow_dispatch:
-  push:
-    branches:
-      - jsr
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -16,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Publish package
-      #   run: npx jsr publish
+      - name: Publish package
+        run: npx jsr publish
 
   publish-ext:
     needs: publish
