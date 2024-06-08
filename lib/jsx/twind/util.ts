@@ -1,5 +1,5 @@
-import type { RequestEvent, TRet } from "@nhttp/nhttp";
-import type { JSX, TOptionsRender } from "@nhttp/nhttp/jsx";
+import type { RequestEvent, TRet } from "../../deps.ts";
+import type { JSX, TOptionsRender } from "./../index.ts";
 import type { InlineOptions } from "npm:@twind/core@1.1.3";
 import { extract } from "npm:@twind/core@1.1.3";
 

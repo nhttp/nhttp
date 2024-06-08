@@ -1,15 +1,17 @@
 // mod.ts
-import { z, type ZodSchema } from "npm:zod@3.23.8";
-import {
-  joinHandlers,
-  type TDecorator,
-} from "jsr:@nhttp/nhttp@^0.0.2/controller";
+/**
+ * @module
+ *
+ * This module contains validate body with `zod` for NHttp.
+ */
+import { z, type ZodSchema } from "zod";
+import { joinHandlers, type TDecorator } from "@nhttp/nhttp/controller";
 import {
   type Handler,
   HttpError,
   type RequestEvent,
   type TRet,
-} from "jsr:@nhttp/nhttp@^0.0.2";
+} from "@nhttp/nhttp";
 
 /**
  * validate using `zod`.

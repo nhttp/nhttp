@@ -1,19 +1,18 @@
 // mod.ts
-import {
-  validateOrReject,
-  type ValidatorOptions,
-} from "npm:class-validator@0.14.1";
+/**
+ * @module
+ *
+ * This module contains validate body with `class-validator` for NHttp.
+ */
+import { validateOrReject, type ValidatorOptions } from "class-validator";
 import {
   type Handler,
   HttpError,
   type RequestEvent,
   type TRet,
-} from "jsr:@nhttp/nhttp@^0.0.2";
-import {
-  joinHandlers,
-  type TDecorator,
-} from "jsr:@nhttp/nhttp@^0.0.2/controller";
-export * from "npm:class-validator@0.14.1";
+} from "@nhttp/nhttp";
+import { joinHandlers, type TDecorator } from "@nhttp/nhttp/controller";
+export * from "class-validator";
 
 /**
  * `type` Class.

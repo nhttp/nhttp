@@ -1,16 +1,18 @@
 // mod.ts
-import jwts from "npm:jwt-simple@0.5.6";
+/**
+ * @module
+ *
+ * This module contains jwt for NHttp.
+ */
+import jwts from "jwt-simple";
 import {
   type Handler,
   HttpError,
   type NextFunction,
   type RequestEvent,
   type TRet,
-} from "jsr:@nhttp/nhttp@^0.0.2";
-import {
-  joinHandlers,
-  type TDecorator,
-} from "jsr:@nhttp/nhttp@^0.0.2/controller";
+} from "@nhttp/nhttp";
+import { joinHandlers, type TDecorator } from "@nhttp/nhttp/controller";
 
 /**
  * UnauthorizedError.

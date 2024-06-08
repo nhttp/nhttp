@@ -2,6 +2,6 @@
 /**
  * @module
  *
- * This module contains twind client.
+ * This module contains twind cdn.
  */
-export * from "jsr:@nhttp/nhttp@^0.0.8/jsx/twind";
+export * from "@nhttp/nhttp/jsx/twind";

@@ -1,6 +1,10 @@
 {
   "name": "@nhttp/class-validator",
-  "version": "0.0.4",
+  "version": "0.0.11",
   "exports": "./mod.ts",
+  "imports": {
+    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^0.0.11",
+    "class-validator": "npm:class-validator@0.14.1"
+  },
   "lock": false
 }

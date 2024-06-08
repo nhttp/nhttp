@@ -5,7 +5,7 @@
  * This module contains twind stream using ReadableStream.
  */
 import TwindStream from "npm:@twind/with-react@1.1.3/readableStream";
-import type { Handler, TRet } from "@nhttp/nhttp";
+import type { Handler, TRet } from "../../deps.ts";
 import { type InlineOptions, install } from "./server.ts";
 import { getOptions, onRenderElement } from "./util.ts";
 

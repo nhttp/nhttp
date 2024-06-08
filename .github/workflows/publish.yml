@@ -13,5 +13,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Publish package
-        run: npx jsr publish
+      # - name: Publish package
+      #   run: npx jsr publish
+
+  publish_ext:
+    needs: publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish class-validator
+        run: |
+          cd ext/class-validator
+          dir
+
+      - name: Publish jwt
+        run: |
+          cd ../jwt
+          dir

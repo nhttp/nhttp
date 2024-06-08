@@ -1,12 +1,6 @@
-// mod.ts
-/**
- * @module
- *
- * This module contains trpc for NHttp.
- */
 import { fetchRequestHandler } from "npm:@trpc/server@10.25.0/adapters/fetch";
 import type { AnyRouter, inferRouterContext } from "npm:@trpc/server@10.25.0";
-import type { Handler, NextFunction, RequestEvent, TRet } from "@nhttp/nhttp";
+import type { Handler, NextFunction, RequestEvent, TRet } from "./deps.ts";
 
 type TAnyRouter = TRet;
 /**
