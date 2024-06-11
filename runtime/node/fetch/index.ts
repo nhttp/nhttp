@@ -90,9 +90,14 @@ function handleResWeb(resWeb: TRet, res: TRet) {
             resWeb["_init"].headers.get &&
             typeof resWeb["_init"].headers.get === "function"
           ) {
-            (<Headers> resWeb["_init"].headers).forEach((val, key) => {
-              res.setHeader(key, val);
-            });
+            const headers = <Headers> resWeb["_init"].headers;
+            if (headers.has("set-cookie")) {
+              heads = toHeads(headers);
+            } else {
+              headers.forEach((val, key) => {
+                res.setHeader(key, val);
+              });
+            }
           } else {
             for (const k in resWeb["_init"].headers) {
               res.setHeader(k, resWeb["_init"].headers[k]);
@@ -102,10 +107,11 @@ function handleResWeb(resWeb: TRet, res: TRet) {
       }
     }
     if (resWeb["_headers"]) {
-      if (resWeb["_headers"].has("set-cookie")) {
-        heads = Array.from(resWeb["_headers"].entries());
+      const headers = <Headers> resWeb["_headers"];
+      if (headers.has("set-cookie")) {
+        heads = toHeads(headers);
       } else {
-        (<Headers> resWeb["_headers"]).forEach((val, key) => {
+        headers.forEach((val, key) => {
           res.setHeader(key, val);
         });
       }
