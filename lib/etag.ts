@@ -55,7 +55,11 @@ export interface TOptsSendFile {
   /**
    * callback setHeaders.
    */
-  setHeaders?: (rev: RequestEvent, pathFile: string, stat: TRet) => void;
+  setHeaders?: (
+    rev: RequestEvent,
+    pathFile: string,
+    stat: TRet,
+  ) => void | Promise<void>;
 }
 const encoder = new TextEncoder();
 const build_date = new Date();
@@ -78,7 +82,10 @@ export function getContentType(path: string): string {
   const iof = path.lastIndexOf(".");
   if (iof <= 0) return MIME_LIST.arc;
   const ext = path.substring(path.lastIndexOf(".") + 1);
-  return MIME_LIST[ext];
+  const mime = MIME_LIST[ext] ?? "application/octet-stream";
+  return mime.startsWith("text") || mime === "application/json"
+    ? mime + "; charset=UTF-8"
+    : mime;
 }
 type BeforeFileRet = {
   stat: TObject | undefined;
@@ -145,7 +152,9 @@ export async function sendFile(
     opts.etag ??= true;
     const response = rev.response;
     const { stat, subfix, path } = await beforeFile(opts, pathFile);
-    opts.setHeaders?.(rev, pathFile, stat);
+    if (opts.setHeaders) {
+      await opts.setHeaders(rev, pathFile, stat);
+    }
     const cType = response.getHeader("content-type") ?? getContentType(path);
     if (stat === void 0) {
       const file = await getFile(path, opts.readFile);
