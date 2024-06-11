@@ -26,7 +26,7 @@ Deno.test("body parser", async (t) => {
     await t.step("content-type json", async () => {
       const ret = await getBody(
         `{"name": "john"}`,
-        "application/json; charset=utf-8",
+        "application/json; charset=UTF-8",
       );
       assertEquals(ret, { "name": "john" });
       const ret2 = await getBody(
