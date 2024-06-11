@@ -49,6 +49,14 @@ export interface ServeStaticOptions extends TOptsSendFile {
    * custom readFile.
    */
   readFile?: (...args: TRet) => TRet;
+  /**
+   * use etag. default to `false`.
+   */
+  etag?: boolean;
+  /**
+   * use cache-control. default to `false`.
+   */
+  cache?: string | boolean;
 }
 /**
  * send file with etag.
@@ -71,6 +79,18 @@ export function serveStatic(
   opts.index ??= "index.html";
   opts.redirect ??= true;
   opts.etag ??= false;
+  if (opts.cache !== void 0 && opts.cache !== false) {
+    const setHeaders = opts.setHeaders;
+    const cache = opts.cache === true
+      ? "public, max-age=31536000, immutable"
+      : opts.cache;
+    opts.setHeaders = async (rev, pathFile, stat) => {
+      rev.response.setHeader("cache-control", cache);
+      if (setHeaders) {
+        await setHeaders(rev, pathFile, stat);
+      }
+    };
+  }
   if (dir instanceof URL) dir = dir.pathname;
   if (dir.endsWith("/")) dir = dir.slice(0, -1);
   const hasFileUrl = dir.startsWith("file://");

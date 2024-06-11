@@ -4,7 +4,7 @@ import { assertEquals } from "./deps_test.ts";
 Deno.test("constant", () => {
   const noop = revMimeList("noop/css");
   assertEquals(noop, "noop/css");
-  const txt = revMimeList("text/plain; charset=utf-8");
+  const txt = revMimeList("text/plain; charset=UTF-8");
   assertEquals(txt, "txt");
   const css = revMimeList("text/css");
   assertEquals(css, "css");

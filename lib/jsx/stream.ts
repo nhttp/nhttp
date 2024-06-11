@@ -36,7 +36,7 @@ export async function toStream(
   write(
     `<html${
       toAttr(attr.html)
-    }><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+    }><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
   );
   if (initHead !== void 0) write(initHead);
   if (head.length > 0) write(await renderToString(head));

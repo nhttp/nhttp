@@ -59,10 +59,10 @@ Deno.test("HttpResponse", async (t) => {
     });
     await t.step("type charset", () => {
       const response = buildRes();
-      response.type("html", "utf-8");
+      response.type("html", "UTF-8");
       assertEquals(
         response.header("content-type") as string,
-        "text/html; charset=utf-8",
+        "text/html; charset=UTF-8",
       );
     });
     await t.step("json", () => {

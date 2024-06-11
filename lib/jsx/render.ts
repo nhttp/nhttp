@@ -206,7 +206,7 @@ export const toHtml = async (
   return (
     (getOptions().docType ?? "<!DOCTYPE html>") +
     `<html${toAttr(attr.html)}>` +
-    '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
     initHead + (head.length > 0 ? (await renderToString(head)) : "") +
     `</head><body${toAttr(attr.body)}>${body}` +
     (footer.length > 0 ? (await renderToString(footer)) : "") +

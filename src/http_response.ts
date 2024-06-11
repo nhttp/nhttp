@@ -6,6 +6,7 @@ import { deno_inspect, node_inspect, resInspect } from "./inspect.ts";
 import { s_params } from "./symbol.ts";
 import type { Cookie, TObject, TRet, TSendBody } from "./types.ts";
 const TYPE = "content-type";
+const CHARSET = "; charset=";
 /**
  * `type` ResInit.
  */
@@ -264,13 +265,13 @@ export class HttpResponse {
    * response.type("html").send("<h1>hello, world</h1>");
    *
    * // with charset
-   * response.type("html", "utf-8").send("<h1>hello, world</h1>");
+   * response.type("html", "UTF-8").send("<h1>hello, world</h1>");
    */
   type(contentType: string, charset?: string): this {
+    const type = MIME_LIST[contentType] ?? contentType;
     return this.header(
       "content-type",
-      (MIME_LIST[contentType] ?? contentType) +
-        (charset ? "; charset=" + charset : ""),
+      type + (charset && !type.includes(CHARSET) ? CHARSET + charset : ""),
     );
   }
 

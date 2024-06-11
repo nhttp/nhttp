@@ -1,6 +1,6 @@
 {
   "name": "@nhttp/nhttp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "exports": {
     ".": "./index.ts",
     "./yoga": "./lib/yoga.ts",
@@ -52,6 +52,7 @@
       "lib/class-validator.ts",
       "lib/zod-validator.ts",
       "lib/jsx.ts",
+      "lib/tailwind.ts",
       "lib/trpc.ts",
       "lib/jsx/twind/**/*",
       "lib/jsx/twind-server.ts",
