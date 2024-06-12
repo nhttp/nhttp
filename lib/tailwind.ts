@@ -22,6 +22,16 @@ import type { Handler, NHttp } from "./deps.ts";
 const def_tailwind = "@tailwind base;@tailwind components;@tailwind utilities;";
 
 /**
+ * `type` HandlerPath.
+ */
+type HandlerPath = Handler & { path: string };
+
+/**
+ * `type` MinifyHandler.
+ */
+type MinifyHandler = (css: string) => string | Promise<string>;
+
+/**
  * `interface` PostcssOptions.
  */
 interface PostcssOptions extends ProcessOptions {
@@ -49,7 +59,7 @@ export interface TailwindConfig extends Config {
   /**
    * minify the output. default to `false`.
    */
-  minify?: boolean;
+  minify?: boolean | MinifyHandler;
   /**
    * autoprefixer config.
    */
@@ -62,6 +72,16 @@ export interface TailwindConfig extends Config {
    * cssnano config.
    */
   cssnano?: ConfigCssnano;
+}
+
+/**
+ * `interface` Tailwind.
+ */
+export interface TailwindOptions extends TailwindConfig {
+  /**
+   * cache route
+   */
+  cache?: boolean;
 }
 
 /**
@@ -98,7 +118,7 @@ export async function build(opts: TailwindConfig): Promise<Result> {
     tailwindCss(tailwindConfig as Config),
     autoprefixer(autoprefixerConfig),
   ];
-  if (minify) plugins.push(cssnano(cssnanoConfig));
+  if (minify === true) plugins.push(cssnano(cssnanoConfig));
   if (postcssConfig.plugins) plugins = plugins.concat(postcssConfig.plugins);
   const post = postcss(plugins);
   if (postcssConfig.onProcess) postcssConfig.onProcess(post);
@@ -106,6 +126,10 @@ export async function build(opts: TailwindConfig): Promise<Result> {
   postcssConfig.from ??= input ?? undefined;
   if (output) postcssConfig.to = output;
   const proc = await post.process(from, postcssConfig);
+  if (typeof minify === "function") {
+    const str = await minify(proc.toString());
+    proc.css = str;
+  }
   if (output) {
     const css = proc.toString();
     const dir = dirname(output);
@@ -119,25 +143,14 @@ export async function build(opts: TailwindConfig): Promise<Result> {
   }
   return proc;
 }
-const cache: Record<string, string> = {};
-function addRoute(app: NHttp, cache: Record<string, string>): void {
-  app.get(cache.path, (rev) => {
-    rev.response.type("css", "UTF-8");
-    rev.response.setHeader(
-      "cache-control",
-      "public, max-age=31536000, immutable",
-    );
-    return cache.content;
-  });
-}
 /**
  * tailwind middleware.
  *
  * @example
  * ```tsx
  * import nhttp from "@nhttp/nhttp";
+ * import tailwind from "@nhttp/tailwind";
  * import { renderToHtml } from "@nhttp/nhttp/jsx";
- * import { tailwind } from "@nhttp/tailwind";
  *
  * const app = nhttp();
  *
@@ -157,30 +170,32 @@ function addRoute(app: NHttp, cache: Record<string, string>): void {
  */
 export const tailwind = async (
   app: NHttp,
-  opts: Partial<TailwindConfig> = {},
-): Promise<Handler> => {
-  if (opts.content) {
-    cache.path = `/style.${Date.now()}.css`;
-    cache.content = (await build(opts as TailwindConfig)).toString();
-    addRoute(app, cache);
-  }
-  return async (rev, next) => {
+  options: TailwindOptions,
+): Promise<HandlerPath> => {
+  const { cache, ...opts } = options;
+  const path = `/style.${Date.now()}.css`;
+  const content = (await build(opts)).toString();
+  app.get(path, (rev) => {
+    rev.response.type("css", "UTF-8");
+    if (cache !== false) {
+      rev.response.setHeader(
+        "cache-control",
+        "public, max-age=31536000, immutable",
+      );
+    }
+    return content;
+  });
+  const tw: HandlerPath = async (rev, next) => {
     const res = await next();
     const type = res.headers.get("content-type");
     if (type?.includes("text/html")) {
       const clone = res.clone();
       const text = await clone.text();
-      if (cache.path === void 0) {
-        cache.path = `/style.${Date.now()}.css`;
-        opts.content ??= [{ raw: text }];
-        cache.content = (await build(opts as TailwindConfig)).toString();
-        addRoute(app, cache);
-      }
       rev.respondWith(
         new Response(
           text.replace(
             "</head>",
-            `<link rel="stylesheet" href="${cache.path}"></link></head>`,
+            `<link rel="stylesheet" href="${path}"></head>`,
           ),
           {
             headers: clone.headers,
@@ -191,4 +206,8 @@ export const tailwind = async (
       );
     }
   };
+  tw.path = path;
+  return tw;
 };
+
+export default tailwind;

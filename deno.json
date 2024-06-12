@@ -1,6 +1,6 @@
 {
   "name": "@nhttp/nhttp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "exports": {
     ".": "./index.ts",
     "./yoga": "./lib/yoga.ts",

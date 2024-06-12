@@ -65,6 +65,14 @@ export type TOptionsRender = {
    */
   docType?: string;
   /**
+   * custom charset. default to `UTF-8`.
+   */
+  charset?: string | boolean;
+  /**
+   * custom viewport. default to `content="width=device-width, initial-scale=1.0"`.
+   */
+  viewport?: string | boolean;
+  /**
    * use context requestEvent. default to `true`.
    */
   requestEventContext: boolean;
@@ -196,6 +204,20 @@ export const toAttr = (props: TRet = {}): string => {
   return attr;
 };
 /**
+ * set default options config.
+ */
+export function serializeOpts(): TOptionsRender {
+  const opts = getOptions();
+  opts.docType ??= "<!DOCTYPE html>";
+  if (opts.charset === true || opts.charset === void 0) {
+    opts.charset = "UTF-8";
+  }
+  if (opts.viewport === true || opts.viewport === void 0) {
+    opts.viewport = "width=device-width, initial-scale=1.0";
+  }
+  return opts;
+}
+/**
  * create html from body, helmet and init-head.
  */
 export const toHtml = async (
@@ -203,10 +225,13 @@ export const toHtml = async (
   { head, footer, attr }: HelmetRewind,
   initHead = "",
 ): Promise<string> => {
+  const opts = serializeOpts();
   return (
-    (getOptions().docType ?? "<!DOCTYPE html>") +
+    opts.docType +
     `<html${toAttr(attr.html)}>` +
-    '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    "<head>" +
+    (opts.charset ? `<meta charset="${opts.charset}">` : "") +
+    (opts.viewport ? `<meta name="viewport" content="${opts.viewport}">` : "") +
     initHead + (head.length > 0 ? (await renderToString(head)) : "") +
     `</head><body${toAttr(attr.body)}>${body}` +
     (footer.length > 0 ? (await renderToString(footer)) : "") +
