@@ -7,7 +7,7 @@
 ```tsx
 import nhttp from "@nhttp/nhttp";
 import { renderToHtml } from "@nhttp/nhttp/jsx";
-import { tailwind } from "@nhttp/tailwind";
+import tailwind from "@nhttp/tailwind";
 
 const app = nhttp();
 
