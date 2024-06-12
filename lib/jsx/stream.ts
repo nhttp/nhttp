@@ -16,6 +16,7 @@ import {
   isValidElement,
   type RenderHTML,
   renderToString,
+  serializeOpts,
   toAttr,
   toInitHead,
 } from "./render.ts";
@@ -32,12 +33,15 @@ export async function toStream(
   initHead?: string,
 ) {
   const hook = useInternalHook(rev);
-  write(getOptions().docType ?? "<!DOCTYPE html>");
-  write(
-    `<html${
-      toAttr(attr.html)
-    }><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">`,
-  );
+  const opts = serializeOpts();
+  write(opts.docType as string);
+  write(`<html${toAttr(attr.html)}><head>`);
+  if (opts.charset !== false) {
+    write(`<meta charset="${opts.charset}">`);
+  }
+  if (opts.viewport !== false) {
+    write(`<meta name="viewport" content="${opts.viewport}">`);
+  }
   if (initHead !== void 0) write(initHead);
   if (head.length > 0) write(await renderToString(head));
   write(`</head><body${toAttr(attr.body)}>${body}`);
