@@ -86,13 +86,14 @@ export function addRoute(
   handler: Handler,
   opts: { path?: string | RegExp; method: string },
 ) {
-  Metadata.init();
   const metadata = Metadata.get();
-  metadata[className] = metadata[className] || {};
-  const obj = metadata[className]["route"] || {};
-  obj[prop] = obj[prop] || {};
-  const fns = (obj[prop].fns || []).concat([handler]);
-  obj[prop] = { path: opts.path, method: opts.method, fns };
+  metadata[className] ??= {};
+  const obj = metadata[className]["route"] ?? {};
+  obj[prop] ??= {};
+  const fns = (obj[prop].fns ?? []).concat([handler]);
+  obj[prop].path = opts.path;
+  obj[prop].method = opts.method;
+  obj[prop].fns = fns;
   metadata[className]["route"] = obj;
 }
 
@@ -104,12 +105,11 @@ export function joinHandlers(
   prop: string,
   arr: TRet[],
 ) {
-  Metadata.init();
   const metadata = Metadata.get();
-  metadata[className] = metadata[className] || {};
-  const obj = metadata[className]["route"] || {};
-  obj[prop] = obj[prop] || {};
-  obj[prop].fns = arr.concat(obj[prop].fns || []);
+  metadata[className] ??= {};
+  const obj = metadata[className]["route"] ?? {};
+  obj[prop] ??= {};
+  obj[prop].fns = arr.concat(obj[prop].fns ?? []);
   metadata[className]["route"] = obj;
 }
 
