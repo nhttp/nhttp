@@ -1,6 +1,7 @@
 {
   "name": "@nhttp/nhttp",
   "version": "2.0.3",
+  "license": "MIT",
   "exports": {
     ".": "./index.ts",
     "./yoga": "./lib/yoga.ts",
