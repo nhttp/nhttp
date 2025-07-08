@@ -133,7 +133,7 @@ Deno.test("RequestEvent", async (t) => {
     assertEquals(val instanceof Promise, true);
     try {
       rev.waitUntil(val2 as TRet);
-    } catch (error) {
+    } catch (error: TRet) {
       assertEquals(error.status, 500);
     }
   });
@@ -154,7 +154,7 @@ Deno.test("RequestEvent", async (t) => {
     assertEquals(val instanceof Promise, true);
     try {
       rev.waitUntil(val2 as TRet);
-    } catch (error) {
+    } catch (error: TRet) {
       assertEquals(error.status, 500);
     }
   });

@@ -20,14 +20,6 @@ export class Metadata {
    * `static` get metadata.
    */
   static get<T = TObject>(): T {
-    return (globalThis as TRet).NHttpMetadata;
-  }
-  /**
-   * `static` init metadata.
-   */
-  static init(): void {
-    if ((globalThis as TRet).NHttpMetadata == null) {
-      (globalThis as TRet).NHttpMetadata = {};
-    }
+    return (globalThis as TRet).NHttpMetadata ??= {};
   }
 }

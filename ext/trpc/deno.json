@@ -1,9 +1,9 @@
 {
   "name": "@nhttp/trpc",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "exports": "./mod.ts",
   "imports": {
-    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.2"
+    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.3"
   },
   "lock": false
 }

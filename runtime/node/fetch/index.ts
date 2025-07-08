@@ -178,6 +178,7 @@ export async function serveNode(
     immediate
       ? (req: TRet, res: TRet) => {
         // @ts-ignore: immediate for nodejs
+        // deno-lint-ignore no-node-globals
         setImmediate(() => handleNode(handler, req, res));
       }
       : (req: TRet, res: TRet) => {

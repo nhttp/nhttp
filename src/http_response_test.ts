@@ -74,7 +74,7 @@ Deno.test("HttpResponse", async (t) => {
       const response = buildRes();
       try {
         response.json(1 as TRet);
-      } catch (error) {
+      } catch (error: TRet) {
         assertEquals(error.status, 400);
       }
     });

@@ -1,9 +1,9 @@
 {
   "name": "@nhttp/tailwind",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "exports": "./mod.ts",
   "imports": {
-    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.2",
+    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.3",
     "autoprefixer": "npm:autoprefixer@^10.4.19",
     "cssnano": "npm:cssnano@^7.0.2",
     "postcss": "npm:postcss@^8.4.38",

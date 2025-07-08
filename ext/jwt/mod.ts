@@ -124,7 +124,7 @@ export const jwt: JWT = (secretOrOptions) => {
     try {
       decode = jwts.decode(token, opts.secret, opts.noVerify, opts.algorithm);
       rev[prop] = decode;
-    } catch (err) {
+    } catch (err: TRet) {
       const e = new UnauthorizedError(err.message ?? "Invalid token");
       if (
         typeof opts.onExpired === "function" && err.message.includes("expired")
