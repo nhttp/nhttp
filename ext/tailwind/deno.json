@@ -2,6 +2,7 @@
   "name": "@nhttp/tailwind",
   "version": "2.0.3",
   "exports": "./mod.ts",
+  "license": "MIT",
   "imports": {
     "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.3",
     "autoprefixer": "npm:autoprefixer@^10.4.19",

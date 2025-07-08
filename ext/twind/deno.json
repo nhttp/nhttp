@@ -1,6 +1,7 @@
 {
   "name": "@nhttp/twind",
   "version": "2.0.3",
+  "license": "MIT",
   "exports": {
     ".": "./mod.ts",
     "./server": "./server.ts",
