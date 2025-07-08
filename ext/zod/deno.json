@@ -1,10 +1,10 @@
 {
   "name": "@nhttp/zod",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "exports": "./mod.ts",
   "imports": {
-    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.2",
-    "zod": "npm:zod@3.23.8"
+    "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.3",
+    "zod": "npm:zod@3.25.74/v4"
   },
   "lock": false
 }
