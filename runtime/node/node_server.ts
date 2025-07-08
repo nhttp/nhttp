@@ -21,7 +21,7 @@ export class NodeServer<T = TObject> extends RuntimeServer<T> {
       callback();
       return this.server;
     } catch (error) {
-      callback(error);
+      callback(error as Error);
       return Promise.resolve(void 0) as Promise<T>;
     }
   };

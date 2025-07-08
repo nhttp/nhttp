@@ -23,7 +23,7 @@ export class BunServer<T = TObject> extends RuntimeServer<T> {
       callback();
       return this.server as T;
     } catch (error) {
-      callback(error);
+      callback(error as Error);
       return void 0 as T;
     }
   };

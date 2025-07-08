@@ -1,5 +1,5 @@
 // stream.ts
-import type { RequestEvent } from "../deps.ts";
+import type { RequestEvent, TRet } from "../deps.ts";
 import { Helmet } from "./helmet.ts";
 import { elemToRevContext, type InternalHook } from "./hook.ts";
 import {
@@ -72,7 +72,7 @@ async function handleSuspense(
       const onErr = getOptions().onErrorStream;
       if (onErr !== void 0) {
         err_elem = await elemToRevContext(
-          n(onErr, { error }),
+          n(onErr as TRet, { error }),
           rev,
         );
       } else {
@@ -143,7 +143,7 @@ export const renderToReadableStream: RenderHTML = async (elem, rev) => {
           if (opt.onErrorStream) {
             await writeStream(
               await elemToRevContext(
-                n(opt.onErrorStream, { error }),
+                n(opt.onErrorStream as TRet, { error }),
                 rev,
               ),
             );
