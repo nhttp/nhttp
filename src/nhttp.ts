@@ -96,7 +96,7 @@ export class NHttp<
             return this._on404(rev);
           }) as TRet,
         );
-      } catch (err) {
+      } catch (err: TRet) {
         return defError(err, rev, this.stackError);
       }
     };
@@ -129,7 +129,7 @@ export class NHttp<
             return def(rev);
           }) as TRet,
         );
-      } catch (err) {
+      } catch (err: TRet) {
         return defError(err, rev, this.stackError);
       }
     };
@@ -138,7 +138,7 @@ export class NHttp<
   /**
    * `verb` app.on.
    */
-  on<T extends unknown = unknown>(
+  override on<T extends unknown = unknown>(
     method: string,
     path: string | RegExp,
     ...handlers: Handlers<T, Rev>
@@ -276,7 +276,7 @@ export class NHttp<
       this._on404,
     );
   };
-  private onErr = async (err: Error, req: Request): Promise<TRet> => {
+  private onErr = async (err: TRet, req: Request): Promise<TRet> => {
     const rev = <Rev> new RequestEvent(req);
     await rev.send(await this._onError(err, rev) as TRet, 1);
     return rev[s_response] ?? awaiter(rev);
@@ -458,7 +458,7 @@ export class NHttp<
       if (runCallback()) opts.onListen = () => {};
       this.server = Deno.serve(opts, handler) as RuntimeServer;
       return this.server;
-    } catch (error) {
+    } catch (error: TRet) {
       runCallback(error);
       return void 0 as RuntimeServer;
     }

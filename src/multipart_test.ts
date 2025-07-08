@@ -91,7 +91,7 @@ Deno.test("multipart upload", async (t) => {
       try {
         await upload(rev, (err: Error) => err);
         assertEquals("error", message);
-      } catch (error) {
+      } catch (error: TRet) {
         assertEquals(error.message, message);
       }
     };

@@ -1,7 +1,7 @@
 import { type Handler, HttpError, Router } from "../mod.ts";
 import { nhttp } from "./nhttp.ts";
 import type { RequestEvent } from "./request_event.ts";
-import { assertEquals, superdeno } from "./deps_test.ts";
+import { assertEquals, intertest } from "./deps_test.ts";
 import type { NextFunction, TRet } from "./types.ts";
 
 const renderFile = (file: string, ..._args: TRet) => {
@@ -21,35 +21,36 @@ Deno.test("nhttp", async (t) => {
     app.post("/*/:id", (rev) => rev.params);
     app.put("/:slug*", (rev) => rev.params);
     app.patch("/:slug*/:id", (rev) => rev.params);
-    await superdeno(app.fetch).get("/hello").expect({
+    await app.req("/hello").json();
+    await intertest(app).get("/hello").expect({
       wild: ["hello"],
     });
-    await superdeno(app.fetch).get("/hello/").expect({
+    await intertest(app).get("/hello/").expect({
       wild: ["hello"],
     });
-    await superdeno(app.fetch).post("/hello/123").expect({
-      wild: ["hello"],
-      id: "123",
-    });
-    await superdeno(app.fetch).post("/hello/123/").expect({
+    await intertest(app).post("/hello/123").expect({
       wild: ["hello"],
       id: "123",
     });
-    await superdeno(app.fetch).put("/hello/123").expect({
+    await intertest(app).post("/hello/123/").expect({
+      wild: ["hello"],
+      id: "123",
+    });
+    await intertest(app).put("/hello/123").expect({
       slug: ["hello", "123"],
     });
-    await superdeno(app.fetch).put("/hello/123/").expect({
+    await intertest(app).put("/hello/123/").expect({
       slug: ["hello", "123"],
     });
-    await superdeno(app.fetch).patch("/hello/world/123").expect({
+    await intertest(app).patch("/hello/world/123").expect({
       slug: ["hello", "world"],
       id: "123",
     });
-    await superdeno(app.fetch).patch("/hello/world/123/").expect({
+    await intertest(app).patch("/hello/world/123/").expect({
       slug: ["hello", "world"],
       id: "123",
     });
-    await superdeno(app.fetch).delete("/any/hello").expect({
+    await intertest(app).delete("/any/hello").expect({
       wild: ["hello"],
     });
   });
@@ -78,13 +79,13 @@ Deno.test("nhttp", async (t) => {
     });
     app.get("/status", ({ response }) => response.sendStatus(204));
     app.get("/status2", ({ response }) => response.sendStatus(1000));
-    await superdeno(app.fetch).get("/promise?name=john").expect("ok");
-    await superdeno(app.fetch).post("/post/").expect("post");
-    await superdeno(app.fetch).get("/hello").expect([]);
-    await superdeno(app.fetch).get("/lose").expect("yeah");
-    await superdeno(app.fetch).get("/lose/john").expect("yeah");
-    await superdeno(app.fetch).get("/status").expect(204);
-    await superdeno(app.fetch).get("/status2").expect(500);
+    await intertest(app).get("/promise?name=john").expect("ok");
+    await intertest(app).post("/post/").expect("post");
+    await intertest(app).get("/hello").expect([]);
+    await intertest(app).get("/lose").expect("yeah");
+    await intertest(app).get("/lose/john").expect("yeah");
+    await intertest(app).get("/status").expect(204);
+    await intertest(app).get("/status2").expect(500);
     const head = await app.handleEvent(
       { request: myReq("HEAD", "/") },
     );
@@ -118,12 +119,12 @@ Deno.test("nhttp", async (t) => {
       return { tmp, params };
     }, { base: "base", ext: "html" });
     app.get("/", ({ response }) => response.render("hello", { name: "john" }));
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("body parser", async () => {
     const app = nhttp({ bodyParser: true });
     app.post("/", (rev) => rev.body);
-    await superdeno(app.fetch)
+    await intertest(app)
       .post("/")
       .set("Content-Type", "application/json")
       .set("Accept", "application/json")
@@ -137,7 +138,7 @@ Deno.test("nhttp", async (t) => {
       response.params = { name: "john" };
       response.render("index");
     });
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("engine2", async () => {
     const app = nhttp();
@@ -146,7 +147,7 @@ Deno.test("nhttp", async (t) => {
       response.params = { name: "john" };
       await response.render("index");
     });
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("engine error", async () => {
     const app = nhttp();
@@ -155,7 +156,7 @@ Deno.test("nhttp", async (t) => {
       response.params = { name: "john" };
       response.render("noop");
     });
-    await superdeno(app.fetch).get("/").expect(500);
+    await intertest(app).get("/").expect(500);
   });
   await t.step("engine jsx", async () => {
     const renderToHtml = (elem: TRet) => elem;
@@ -165,7 +166,7 @@ Deno.test("nhttp", async (t) => {
     app.get("/", () => {
       return "hello";
     });
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("engine jsx promise", async () => {
     const renderToHtml = async (elem: TRet) => await Promise.resolve(elem);
@@ -173,7 +174,7 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.engine(renderToHtml);
     app.get("/", (_rev) => "hello");
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("engine jsx promise error", async () => {
     const renderToHtml = async (elem: TRet) => {
@@ -184,7 +185,7 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.engine(renderToHtml);
     app.get("/", (_rev) => "hello");
-    await superdeno(app.fetch).get("/").expect(500);
+    await intertest(app).get("/").expect(500);
   });
   await t.step("engine jsx check false", async () => {
     const renderToHtml = (elem: TRet) => elem;
@@ -192,7 +193,7 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.engine(renderToHtml);
     app.get("/", (_rev) => "hello");
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("middleware", async () => {
     const app = nhttp();
@@ -217,10 +218,10 @@ Deno.test("nhttp", async (t) => {
       return next();
     });
     app.use("/data", ({ name }) => name);
-    await superdeno(app.fetch).get("/assets/hello/doe/john").expect("5");
-    await superdeno(app.fetch).get("/hello").expect("hello");
-    await superdeno(app.fetch).get("/name").expect("john");
-    await superdeno(app.fetch).get("/data").expect("john");
+    await intertest(app).get("/assets/hello/doe/john").expect("5");
+    await intertest(app).get("/hello").expect("hello");
+    await intertest(app).get("/name").expect("john");
+    await intertest(app).get("/data").expect("john");
   });
   await t.step("assets", async () => {
     const app = nhttp();
@@ -233,15 +234,15 @@ Deno.test("nhttp", async (t) => {
     });
     app.use("/assets", midd);
     app.get("/hello/john", ({ user }) => user);
-    await superdeno(app.fetch).get("/assets/hello").expect("/hello");
-    await superdeno(app.fetch).get("/hello/john").expect("john");
+    await intertest(app).get("/assets/hello").expect("/hello");
+    await intertest(app).get("/hello/john").expect("john");
   });
   await t.step("noop 404", async () => {
     const app = nhttp();
     app.get("/", (_, next) => next());
     app.get("/hello", async (_, next) => await next());
-    await superdeno(app.fetch).get("/").expect(404);
-    await superdeno(app.fetch).get("/hello").expect(404);
+    await intertest(app).get("/").expect(404);
+    await intertest(app).get("/hello").expect(404);
   });
   await t.step("404 next error", async () => {
     const app = nhttp();
@@ -249,7 +250,7 @@ Deno.test("nhttp", async (t) => {
     app.on404((_rev, next) => {
       return next(new HttpError(500, "noop"));
     });
-    await superdeno(app.fetch).get("/hello").expect(500);
+    await intertest(app).get("/hello").expect(500);
   });
   await t.step("404 next error", async () => {
     const app = nhttp();
@@ -257,14 +258,14 @@ Deno.test("nhttp", async (t) => {
     app.on404((_rev, next) => {
       return next(new Error());
     });
-    await superdeno(app.fetch).get("/hello").expect(500);
+    await intertest(app).get("/hello").expect(500);
   });
   await t.step("404 next", async () => {
     const app = nhttp();
     app.on404((_rev, next) => {
       return next();
     });
-    await superdeno(app.fetch).get("/hello").expect(404);
+    await intertest(app).get("/hello").expect(404);
   });
   await t.step("error next error", async () => {
     const app = nhttp();
@@ -272,7 +273,7 @@ Deno.test("nhttp", async (t) => {
     app.onError((_e, _rev, next) => {
       return next(new HttpError(500, "noop"));
     });
-    await superdeno(app.fetch).get("/").expect(500);
+    await intertest(app).get("/").expect(500);
   });
   await t.step("error next error2", async () => {
     const app = nhttp();
@@ -280,7 +281,7 @@ Deno.test("nhttp", async (t) => {
     app.onError((_e, _rev, next) => {
       return next(new Error());
     });
-    await superdeno(app.fetch).get("/").expect(500);
+    await intertest(app).get("/").expect(500);
   });
   await t.step("error next", async () => {
     const app = nhttp();
@@ -288,17 +289,17 @@ Deno.test("nhttp", async (t) => {
     app.onError((_e, _rev, next) => {
       return next();
     });
-    await superdeno(app.fetch).get("/").expect(404);
+    await intertest(app).get("/").expect(404);
   });
   await t.step("json bigint", async () => {
     const app = nhttp();
     app.get("/", () => ({ int: BigInt(9007199254740991) }));
-    await superdeno(app.fetch).get("/").expect(200);
+    await intertest(app).get("/").expect(200);
   });
   await t.step("noop path", async () => {
     const app = nhttp();
     app.get("/hello/", (_rev) => "hello");
-    await superdeno(app.fetch).get("/hello").expect(200);
+    await intertest(app).get("/hello").expect(200);
   });
   await t.step("app.req", async () => {
     const app = nhttp();
@@ -327,7 +328,7 @@ Deno.test("nhttp", async (t) => {
     const app = nhttp();
     app.use(Midd);
     app.get("/", ({ user }) => user);
-    await superdeno(app.fetch).get("/").expect("john");
+    await intertest(app).get("/").expect("john");
   });
   await t.step("middleware express", async () => {
     const app = nhttp();
@@ -397,12 +398,12 @@ Deno.test("nhttp", async (t) => {
     app.use("/api/v1", user);
     app.use("/api/v2", [item, book, name, hobby]);
     app.use(home);
-    await superdeno(app.fetch).get("/").expect("home");
-    await superdeno(app.fetch).get("/api/v1/user").expect("user");
-    await superdeno(app.fetch).get("/api/v2/item").expect("item");
-    await superdeno(app.fetch).get("/api/v2/book").expect("book");
-    await superdeno(app.fetch).get("/api/v2/name").expect("name");
-    await superdeno(app.fetch).get("/api/v2/hobby").expect("hobby");
+    await intertest(app).get("/").expect("home");
+    await intertest(app).get("/api/v1/user").expect("user");
+    await intertest(app).get("/api/v2/item").expect("item");
+    await intertest(app).get("/api/v2/book").expect("book");
+    await intertest(app).get("/api/v2/name").expect("name");
+    await intertest(app).get("/api/v2/hobby").expect("hobby");
   });
   await t.step("error handling", async () => {
     const app = nhttp();
@@ -411,7 +412,7 @@ Deno.test("nhttp", async (t) => {
       try {
         await noop();
         return "success";
-      } catch (error) {
+      } catch (error: TRet) {
         error.status = 400;
         return next(error);
       }
@@ -420,7 +421,7 @@ Deno.test("nhttp", async (t) => {
       try {
         await noop();
         return "success";
-      } catch (error) {
+      } catch (error: TRet) {
         error.status = "400";
         return next(error);
       }
@@ -467,7 +468,7 @@ Deno.test("nhttp", async (t) => {
   await t.step("query", async () => {
     const app = nhttp();
     app.get("/", (rev) => rev.query);
-    await superdeno(app.fetch).get("/?foo=bar").expect({ foo: "bar" });
+    await intertest(app).get("/?foo=bar").expect({ foo: "bar" });
   });
   await t.step("params", async () => {
     const app = nhttp();

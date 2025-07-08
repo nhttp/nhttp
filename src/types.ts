@@ -39,7 +39,7 @@ export type TSendBody =
  * `type` NextFunction.
  */
 export type NextFunction = (
-  err?: Error,
+  err?: TRet,
 ) => Promise<Response>;
 /**
  * `type` RetHandler.
