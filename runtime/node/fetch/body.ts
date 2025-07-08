@@ -70,6 +70,7 @@ export class NodeBody<T extends Response | Request> {
       const chunks: Uint8Array[] = [];
       this.#init._raw.req.on("data", (buf: Uint8Array) => chunks.push(buf))
         // @ts-ignore: Buffer for nodejs
+        // deno-lint-ignore no-node-globals
         .on("end", () => resolve(Buffer.concat(chunks)))
         .on("error", reject);
     });
@@ -118,7 +119,7 @@ export class NodeBody<T extends Response | Request> {
     if (this.#init._raw === void 0) {
       return this.target.arrayBuffer();
     }
-    return this.#rawBody();
+    return this.#rawBody() as TRet;
   }
   /**
    * get blob from body.
