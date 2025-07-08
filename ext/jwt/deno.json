@@ -1,6 +1,7 @@
 {
   "name": "@nhttp/jwt",
   "version": "2.0.3",
+  "license": "MIT",
   "exports": "./mod.ts",
   "imports": {
     "@nhttp/nhttp": "jsr:@nhttp/nhttp@^2.0.3",
