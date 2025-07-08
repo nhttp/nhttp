@@ -2,7 +2,7 @@
 import type { Handler, TObject, TRet } from "./../deps.ts";
 import type { GenHtmlOpts } from "./types.ts";
 
-const base_lib_swagger = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.51.1";
+const base_lib_swagger = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.26.1";
 
 const favIconHtml =
   '<link rel="icon" type="image/png" href="<% url_lib_swagger %>/favicon-32x32.png" sizes="32x32" />' +
