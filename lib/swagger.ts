@@ -61,15 +61,40 @@ import type {
   TTagObject,
 } from "./swagger/types.ts";
 
-function joinProperty(target: TObject, prop: string, object: TObject): void {
+const assign = Object.assign;
+const isObject = (v: TRet) => v && typeof v === "object";
+
+function deepMerge(target: TRet = {}, source: TRet = {}) {
+  const output = assign({}, target);
+  for (const key in source) {
+    if (isObject(source[key]) && !Array.isArray(source[key])) {
+      if (!(key in target)) {
+        assign(output, { [key]: source[key] });
+      } else {
+        output[key] = deepMerge(target[key], source[key]);
+      }
+    } else {
+      assign(output, { [key]: source[key] });
+    }
+  }
+  return output;
+}
+
+type CreateProperty = {
+  target: TObject;
+  prop: string;
+  property: TObject;
+  modify?: (obj: TObject) => void;
+};
+function createProps({ target, prop, property, modify }: CreateProperty): void {
   const metadata = Metadata.get();
   const className = target.constructor.name;
-  metadata[className] = metadata[className] || {};
-  const obj = metadata[className]["doc_paths"] || {};
-  obj[prop] = obj[prop] || {};
-  obj[prop]["property"] = obj[prop]["property"] || {};
-  Object.assign(obj[prop]["property"], object);
-  metadata[className]["doc_paths"] = obj;
+  metadata[className] ??= {};
+  const obj = metadata[className]["route"] ?? {};
+  obj[prop] ??= {};
+  obj[prop].property = deepMerge(property, obj[prop].property);
+  modify?.(obj[prop]);
+  metadata[className]["route"] = obj;
 }
 
 function addSecurity(className: string, name: string, values: TRet): void {
@@ -79,33 +104,22 @@ function addSecurity(className: string, name: string, values: TRet): void {
       [name]: values || [],
     },
   ];
-  const paths = metadata[className]["doc_paths"];
-  for (const key in paths) {
-    if (paths[key]) {
-      paths[key]["property"]["security"] =
-        (paths[key]["property"]["security"] || []).concat(security);
-    }
+  metadata[className] ??= {};
+  const route = metadata[className]["route"] ?? {};
+  for (const key in route) {
+    route[key] ??= {};
+    route[key].property ??= {};
+    const prev = route[key].property.security ?? [];
+    route[key].property.security = prev.concat(security);
   }
-  metadata[className]["doc_paths"] = paths;
+  metadata[className]["route"] = route;
 }
 /**
  * ApiOperation decorators.
  */
 export function ApiOperation(object: TApiDoc): TDecorator {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const metadata = Metadata.get();
-    if (!object.responses) {
-      object.responses = {};
-    }
-    const className = target.constructor.name;
-    const info = metadata[className]["route"][prop];
-    const obj = metadata[className]["doc_paths"] || {};
-    obj[prop] = {
-      path: info.path,
-      method: info.method,
-      property: object,
-    };
-    metadata[className]["doc_paths"] = obj;
+    createProps({ target, prop, property: object });
     return des;
   };
 }
@@ -139,13 +153,11 @@ export function ApiResponse(
   }
   const _status = status.toString();
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const metadata = Metadata.get();
-    const className = target.constructor.name;
-    const obj = metadata[className]["doc_paths"] || {};
-    obj[prop] = obj[prop] || {};
-    obj[prop]["property"] = obj[prop]["property"] || {};
-    obj[prop]["property"]["responses"][_status] = object;
-    metadata[className]["doc_paths"] = obj;
+    createProps({
+      target,
+      prop,
+      property: { responses: { [_status]: object } },
+    });
     return des;
   };
 }
@@ -153,16 +165,15 @@ export function ApiResponse(
  * ApiParameter decorators.
  */
 export function ApiParameter(object: TParameterObject): TDecorator {
-  const parameters = [object];
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    const metadata = Metadata.get();
-    const className = target.constructor.name;
-    const obj = metadata[className]["doc_paths"] || {};
-    obj[prop] = obj[prop] || {};
-    obj[prop]["property"] = obj[prop]["property"] || {};
-    obj[prop]["property"]["parameters"] =
-      (obj[prop]["property"]["parameters"] || []).concat(parameters);
-    metadata[className]["doc_paths"] = obj;
+    createProps({
+      target,
+      prop,
+      property: { parameters: [] },
+      modify: (obj) => {
+        obj.property.parameters.unshift(object);
+      },
+    });
     return des;
   };
 }
@@ -172,7 +183,7 @@ export function ApiParameter(object: TParameterObject): TDecorator {
 export function ApiSchema(name: string, object: TSchemaObject): TDecorator {
   return (_target: TObject, _prop: string, des: PropertyDescriptor) => {
     const metadata = Metadata.get();
-    metadata["doc_schemas"] = metadata["doc_schemas"] || {};
+    metadata["doc_schemas"] ??= {};
     metadata["doc_schemas"][name] = object;
     return des;
   };
@@ -226,7 +237,7 @@ export function ApiRequestBody(object: TRequestBodyObject): TDecorator {
       delete object.schema;
     }
     return (target: TObject, prop: string, des: PropertyDescriptor) => {
-      joinProperty(target, prop, { requestBody: object });
+      createProps({ target, prop, property: { requestBody: object } });
       return des;
     };
   }
@@ -250,11 +261,15 @@ export function ApiRequestBody(object: TRequestBodyObject): TDecorator {
         };
       }
     }
-    joinProperty(target, prop, {
-      requestBody: {
-        description: object.description,
-        required: object.required,
-        content: content,
+    createProps({
+      target,
+      prop,
+      property: {
+        requestBody: {
+          description: object.description,
+          required: object.required,
+          content: content,
+        },
       },
     });
     return des;
@@ -268,28 +283,34 @@ export function ApiDocument(objOrArr: TTagObject | TTagObject[]): TDecorator {
   return (target: TObject) => {
     const metadata = Metadata.get();
     const className = target.name;
-    const route = metadata[className]["route"];
-    const paths = metadata[className]["doc_paths"];
+    const route = metadata[className]?.["route"] ?? {};
     const doc_paths = [] as TRet;
     const tagsName = tags.map((el: TRet) => el.name);
-    for (const key in paths) {
-      if (paths[key]) {
-        paths[key]["property"]["tags"] = tagsName;
-        paths[key]["path"] = route[key]["path"];
-        const newPath = paths[key]["path"].split("/").map((el: string) => {
-          if (el.startsWith(":")) {
-            el = `{${el.substring(1)}}`;
+    for (const key in route) {
+      if (route[key]) {
+        const props = route[key]["property"];
+        if (isObject(props)) {
+          if (!props.responses) {
+            throw new Error("@ApiResponse is required !");
           }
-          return el;
-        }).join("/");
-        doc_paths.push({
-          ...paths[key],
-          path: newPath,
-        });
+          route[key]["property"]["tags"] = tagsName;
+        }
+        if (route[key]?.["path"]) {
+          const newPath = route[key]["path"].split("/").map((el: string) => {
+            if (el.startsWith(":")) {
+              el = `{${el.substring(1)}}`;
+            }
+            return el;
+          }).join("/");
+          doc_paths.push({
+            ...route[key],
+            path: newPath,
+          });
+        }
       }
     }
-    metadata["doc_paths"] = (metadata["doc_paths"] || []).concat(doc_paths);
-    metadata["doc_tags"] = (metadata["doc_tags"] || []).concat(
+    metadata["doc_paths"] = (metadata["doc_paths"] ?? []).concat(doc_paths);
+    metadata["doc_tags"] = (metadata["doc_tags"] ?? []).concat(
       tags,
     );
   };
