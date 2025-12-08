@@ -198,12 +198,12 @@ const setup = (swaggerDoc: TObject, opts: GenHtmlOpts = {}): Handler => {
   );
 
   return ({ response, path }) => {
-    html = html.replaceAll(
+    const relativeHtml = html.replaceAll(
       "<% base %>",
-      path,
+      path.replace(/\/+$/, ""),
     );
     response.type("html");
-    return html;
+    return relativeHtml;
   };
 };
 /**
