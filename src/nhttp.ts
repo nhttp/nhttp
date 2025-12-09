@@ -473,7 +473,7 @@ export class NHttp<
     const obj = getError(
       new HttpError(
         404,
-        `Route ${rev.method}${rev.originalUrl} not found`,
+        `Route ${rev.method} ${rev.originalUrl} not found`,
         "NotFoundError",
       ),
     );
